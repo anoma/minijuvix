@@ -3,6 +3,7 @@ module TypeCheck.Positive where
 import Base
 import qualified MiniJuvix.Syntax.MicroJuvix.TypeChecker as T
 import qualified MiniJuvix.Translation.AbstractToMicroJuvix as A
+import MiniJuvix.Syntax.MicroJuvix.Error
 
 data PosTest = PosTest {
   name :: String,
@@ -25,7 +26,7 @@ testDescr PosTest {..} = TestDescr {
                 >>| T.checkModule
 
       case result of
-        Left es -> assertFailure ("The type checker returned the errors: " <> show es)
+        Left es -> assertFailure ("The type checker returned the errors:\n" <> show (ppTypeCheckerError <$> (toList es)))
         Right _ -> return ()
   }
 
