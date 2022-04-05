@@ -78,20 +78,30 @@ checkExpression t e = do
   unlessM (matchTypes t inferredType) (throw (err inferredType))
   return (ExpressionTyped t')
   where
-    err infTy = ErrWrongType (WrongType { _wrongTypeExpression = e,
-                                          _wrongTypeInferredType = infTy,
-                                          _wrongTypeExpectedType = t})
+    err infTy =
+      ErrWrongType
+        ( WrongType
+            { _wrongTypeExpression = e,
+              _wrongTypeInferredType = infTy,
+              _wrongTypeExpectedType = t
+            }
+        )
 
-matchTypes :: Members '[Reader InfoTable] r =>
-   Type -> Type -> Sem r Bool
+matchTypes ::
+  Members '[Reader InfoTable] r =>
+  Type ->
+  Type ->
+  Sem r Bool
 matchTypes a b = do
-   a' <- normalizeType a
-   b' <- normalizeType b
-   return $
-     a' == TypeAny || b' == TypeAny || a' == b'
+  a' <- normalizeType a
+  b' <- normalizeType b
+  return $
+    a' == TypeAny || b' == TypeAny || a' == b'
 
-inferExpression :: Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars] r =>
-   Expression -> Sem r Expression
+inferExpression ::
+  Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars] r =>
+  Expression ->
+  Sem r Expression
 inferExpression = fmap ExpressionTyped . inferExpression'
 
 lookupConstructor :: Member (Reader InfoTable) r => Name -> Sem r ConstructorInfo
