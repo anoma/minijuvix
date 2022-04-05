@@ -29,8 +29,6 @@ jobs:
             dist-newstyle
             main/.stack-work/
             main/.hie
-            main/dist-newstyle
-            main/cabal-dev
           key: ${{ runner.os }}-build-${{ matrix.ghc }}-${{ hashFiles('main/src/**') }}
           restore-keys: |
             ${{ runner.os }}-build-${{ matrix.ghc }}-
@@ -76,9 +74,7 @@ jobs:
             dist-newstyle
             main/.stack-work/
             main/.hie
-            main/dist-newstyle
-            main/cabal-dev
-          key: ${{ runner.os }}-build-${{ matrix.ghc }}
+          key: ${{ runner.os }}-build-${{ matrix.ghc }}-
       - name: Checkout the main repository
         uses: actions/checkout@v2
         with:
@@ -91,12 +87,12 @@ jobs:
 
   static-checks:
     needs: build
-    if:  ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    # if:  ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        ghc: ["9.2.2"]
+        ghc: ["9.2"]
     steps:
       - uses: actions/cache@v2
         id: cache-build
@@ -107,8 +103,6 @@ jobs:
             dist-newstyle
             main/.stack-work/
             main/.hie
-            main/dist-newstyle
-            main/cabal-dev
           key: ${{ runner.os }}-build-${{ matrix.ghc }}
 
       - name: Checkout the main repository
