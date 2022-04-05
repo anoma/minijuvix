@@ -103,7 +103,7 @@ jobs:
             dist-newstyle
             main/.stack-work/
             main/.hie
-          key: ${{ runner.os }}-build-${{ matrix.ghc }}
+          key: ${{ runner.os }}-build-${{ matrix.ghc }}-
 
       - name: Checkout the main repository
         uses: actions/checkout@v2
