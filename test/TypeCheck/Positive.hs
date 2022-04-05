@@ -1,0 +1,40 @@
+module TypeCheck.Positive where
+
+import Base
+import qualified MiniJuvix.Syntax.MicroJuvix.TypeChecker as T
+import qualified MiniJuvix.Translation.AbstractToMicroJuvix as A
+
+data PosTest = PosTest {
+  name :: String,
+  relDir :: FilePath,
+  file :: FilePath
+  }
+
+root :: FilePath
+root = "tests/positive"
+
+testDescr :: PosTest -> TestDescr
+testDescr PosTest {..} = TestDescr {
+  testName = name,
+  testRoot = root </> relDir,
+  testAssertion = Single $ do
+      result <- parseModuleIO file
+                >>= scopeModuleIO
+                >>= translateModuleIO
+                >>| A.translateModule
+                >>| T.checkModule
+
+      case result of
+        Left es -> assertFailure ("The type checker returned the errors: " <> show es)
+        Right _ -> return ()
+  }
+
+allTests :: TestTree
+allTests = testGroup "Scope positive tests"
+  (map (mkTest . testDescr) tests)
+
+tests :: [PosTest]
+tests = [
+  PosTest "Simple"
+     "MicroJuvix" "Simple.mjuvix"
+ ]
