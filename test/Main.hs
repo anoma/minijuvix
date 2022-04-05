@@ -1,9 +1,8 @@
 module Main (main) where
 
 import Base
-
-import qualified TypeCheck
-import qualified Scope
+import Scope qualified
+import TypeCheck qualified
 
 allTests :: TestTree
 allTests = testGroup "MiniJuvix tests" $
