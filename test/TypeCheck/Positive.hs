@@ -38,4 +38,8 @@ tests :: [PosTest]
 tests = [
   PosTest "Simple"
      "MicroJuvix" "Simple.mjuvix"
+  , PosTest "Literal String matches any type"
+     "MicroJuvix" "LiteralString.mjuvix"
+  , PosTest "Literal Int matches any type"
+     "MicroJuvix" "LiteralInt.mjuvix"
  ]

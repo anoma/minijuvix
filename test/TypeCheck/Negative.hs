@@ -55,14 +55,6 @@ tests = [
     "WrongType.mjuvix" $ \case
       [ErrWrongType {}] -> Nothing
       _ -> wrongError
-  , NegTest "literal string vs inferred type mismatch" "MicroJuvix"
-    "WrongTypeLiteralString.mjuvix" $ \case
-      [ErrWrongType {}] -> Nothing
-      _ -> wrongError
-  , NegTest "literal int vs inferred type mismatch" "MicroJuvix"
-    "WrongTypeLiteralInt.mjuvix" $ \case
-      [ErrWrongType {}] -> Nothing
-      _ -> wrongError
   , NegTest "Function application with non-function type" "MicroJuvix"
     "ExpectedFunctionType.mjuvix" $ \case
       [ErrExpectedFunctionType {}] -> Nothing
