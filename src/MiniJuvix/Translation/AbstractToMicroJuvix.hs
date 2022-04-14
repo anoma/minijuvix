@@ -17,18 +17,20 @@ import MiniJuvix.Syntax.Usage qualified as A
 entryMicroJuvix ::
   Abstract.AbstractResult ->
   Sem r MicroJuvixResult
-entryMicroJuvix ares =
+entryMicroJuvix ares = do
+  _resultModules' <- mapM translateModule (ares ^. Abstract.resultModules)
   return
     MicroJuvixResult
       { _resultAbstract = ares,
-        _resultModules = fmap translateModule (ares ^. Abstract.resultModules)
+        _resultModules = _resultModules'
       }
 
-translateModule :: A.TopModule -> Module
-translateModule m =
-  Module
+translateModule :: A.TopModule -> Sem r Module
+translateModule m = do
+  _moduleBody' <- goModuleBody (m ^. A.moduleBody)
+  return Module
     { _moduleName = goTopModuleName (m ^. A.moduleName),
-      _moduleBody = goModuleBody (m ^. A.moduleBody)
+      _moduleBody = _moduleBody'
     }
 
 goTopModuleName :: A.TopModuleName -> Name
@@ -50,20 +52,20 @@ goSymbol s =
 unsupported :: Text -> a
 unsupported thing = error ("Abstract to MicroJuvix: Not yet supported: " <> thing)
 
-goImport :: A.TopModule -> ModuleBody
+goImport :: A.TopModule -> Sem r ModuleBody
 goImport m = goModuleBody (m ^. A.moduleBody)
 
-goModuleBody :: A.ModuleBody -> ModuleBody
-goModuleBody b = ModuleBody (map goStatement (b ^. A.moduleStatements))
+goModuleBody :: A.ModuleBody -> Sem r ModuleBody
+goModuleBody b = ModuleBody <$> mapM goStatement (b ^. A.moduleStatements)
 
-goStatement :: A.Statement -> Statement
+goStatement :: A.Statement -> Sem r Statement
 goStatement = \case
-  A.StatementAxiom d -> StatementAxiom (goAxiomDef d)
-  A.StatementForeign f -> StatementForeign f
-  A.StatementFunction f -> StatementFunction (goFunctionDef f)
+  A.StatementAxiom d -> StatementAxiom <$> goAxiomDef d
+  A.StatementForeign f -> return (StatementForeign f)
+  A.StatementFunction f -> StatementFunction <$> goFunctionDef f
   A.StatementImport {} -> unsupported "imports"
   A.StatementLocalModule {} -> unsupported "local modules"
-  A.StatementInductive i -> StatementInductive (goInductiveDef i)
+  A.StatementInductive i -> StatementInductive <$> goInductiveDef i
 
 goTypeIden :: A.Iden -> TypeIden
 goTypeIden i = case i of
@@ -73,71 +75,87 @@ goTypeIden i = case i of
   A.IdenInductive d -> TypeIdenInductive (goName (d ^. A.inductiveRefName))
   A.IdenAxiom a -> TypeIdenAxiom (goName (a ^. A.axiomRefName))
 
-goAxiomDef :: A.AxiomDef -> AxiomDef
-goAxiomDef a =
-  AxiomDef
+goAxiomDef :: A.AxiomDef -> Sem r AxiomDef
+goAxiomDef a = do
+  _axiomType' <- goType (a ^. A.axiomType)
+  return AxiomDef
     { _axiomName = goSymbol (a ^. A.axiomName),
-      _axiomType = goType (a ^. A.axiomType),
+      _axiomType = _axiomType',
       _axiomBackendItems = a ^. A.axiomBackendItems
     }
 
-goFunctionParameter :: A.FunctionParameter -> Type
+goFunctionParameter :: A.FunctionParameter -> Sem r (Either VarName Type)
 goFunctionParameter f = case f ^. A.paramName of
   Just {} -> unsupported "named function arguments"
   _ -> case f ^. A.paramUsage of
-    A.UsageOmega -> goType (f ^. A.paramType)
+    A.UsageOmega -> Right <$> goType (f ^. A.paramType)
     _ -> unsupported "usages"
 
-goFunction :: A.Function -> Function
-goFunction (A.Function l r) = Function (goFunctionParameter l) (goType r)
+goFunction :: A.Function -> Sem r Type
+goFunction (A.Function l r) = do
+  l' <- goFunctionParameter l
+  r' <- goType r
+  return $ case l' of
+    Left tyvar -> TypeAbs (TypeAbstraction tyvar r')
+    Right ty -> TypeFunction (Function ty r')
 
-goFunctionDef :: A.FunctionDef -> FunctionDef
-goFunctionDef f =
-  FunctionDef
+goFunctionDef :: A.FunctionDef -> Sem r FunctionDef
+goFunctionDef f = do
+  _funDefClauses' <- mapM (goFunctionClause _funDefName') (f ^. A.funDefClauses)
+  _funDefType' <- goType (f ^. A.funDefTypeSig)
+  return FunctionDef
     { _funDefName = _funDefName',
-      _funDefType = goType (f ^. A.funDefTypeSig),
-      _funDefClauses = fmap (goFunctionClause _funDefName') (f ^. A.funDefClauses)
+      _funDefType = _funDefType',
+      _funDefClauses = _funDefClauses'
     }
   where
     _funDefName' :: Name
     _funDefName' = goSymbol (f ^. A.funDefName)
 
-goFunctionClause :: Name -> A.FunctionClause -> FunctionClause
-goFunctionClause n c =
-  FunctionClause
+goFunctionClause :: Name -> A.FunctionClause -> Sem r FunctionClause
+goFunctionClause n c = do
+  _clauseBody' <- goExpression (c ^. A.clauseBody)
+  _clausePatterns' <- mapM goPattern (c ^. A.clausePatterns)
+  return FunctionClause
     { _clauseName = n,
-      _clausePatterns = map goPattern (c ^. A.clausePatterns),
-      _clauseBody = goExpression (c ^. A.clauseBody)
+      _clausePatterns = _clausePatterns',
+      _clauseBody = _clauseBody'
     }
 
-goPattern :: A.Pattern -> Pattern
+goPattern :: A.Pattern -> Sem r Pattern
 goPattern p = case p of
-  A.PatternVariable v -> PatternVariable (goSymbol v)
-  A.PatternConstructorApp c -> PatternConstructorApp (goConstructorApp c)
-  A.PatternWildcard -> PatternWildcard
+  A.PatternVariable v -> return (PatternVariable (goSymbol v))
+  A.PatternConstructorApp c -> PatternConstructorApp <$> goConstructorApp c
+  A.PatternWildcard -> return PatternWildcard
   A.PatternEmpty -> unsupported "pattern empty"
 
-goConstructorApp :: A.ConstructorApp -> ConstructorApp
-goConstructorApp c =
-  ConstructorApp
-    (goName (c ^. A.constrAppConstructor . A.constructorRefName))
-    (map goPattern (c ^. A.constrAppParameters))
+goConstructorApp :: A.ConstructorApp -> Sem r ConstructorApp
+goConstructorApp c = do
+  _constrAppParameters'<- mapM goPattern (c ^. A.constrAppParameters)
+  return ConstructorApp {
+    _constrAppConstructor = goName (c ^. A.constrAppConstructor . A.constructorRefName),
+    _constrAppParameters = _constrAppParameters'
+   }
+    --
 
 goTypeUniverse :: Universe -> Type
 goTypeUniverse u
   | 0 == fromMaybe 0 (u ^. universeLevel) = TypeUniverse
   | otherwise = unsupported "big universes"
 
-goType :: A.Expression -> Type
+goType :: A.Expression -> Sem r Type
 goType e = case e of
-  A.ExpressionIden i -> TypeIden (goTypeIden i)
-  A.ExpressionUniverse u -> goTypeUniverse u
+  A.ExpressionIden i -> return (TypeIden (goTypeIden i))
+  A.ExpressionUniverse u -> return (goTypeUniverse u)
   A.ExpressionApplication {} -> unsupported "application in types"
-  A.ExpressionFunction f -> TypeFunction (goFunction f)
+  A.ExpressionFunction f -> goFunction f
   A.ExpressionLiteral {} -> unsupported "literals in types"
 
-goApplication :: A.Application -> Application
-goApplication (A.Application f x) = Application (goExpression f) (goExpression x)
+goApplication :: A.Application -> Sem r Application
+goApplication (A.Application f x) = do
+  f' <- goExpression f
+  x' <- goExpression x
+  return (Application f' x')
 
 goIden :: A.Iden -> Iden
 goIden i = case i of
@@ -147,43 +165,61 @@ goIden i = case i of
   A.IdenAxiom a -> IdenAxiom (goName (a ^. A.axiomRefName))
   A.IdenInductive {} -> unsupported "inductive identifier"
 
-goExpression :: A.Expression -> Expression
+goExpression :: A.Expression -> Sem r Expression
 goExpression e = case e of
-  A.ExpressionIden i -> ExpressionIden (goIden i)
+  A.ExpressionIden i -> return (ExpressionIden (goIden i))
   A.ExpressionUniverse {} -> unsupported "universes in expression"
   A.ExpressionFunction {} -> unsupported "function type in expressions"
-  A.ExpressionApplication a -> ExpressionApplication (goApplication a)
-  A.ExpressionLiteral l -> ExpressionLiteral l
+  A.ExpressionApplication a -> ExpressionApplication <$> goApplication a
+  A.ExpressionLiteral l -> return (ExpressionLiteral l)
 
-goInductiveDef :: A.InductiveDef -> InductiveDef
+goInductiveParameter :: A.FunctionParameter -> Sem r InductiveParameter
+goInductiveParameter f =
+  case (f ^. A.paramName, f ^. A.paramUsage, f ^. A.paramType) of
+    (Just var, A.UsageOmega, A.ExpressionUniverse u)
+      | fromMaybe 0 (u ^. universeLevel) == 0 ->
+        return InductiveParameter {
+          _inductiveParamName = goSymbol var
+             }
+    (Just {}, _, _) -> unsupported "only type variables of small types are allowed"
+    (Nothing, _, _) -> unsupported "unnamed inductive parameters"
+
+goInductiveDef :: forall r. A.InductiveDef -> Sem r InductiveDef
 goInductiveDef i = case i ^. A.inductiveType of
   Just {} -> unsupported "inductive indices"
-  _ ->
-    InductiveDef
-      { _inductiveName = indName,
-        _inductiveConstructors = map goConstructorDef (i ^. A.inductiveConstructors)
+  _ -> do
+    _inductiveParameters' <- mapM goInductiveParameter (i ^. A.inductiveParameters)
+    _inductiveConstructors' <- mapM goConstructorDef (i ^. A.inductiveConstructors)
+    return InductiveDef {
+      _inductiveName = indName,
+      _inductiveParameters = _inductiveParameters',
+      _inductiveConstructors = _inductiveConstructors'
       }
   where
-    indName = goSymbol (i ^. A.inductiveName)
-    goConstructorDef :: A.InductiveConstructorDef -> InductiveConstructorDef
-    goConstructorDef c =
-      InductiveConstructorDef
-        { _constructorName = goSymbol (c ^. A.constructorName),
-          _constructorParameters = goConstructorType (c ^. A.constructorType)
-        }
-    goConstructorType :: A.Expression -> [Type]
-    goConstructorType = fst . viewExpressionFunctionType
+  indName = goSymbol (i ^. A.inductiveName)
+  goConstructorDef :: A.InductiveConstructorDef -> Sem r InductiveConstructorDef
+  goConstructorDef c = do
+    _constructorParameters' <- goConstructorType (c ^. A.constructorType)
+    return InductiveConstructorDef
+      { _constructorName = goSymbol (c ^. A.constructorName),
+        _constructorParameters = _constructorParameters'
+      }
+  --TODO check that the return type corresponds with the inductive type
+  goConstructorType :: A.Expression -> Sem r [Type]
+  goConstructorType = fmap fst . viewConstructorType
 
--- TODO: add docs or an example
-viewExpressionFunctionType :: A.Expression -> ([Type], Type)
-viewExpressionFunctionType e = case e of
-  A.ExpressionFunction f -> first toList (viewFunctionType f)
-  A.ExpressionIden i -> ([], TypeIden (goTypeIden i))
+viewConstructorType :: A.Expression -> Sem r ([Type], Type)
+viewConstructorType e = case e of
+  A.ExpressionFunction f -> first toList <$> viewFunctionType f
+  A.ExpressionIden i -> return ([], TypeIden (goTypeIden i))
   A.ExpressionApplication {} -> unsupported "application in a type"
-  A.ExpressionUniverse {} -> ([], TypeUniverse)
+  A.ExpressionUniverse {} -> return ([], TypeUniverse)
   A.ExpressionLiteral {} -> unsupported "literal in a type"
-
-viewFunctionType :: A.Function -> (NonEmpty Type, Type)
-viewFunctionType (A.Function p r) = (goFunctionParameter p :| args, ret)
   where
-    (args, ret) = viewExpressionFunctionType r
+  viewFunctionType :: A.Function -> Sem r (NonEmpty Type, Type)
+  viewFunctionType (A.Function p r) = do
+    (args, ret) <- viewConstructorType r
+    p' <- goFunctionParameter p
+    return $ case p' of
+      Left {} -> unsupported "type abstraction in constructor type"
+      Right ty -> (ty :| args, ret)

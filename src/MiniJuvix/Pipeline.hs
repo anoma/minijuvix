@@ -17,7 +17,8 @@ import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult qualified as MicroJuvix
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as MicroJuvix
 import MiniJuvix.Syntax.MicroJuvix.TypeChecker qualified as MicroJuvix
 import MiniJuvix.Translation.AbstractToMicroJuvix qualified as MicroJuvix
-import MiniJuvix.Translation.MicroJuvixToMiniHaskell qualified as MiniHaskell
+import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
+import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as MonoJuvix
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 
 type StageInput :: Pipe -> GHC.Type
@@ -64,9 +65,13 @@ upToMicroJuvix = upToAbstract >=> pipelineMicroJuvix
 upToMicroJuvixTyped :: Members '[Files, Error AJuvixError] r => EntryPoint -> Sem r MicroJuvix.MicroJuvixTypedResult
 upToMicroJuvixTyped = upToMicroJuvix >=> pipelineMicroJuvixTyped
 
+upToMonoJuvix ::
+  Members '[Files, Error AJuvixError] r => EntryPoint -> Sem r MonoJuvix.MonoJuvixResult
+upToMonoJuvix = upToMicroJuvixTyped >=> pipelineMonoJuvix
+
 upToMiniHaskell ::
   Members '[Files, Error AJuvixError] r => EntryPoint -> Sem r MiniHaskell.MiniHaskellResult
-upToMiniHaskell = upToMicroJuvixTyped >=> pipelineMiniHaskell
+upToMiniHaskell = upToMonoJuvix >=> pipelineMiniHaskell
 
 --------------------------------------------------------------------------------
 
@@ -94,8 +99,14 @@ pipelineMicroJuvixTyped ::
   Sem r MicroJuvix.MicroJuvixTypedResult
 pipelineMicroJuvixTyped = mapError (toAJuvixError @MicroJuvix.TypeCheckerErrors) . MicroJuvix.entryMicroJuvixTyped
 
-pipelineMiniHaskell ::
+pipelineMonoJuvix ::
   Members '[Files, Error AJuvixError] r =>
   MicroJuvix.MicroJuvixTypedResult ->
+  Sem r MonoJuvix.MonoJuvixResult
+pipelineMonoJuvix = mapError (toAJuvixError @Text) . MonoJuvix.entryMonoJuvix
+
+pipelineMiniHaskell ::
+  Members '[Files, Error AJuvixError] r =>
+  MonoJuvix.MonoJuvixResult ->
   Sem r MiniHaskell.MiniHaskellResult
 pipelineMiniHaskell = mapError (toAJuvixError @Text) . MiniHaskell.entryMiniHaskell

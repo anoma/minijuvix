@@ -1,6 +1,6 @@
-module MiniJuvix.Translation.MicroJuvixToMiniHaskell
-  ( module MiniJuvix.Translation.MicroJuvixToMiniHaskell,
-    module MiniJuvix.Syntax.MiniHaskell.MiniHaskellResult,
+module MiniJuvix.Translation.MicroJuvixToMonoJuvix
+  ( module MiniJuvix.Translation.MicroJuvixToMonoJuvix,
+    module MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult,
   )
 where
 
@@ -11,17 +11,17 @@ import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.MicroJuvix.InfoTable qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
-import MiniJuvix.Syntax.MiniHaskell.Language
-import MiniJuvix.Syntax.MiniHaskell.MiniHaskellResult
+import MiniJuvix.Syntax.MonoJuvix.Language
+import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
 import Prettyprinter
 
-entryMiniHaskell ::
+entryMonoJuvix ::
   Member (Error Err) r =>
   Micro.MicroJuvixTypedResult ->
-  Sem r MiniHaskellResult
-entryMiniHaskell i = do
+  Sem r MonoJuvixResult
+entryMonoJuvix i = do
   _resultModules <- mapM goModule' (i ^. Micro.resultModules)
-  return MiniHaskellResult {..}
+  return MonoJuvixResult {..}
   where
     _resultMicroJuvixTyped = i
     goModule' m = runReader table (goModule m)
@@ -236,11 +236,11 @@ goFunction Micro.Function {..} = do
 goTypeIden :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.TypeIden -> Sem r Type
 goTypeIden = \case
   Micro.TypeIdenInductive n -> return (TypeIden (TypeIdenInductive (goName n)))
-  Micro.TypeIdenAxiom n -> TypeVerbatim <$> goAxiomIden n
+  Micro.TypeIdenAxiom n -> return (TypeIden (TypeIdenAxiom (goName n)))
 
 goType :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Type -> Sem r Type
 goType = \case
   Micro.TypeIden t -> goTypeIden t
   Micro.TypeFunction f -> TypeFunction <$> goFunction f
-  Micro.TypeUniverse -> throwErr "MiniHaskell: universes in types not supported"
+  Micro.TypeUniverse -> throwErr "MonoJuvix: universes in types not supported"
   Micro.TypeAny -> impossible

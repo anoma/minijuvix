@@ -1,12 +1,12 @@
-module MiniJuvix.Syntax.MicroJuvix.Pretty.Base where
+module MiniJuvix.Syntax.MonoJuvix.Pretty.Base where
 
 import MiniJuvix.Internal.Strings qualified as Str
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
-import MiniJuvix.Syntax.MicroJuvix.Language
-import MiniJuvix.Syntax.MicroJuvix.Pretty.Ann
+import MiniJuvix.Syntax.MonoJuvix.Language
+import MiniJuvix.Syntax.MonoJuvix.Pretty.Ann
 import Prettyprinter
 
 newtype Options = Options
@@ -45,12 +45,6 @@ instance PrettyCode Iden where
     IdenConstructor na -> ppCode na
     IdenVar na -> ppCode na
     IdenAxiom a -> ppCode a
-
-instance PrettyCode TypeApplication where
-  ppCode (TypeApplication l r) = do
-    l' <- ppLeftExpression appFixity l
-    r' <- ppRightExpression appFixity r
-    return $ l' <+> r'
 
 instance PrettyCode Application where
   ppCode a = do
@@ -125,12 +119,6 @@ instance PrettyCode BackendItem where
     return $
       backend <+> kwMapsto <+> pretty _backendItemCode
 
-instance PrettyCode TypeAbstraction where
-  ppCode (TypeAbstraction l r) = do
-    l' <- ppLeftExpression funFixity l
-    r' <- ppRightExpression funFixity r
-    return $ l' <+> kwArrow <+> r'
-
 instance PrettyCode Function where
   ppCode (Function l r) = do
     l' <- ppLeftExpression funFixity l
@@ -148,8 +136,6 @@ instance PrettyCode Type where
     TypeFunction f -> ppCode f
     TypeUniverse -> return kwType
     TypeAny -> return kwAny
-    TypeApp a -> ppCode a
-    TypeAbs a -> ppCode a
 
 instance PrettyCode InductiveConstructorDef where
   ppCode c = do

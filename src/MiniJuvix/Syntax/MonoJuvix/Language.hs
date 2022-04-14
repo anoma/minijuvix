@@ -1,5 +1,5 @@
-module MiniJuvix.Syntax.MicroJuvix.Language
-  ( module MiniJuvix.Syntax.MicroJuvix.Language,
+module MiniJuvix.Syntax.MonoJuvix.Language
+  ( module MiniJuvix.Syntax.MonoJuvix.Language,
     module MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind,
     module MiniJuvix.Syntax.Concrete.Scoped.Name,
   )
@@ -133,14 +133,8 @@ data Pattern
   | PatternWildcard
   deriving stock (Show)
 
-newtype InductiveParameter = InductiveParameter {
-  _inductiveParamName :: VarName
- }
-  deriving stock (Show, Eq)
-
 data InductiveDef = InductiveDef
   { _inductiveName :: InductiveName,
-    _inductiveParameters :: [InductiveParameter],
     _inductiveConstructors :: [InductiveConstructorDef]
   }
 
@@ -154,23 +148,9 @@ data TypeIden
   | TypeIdenAxiom AxiomName
   deriving stock (Show, Eq)
 
-data TypeApplication = TypeApplication {
-  _typeAppLeft :: Type,
-  _typeAppRight :: Type
-  }
-  deriving stock (Show, Eq)
-
-data TypeAbstraction = TypeAbstraction {
-  _typeAbsVar :: VarName,
-  _typeAbsBody :: Type
-  }
-  deriving stock (Show, Eq)
-
 data Type
   = TypeIden TypeIden
-  | TypeApp TypeApplication
   | TypeFunction Function
-  | TypeAbs TypeAbstraction
   | TypeUniverse
   | TypeAny
   deriving stock (Show, Eq)
@@ -184,19 +164,10 @@ makeLenses ''AxiomDef
 makeLenses ''ModuleBody
 makeLenses ''Application
 makeLenses ''TypedExpression
-makeLenses ''TypeAbstraction
-makeLenses ''TypeApplication
-makeLenses ''InductiveParameter
 makeLenses ''InductiveConstructorDef
 makeLenses ''ConstructorApp
 
-instance HasAtomicity Name where
-  atomicity = const Atom
-
 instance HasAtomicity Application where
-  atomicity = const (Aggregate appFixity)
-
-instance HasAtomicity TypeApplication where
   atomicity = const (Aggregate appFixity)
 
 instance HasAtomicity Expression where
@@ -209,17 +180,12 @@ instance HasAtomicity Expression where
 instance HasAtomicity Function where
   atomicity = const (Aggregate funFixity)
 
-instance HasAtomicity TypeAbstraction where
-  atomicity = const (Aggregate funFixity)
-
 instance HasAtomicity Type where
   atomicity t = case t of
     TypeIden {} -> Atom
     TypeFunction f -> atomicity f
     TypeUniverse -> Atom
     TypeAny -> Atom
-    TypeAbs a -> atomicity a
-    TypeApp a -> atomicity a
 
 instance HasAtomicity ConstructorApp where
   atomicity (ConstructorApp _ args)
