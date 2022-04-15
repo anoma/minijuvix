@@ -198,6 +198,9 @@ inferExpression = fmap ExpressionTyped . inferExpression'
 lookupConstructor :: Member (Reader InfoTable) r => Name -> Sem r ConstructorInfo
 lookupConstructor f = HashMap.lookupDefault impossible f <$> asks _infoConstructors
 
+lookupInductive :: Member (Reader InfoTable) r => InductiveName -> Sem r InductiveInfo
+lookupInductive f = HashMap.lookupDefault impossible f <$> asks _infoInductives
+
 lookupFunction :: Member (Reader InfoTable) r => Name -> Sem r FunctionInfo
 lookupFunction f = HashMap.lookupDefault impossible f <$> asks _infoFunctions
 
@@ -211,14 +214,18 @@ constructorType :: Member (Reader InfoTable) r => Name -> Sem r Type
 constructorType c = do
   info <- lookupConstructor c
   let r = TypeIden (TypeIdenInductive (info ^. constructorInfoInductive))
-  return (foldFunType (constructorArgTypes info) r)
-
-constructorArgTypes :: ConstructorInfo -> [FunctionArgType]
-constructorArgTypes i =
-  map goParam (i ^. constructorInfoInductiveParameters)
-  ++ map FunctionArgTypeType (i ^. constructorInfoArgs)
+  return (foldFunType (args info) r)
   where
-  goParam = FunctionArgTypeAbstraction . (^. inductiveParamName)
+  args info = map FunctionArgTypeAbstraction as
+   ++ map FunctionArgTypeType bs
+    where (as, bs) = constructorArgTypes info
+
+constructorArgTypes :: ConstructorInfo -> ([VarName],[Type])
+constructorArgTypes i =
+  (map goParam (i ^. constructorInfoInductiveParameters)
+  , i ^. constructorInfoArgs)
+  where
+  goParam = (^. inductiveParamName)
 
 -- | [a, b] c ==> a -> (b -> c)
 foldFunType :: [FunctionArgType] -> Type -> Type
@@ -286,6 +293,32 @@ typeOfArg a = case a of
   FunctionArgTypeAbstraction {} -> TypeUniverse
   FunctionArgTypeType ty -> ty
 
+substitution :: [(InductiveParameter, Type)] -> Type -> Type
+substitution as = go
+  where
+  go :: Type -> Type
+  go = \case
+    TypeIden i -> goIden i
+    TypeApp a -> TypeApp (goApp a)
+    TypeAbs a -> TypeAbs (goAbs a)
+    TypeFunction f -> TypeFunction (goFunction f)
+    TypeUniverse -> TypeUniverse
+    TypeAny -> TypeAny
+  goApp :: TypeApplication -> TypeApplication
+  goApp (TypeApplication l r) = TypeApplication (go l) (go r)
+  goAbs :: TypeAbstraction -> TypeAbstraction
+  goAbs (TypeAbstraction v b) = (TypeAbstraction v (go b))
+  goFunction :: Function -> Function
+  goFunction (Function l r) = Function (go l) (go r)
+  goIden :: TypeIden -> Type
+  goIden i = case i of
+    TypeIdenInductive {} -> TypeIden i
+    TypeIdenAxiom {} -> TypeIden i
+    TypeIdenVariable v -> case HashMap.lookup v m of
+      Just ty -> ty
+      Nothing -> TypeIden i
+  m = HashMap.fromList (map (first (^. inductiveParamName)) as)
+
 checkPattern ::
   forall r.
   Members '[Reader InfoTable, Output TypeCheckerError, Error TypeCheckerError] r =>
@@ -295,22 +328,38 @@ checkPattern ::
   Sem r LocalVars
 checkPattern funName type_ pat = LocalVars . HashMap.fromList <$> go type_ pat
   where
+    checkSaturatedInductive :: Type -> Sem r (InductiveName, [(InductiveParameter, Type)])
+    checkSaturatedInductive t = do
+      (ind, args) <- viewInductiveApp t
+      params <- (^. inductiveInfoDef . inductiveParameters)
+          <$> lookupInductive ind
+      let numArgs = length args
+          numParams = length params
+      when (numArgs < numParams) (error "unsaturated inductive type")
+      when (numArgs > numParams) (error "too many arguments to inductive type")
+      return (ind, zip params args)
     go :: FunctionArgType -> Pattern -> Sem r [(VarName, Type)]
     go argTy p = let ty = typeOfArg argTy in
       case p of
       PatternWildcard -> return []
       PatternVariable v -> return [(v, ty)]
       PatternConstructorApp a -> do
+        (ind, tyArgs) <- checkSaturatedInductive ty
         info <- lookupConstructor (a ^. constrAppConstructor)
-        let inductiveTy = TypeIden (TypeIdenInductive (info ^. constructorInfoInductive))
-        when (inductiveTy /= ty) (output (ErrWrongConstructorType (WrongConstructorType (a ^. constrAppConstructor) ty inductiveTy funName)))
-        goConstr a
+        let constrInd = info ^. constructorInfoInductive
+        when (ind /= constrInd) (throw (ErrWrongConstructorType
+                 (WrongConstructorType (a ^. constrAppConstructor) ind constrInd funName)))
+        goConstr a tyArgs
       where
-        goConstr :: ConstructorApp -> Sem r [(VarName, Type)]
-        goConstr app@(ConstructorApp c ps) = do
-          tys <- constructorArgTypes <$> lookupConstructor c
-          when (length tys /= length ps) (throw (appErr app tys))
-          concat <$> zipWithM go tys ps
+        goConstr :: ConstructorApp -> [(InductiveParameter, Type)] -> Sem r [(VarName, Type)]
+        goConstr app@(ConstructorApp c ps) ctx = do
+          (tyvars, psTys) <- constructorArgTypes <$> lookupConstructor c
+          let psTys' = map (substitution ctx) psTys
+              expectedNum = length tyvars + length psTys
+          let w = map FunctionArgTypeAbstraction tyvars
+                  ++ map FunctionArgTypeType psTys'
+          when (expectedNum /= length ps) (throw (appErr app w))
+          concat <$> zipWithM go w ps
         appErr :: ConstructorApp -> [FunctionArgType] -> TypeCheckerError
         appErr app tys =
           ErrWrongConstructorAppArgs
@@ -329,7 +378,7 @@ inferExpression' ::
 inferExpression' e = case e of
   ExpressionIden i -> inferIden i
   ExpressionApplication a -> inferApplication a
-  ExpressionTyped {} -> impossible
+  ExpressionTyped t -> return t
   ExpressionLiteral l -> goLiteral l
   where
     goLiteral :: LiteralLoc -> Sem r TypedExpression
@@ -379,3 +428,21 @@ inferExpression' e = case e of
                       _expectedFunctionTypeType = t
                     }
                 )
+
+viewInductiveApp :: Member (Error TypeCheckerError) r =>
+   Type -> Sem r (InductiveName, [Type])
+viewInductiveApp ty = case t of
+  TypeIden (TypeIdenInductive n) -> return (n, as)
+  _ -> error "only inductive types can be pattern matched"
+  where
+  (t, as) = viewTypeApp ty
+
+viewTypeApp :: Type -> (Type, [Type])
+viewTypeApp t = case t of
+  TypeApp (TypeApplication l r) ->
+    second (`snoc` r) (viewTypeApp l)
+  TypeAny {} -> (t, [])
+  TypeUniverse {} -> (t, [])
+  TypeAbs {} -> (t, [])
+  TypeFunction {} -> (t, [])
+  TypeIden {} -> (t, [])

@@ -21,19 +21,29 @@ data AxiomInfo = AxiomInfo
     _axiomInfoBackends :: [BackendItem]
   }
 
+data InductiveInfo = InductiveInfo
+ { _inductiveInfoDef :: InductiveDef
+ }
+
+
 data InfoTable = InfoTable
   { _infoConstructors :: HashMap Name ConstructorInfo,
     _infoAxioms :: HashMap Name AxiomInfo,
-    _infoFunctions :: HashMap Name FunctionInfo
+    _infoFunctions :: HashMap Name FunctionInfo,
+    _infoInductives :: HashMap Name InductiveInfo
   }
 
 -- TODO temporary function.
 buildTable :: Module -> InfoTable
 buildTable m = InfoTable {..}
   where
+    _infoInductives :: HashMap Name InductiveInfo
+    _infoInductives = HashMap.fromList
+        [ (d ^. inductiveName, InductiveInfo d)
+          | StatementInductive d <- ss
+        ]
     _infoConstructors :: HashMap Name ConstructorInfo
-    _infoConstructors =
-      HashMap.fromList
+    _infoConstructors = HashMap.fromList
         [ (c ^. constructorName, ConstructorInfo params args ind)
           | StatementInductive d <- ss,
             let ind = d ^. inductiveName,
@@ -59,3 +69,4 @@ makeLenses ''InfoTable
 makeLenses ''FunctionInfo
 makeLenses ''ConstructorInfo
 makeLenses ''AxiomInfo
+makeLenses ''InductiveInfo

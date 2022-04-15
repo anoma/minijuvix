@@ -4,7 +4,24 @@ inductive Pair (A : Type) (B : Type) {
  mkPair : A → B → Pair A B;
 };
 
-fst : (A : Type) → (B : Type) → Pair A B → A;
-fst _ _ (mkPair _ _ a _) := a;
+inductive List (A : Type) {
+ nil : List A;
+ cons : A → List A → List A;
+};
+
+inductive Nat {
+ zero : Nat;
+ suc : Nat → Nat;
+};
+inductive Bool {
+ false : Bool;
+ true : Bool;
+};
+
+l1 : List Nat;
+l1 := cons Nat zero nil;
+
+fst : (A : Type) → (B : Type) → Pair A B → B;
+fst _ _ (mkPair _ _ a b) := b;
 
 end;

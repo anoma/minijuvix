@@ -7,8 +7,8 @@ import MiniJuvix.Syntax.MicroJuvix.Language
 -- not match the type of the inductive being matched
 data WrongConstructorType = WrongConstructorType
   { _wrongCtorTypeName :: Name,
-    _wrongCtorTypeExpected :: Type,
-    _wrongCtorTypeActual :: Type,
+    _wrongCtorTypeExpected :: InductiveName,
+    _wrongCtorTypeActual :: InductiveName,
     _wrongCtorTypeFunname :: Name
   }
   deriving stock (Show)
