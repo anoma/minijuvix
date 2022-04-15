@@ -29,7 +29,7 @@ import MiniJuvix.Syntax.MiniHaskell.Pretty qualified as MiniHaskell
 import MiniJuvix.Termination qualified as T
 import MiniJuvix.Termination.CallGraph qualified as A
 import MiniJuvix.Translation.AbstractToMicroJuvix qualified as Micro
-import MiniJuvix.Translation.MicroJuvixToMiniHaskell qualified as MiniHaskell
+import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 import MiniJuvix.Utils.Version (runDisplayVersion)
 import Options.Applicative

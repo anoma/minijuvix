@@ -1,0 +1,10 @@
+module Polymorphism;
+
+inductive Pair (A : Type) (B : Type) {
+ mkPair : A → B → Pair A B;
+};
+
+fst : (A : Type) → (B : Type) → Pair A B → A;
+fst _ _ (mkPair _ _ a _) := a;
+
+end;

@@ -152,6 +152,7 @@ data InductiveConstructorDef = InductiveConstructorDef
 data TypeIden
   = TypeIdenInductive InductiveName
   | TypeIdenAxiom AxiomName
+  | TypeIdenVariable VarName
   deriving stock (Show, Eq)
 
 data TypeApplication = TypeApplication {
@@ -173,6 +174,11 @@ data Type
   | TypeAbs TypeAbstraction
   | TypeUniverse
   | TypeAny
+  deriving stock (Show, Eq)
+
+data FunctionArgType =
+  FunctionArgTypeAbstraction VarName
+  | FunctionArgTypeType Type
   deriving stock (Show, Eq)
 
 makeLenses ''Module

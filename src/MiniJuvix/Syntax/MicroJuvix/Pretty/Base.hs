@@ -141,6 +141,12 @@ instance PrettyCode TypeIden where
   ppCode = \case
     TypeIdenInductive i -> ppCode i
     TypeIdenAxiom i -> ppCode i
+    TypeIdenVariable i -> ppCode i
+
+instance PrettyCode FunctionArgType where
+  ppCode = \case
+    FunctionArgTypeType t -> ppCode t
+    FunctionArgTypeAbstraction v -> ppCode v
 
 instance PrettyCode Type where
   ppCode = \case

@@ -107,10 +107,87 @@ matchTypes ::
   Type ->
   Sem r Bool
 matchTypes a b = do
-  a' <- normalizeType a
-  b' <- normalizeType b
   return $
-    a' == TypeAny || b' == TypeAny || a' == b'
+    a == TypeAny || b == TypeAny || alphaEq a b
+
+normalizeType :: Members '[Reader InfoTable] r => Type -> Sem r Type
+normalizeType = return . run . runReader ini . goType
+  where
+  ini :: HashMap VarName Type
+  ini = mempty
+  goType :: forall r. Member (Reader (HashMap VarName Type)) r => Type -> Sem r Type
+  goType t = case t of
+    TypeAny -> return TypeAny
+    TypeUniverse -> return TypeUniverse
+    TypeFunction f -> TypeFunction <$> goFunction f
+    TypeIden i -> goIden i
+    TypeAbs i -> TypeAbs <$> goAbs i
+    TypeApp a -> goApp a
+    where
+    goIden :: TypeIden -> Sem r Type
+    goIden i = case i of
+      TypeIdenInductive {} -> return (TypeIden i)
+      TypeIdenAxiom {} -> return (TypeIden i)
+      TypeIdenVariable v -> do
+        res <- HashMap.lookup v <$> ask
+        return $ case res of
+          Just ty -> ty
+          Nothing -> TypeIden i
+    goFunction :: Function -> Sem r Function
+    goFunction (Function l r) = do
+      l' <- goType l
+      r' <- goType r
+      return (Function l' r')
+    goApp :: TypeApplication -> Sem r Type
+    goApp (TypeApplication l r) = do
+      l' <- goType l
+      r' <- goType r
+      case l' of
+        TypeAbs (TypeAbstraction v body) -> do
+          local (HashMap.insert v r') (goType body)
+        _ -> return (TypeApp (TypeApplication l' r'))
+    goAbs :: TypeAbstraction -> Sem r TypeAbstraction
+    goAbs (TypeAbstraction v r) = do
+      r' <- goType r
+      return TypeAbstraction {
+        _typeAbsVar = v,
+        _typeAbsBody= r'
+      }
+
+
+-- | Alpha equivalence
+alphaEq :: Type -> Type -> Bool
+alphaEq ty = run . runReader ini . go ty
+ where
+ ini :: HashMap VarName VarName
+ ini = mempty
+ go :: forall r. Member (Reader (HashMap VarName VarName)) r => Type -> Type -> Sem r Bool
+ go a' b' = case (a', b') of
+  (TypeIden a, TypeIden b) -> goIden a b
+  (TypeApp a, TypeApp b) -> goApp a b
+  (TypeAbs a, TypeAbs b) -> goAbs a b
+  (TypeFunction a, TypeFunction b) -> goFunction a b
+  (TypeUniverse, TypeUniverse) -> return True
+  (TypeAny, TypeAny) -> return True
+  -- TODO is the final wildcard bad style?
+  -- what if more Type constructors are added
+  _ -> return False
+  where
+  goIden :: TypeIden -> TypeIden -> Sem r Bool
+  goIden ia ib = case (ia, ib) of
+    (TypeIdenInductive a, TypeIdenInductive b) -> return (a == b)
+    (TypeIdenAxiom a, TypeIdenAxiom b) -> return (a == b)
+    (TypeIdenVariable a, TypeIdenVariable b) -> do
+      la <- fromMaybe False . fmap (== b) . HashMap.lookup a <$> ask
+      return (a == b || la)
+    _ -> return False
+  goApp :: TypeApplication -> TypeApplication -> Sem r Bool
+  goApp (TypeApplication f x) (TypeApplication f' x') = andM [go f f', go x x']
+  goFunction :: Function -> Function -> Sem r Bool
+  goFunction (Function l r) (Function l' r') = andM [go l r, go l' r']
+  goAbs :: TypeAbstraction -> TypeAbstraction -> Sem r Bool
+  goAbs (TypeAbstraction v1 r) (TypeAbstraction v2 r') =
+    local (HashMap.insert v1 v2) (go r r')
 
 inferExpression ::
   Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars] r =>
@@ -134,18 +211,30 @@ constructorType :: Member (Reader InfoTable) r => Name -> Sem r Type
 constructorType c = do
   info <- lookupConstructor c
   let r = TypeIden (TypeIdenInductive (info ^. constructorInfoInductive))
-  return (foldFunType (info ^. constructorInfoArgs) r)
+  return (foldFunType (constructorArgTypes info) r)
+
+constructorArgTypes :: ConstructorInfo -> [FunctionArgType]
+constructorArgTypes i =
+  map goParam (i ^. constructorInfoInductiveParameters)
+  ++ map FunctionArgTypeType (i ^. constructorInfoArgs)
+  where
+  goParam = FunctionArgTypeAbstraction . (^. inductiveParamName)
 
 -- | [a, b] c ==> a -> (b -> c)
-foldFunType :: [Type] -> Type -> Type
+foldFunType :: [FunctionArgType] -> Type -> Type
 foldFunType l r = case l of
   [] -> r
-  (a : as) -> TypeFunction (Function a (foldFunType as r))
+  (a : as) ->
+    let r' = foldFunType as r in
+    case a of
+      FunctionArgTypeAbstraction v -> TypeAbs (TypeAbstraction v r')
+      FunctionArgTypeType t -> TypeFunction (Function t r')
 
 -- | a -> (b -> c)  ==> ([a, b], c)
-unfoldFunType :: Type -> ([Type], Type)
+unfoldFunType :: Type -> ([FunctionArgType], Type)
 unfoldFunType t = case t of
-  TypeFunction (Function l r) -> first (l :) (unfoldFunType r)
+  TypeFunction (Function l r) -> first (FunctionArgTypeType l :) (unfoldFunType r)
+  TypeAbs (TypeAbstraction var r) -> first (FunctionArgTypeAbstraction var :) (unfoldFunType r)
   _ -> ([], t)
 
 checkFunctionClause ::
@@ -157,9 +246,9 @@ checkFunctionClause info clause@FunctionClause {..} = do
   let (argTys, rty) = unfoldFunType (info ^. functionInfoType)
       (patTys, restTys) = splitAt (length _clausePatterns) argTys
       bodyTy = foldFunType restTys rty
-  if length patTys /= length _clausePatterns
-    then output (tyErr patTys) $> clause
-    else do
+  if
+    | length patTys /= length _clausePatterns -> output (tyErr patTys) $> clause
+    | otherwise -> do
       eLocals <- checkPatterns _clauseName patTys _clausePatterns
       _clauseBody' <- case eLocals of
         Left err -> output err $> _clauseBody
@@ -174,7 +263,7 @@ checkFunctionClause info clause@FunctionClause {..} = do
             ..
           }
   where
-    tyErr :: [Type] -> TypeCheckerError
+    tyErr :: [FunctionArgType] -> TypeCheckerError
     tyErr patTys =
       ErrTooManyPatterns
         ( TooManyPatterns
@@ -186,23 +275,29 @@ checkFunctionClause info clause@FunctionClause {..} = do
 checkPatterns ::
   Members '[Reader InfoTable, Output TypeCheckerError] r =>
   FunctionName ->
-  [Type] ->
+  [FunctionArgType] ->
   [Pattern] ->
   Sem r (Either TypeCheckerError LocalVars)
 checkPatterns name ctorTys ctorPs =
   runError @TypeCheckerError (mconcat <$> zipWithM (checkPattern name) ctorTys ctorPs)
 
+typeOfArg :: FunctionArgType -> Type
+typeOfArg a = case a of
+  FunctionArgTypeAbstraction {} -> TypeUniverse
+  FunctionArgTypeType ty -> ty
+
 checkPattern ::
   forall r.
   Members '[Reader InfoTable, Output TypeCheckerError, Error TypeCheckerError] r =>
   FunctionName ->
-  Type ->
+  FunctionArgType ->
   Pattern ->
   Sem r LocalVars
 checkPattern funName type_ pat = LocalVars . HashMap.fromList <$> go type_ pat
   where
-    go :: Type -> Pattern -> Sem r [(VarName, Type)]
-    go ty p = case p of
+    go :: FunctionArgType -> Pattern -> Sem r [(VarName, Type)]
+    go argTy p = let ty = typeOfArg argTy in
+      case p of
       PatternWildcard -> return []
       PatternVariable v -> return [(v, ty)]
       PatternConstructorApp a -> do
@@ -213,36 +308,18 @@ checkPattern funName type_ pat = LocalVars . HashMap.fromList <$> go type_ pat
       where
         goConstr :: ConstructorApp -> Sem r [(VarName, Type)]
         goConstr app@(ConstructorApp c ps) = do
-          tys <- (^. constructorInfoArgs) <$> lookupConstructor c
+          tys <- constructorArgTypes <$> lookupConstructor c
           when (length tys /= length ps) (throw (appErr app tys))
           concat <$> zipWithM go tys ps
-        appErr :: ConstructorApp -> [Type] -> TypeCheckerError
+        appErr :: ConstructorApp -> [FunctionArgType] -> TypeCheckerError
         appErr app tys =
           ErrWrongConstructorAppArgs
-            ( WrongConstructorAppArgs
+            (WrongConstructorAppArgs
                 { _wrongCtorAppApp = app,
                   _wrongCtorAppTypes = tys,
                   _wrongCtorAppName = funName
                 }
             )
-
--- TODO currently equivalent to id
-normalizeType :: forall r. Members '[Reader InfoTable] r => Type -> Sem r Type
-normalizeType t = case t of
-  TypeAny -> return TypeAny
-  TypeUniverse -> return TypeUniverse
-  TypeFunction f -> TypeFunction <$> normalizeFunction f
-  TypeIden i -> normalizeIden i
-  where
-    normalizeIden :: TypeIden -> Sem r Type
-    normalizeIden i = case i of
-      TypeIdenInductive {} -> return (TypeIden i)
-      TypeIdenAxiom {} -> return (TypeIden i)
-    normalizeFunction :: Function -> Sem r Function
-    normalizeFunction (Function l r) = do
-      l' <- normalizeType l
-      r' <- normalizeType r
-      return (Function l' r')
 
 inferExpression' ::
   forall r.

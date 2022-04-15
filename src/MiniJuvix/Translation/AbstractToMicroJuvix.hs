@@ -71,7 +71,7 @@ goTypeIden :: A.Iden -> TypeIden
 goTypeIden i = case i of
   A.IdenFunction {} -> unsupported "functions in types"
   A.IdenConstructor {} -> unsupported "constructors in types"
-  A.IdenVar {} -> unsupported "type variables"
+  A.IdenVar v -> TypeIdenVariable (goSymbol v)
   A.IdenInductive d -> TypeIdenInductive (goName (d ^. A.inductiveRefName))
   A.IdenAxiom a -> TypeIdenAxiom (goName (a ^. A.axiomRefName))
 
@@ -86,10 +86,17 @@ goAxiomDef a = do
 
 goFunctionParameter :: A.FunctionParameter -> Sem r (Either VarName Type)
 goFunctionParameter f = case f ^. A.paramName of
-  Just {} -> unsupported "named function arguments"
-  _ -> case f ^. A.paramUsage of
-    A.UsageOmega -> Right <$> goType (f ^. A.paramType)
-    _ -> unsupported "usages"
+  Just var
+    | isSmallType (f ^. A.paramType) && isOmegaUsage (f ^. A.paramUsage) -> return (Left (goSymbol var))
+    | otherwise -> unsupported "named function arguments only for small types without usages"
+  Nothing
+    | isOmegaUsage (f ^. A.paramUsage) -> Right <$> goType (f ^. A.paramType)
+    | otherwise -> unsupported "usages"
+
+isOmegaUsage :: A.Usage -> Bool
+isOmegaUsage u = case u of
+  A.UsageOmega -> True
+  _ -> False
 
 goFunction :: A.Function -> Sem r Type
 goFunction (A.Function l r) = do
@@ -135,19 +142,26 @@ goConstructorApp c = do
   return ConstructorApp {
     _constrAppConstructor = goName (c ^. A.constrAppConstructor . A.constructorRefName),
     _constrAppParameters = _constrAppParameters'
-   }
-    --
+  }
+
+isSmallType :: A.Expression -> Bool
+isSmallType e = case e of
+  A.ExpressionUniverse u -> isSmallUni u
+  _ -> False
+
+isSmallUni :: Universe -> Bool
+isSmallUni u = 0 == fromMaybe 0 (u ^. universeLevel)
 
 goTypeUniverse :: Universe -> Type
 goTypeUniverse u
-  | 0 == fromMaybe 0 (u ^. universeLevel) = TypeUniverse
+  | isSmallUni u = TypeUniverse
   | otherwise = unsupported "big universes"
 
 goType :: A.Expression -> Sem r Type
 goType e = case e of
   A.ExpressionIden i -> return (TypeIden (goTypeIden i))
   A.ExpressionUniverse u -> return (goTypeUniverse u)
-  A.ExpressionApplication {} -> unsupported "application in types"
+  A.ExpressionApplication a -> TypeApp <$> goTypeApplication a
   A.ExpressionFunction f -> goFunction f
   A.ExpressionLiteral {} -> unsupported "literals in types"
 
@@ -177,7 +191,7 @@ goInductiveParameter :: A.FunctionParameter -> Sem r InductiveParameter
 goInductiveParameter f =
   case (f ^. A.paramName, f ^. A.paramUsage, f ^. A.paramType) of
     (Just var, A.UsageOmega, A.ExpressionUniverse u)
-      | fromMaybe 0 (u ^. universeLevel) == 0 ->
+      | isSmallUni u ->
         return InductiveParameter {
           _inductiveParamName = goSymbol var
              }
@@ -208,11 +222,22 @@ goInductiveDef i = case i ^. A.inductiveType of
   goConstructorType :: A.Expression -> Sem r [Type]
   goConstructorType = fmap fst . viewConstructorType
 
+goTypeApplication :: A.Application -> Sem r TypeApplication
+goTypeApplication (A.Application l r) = do
+  l' <- goType l
+  r' <- goType r
+  return TypeApplication {
+    _typeAppLeft = l',
+    _typeAppRight = r'
+   }
+
 viewConstructorType :: A.Expression -> Sem r ([Type], Type)
 viewConstructorType e = case e of
   A.ExpressionFunction f -> first toList <$> viewFunctionType f
   A.ExpressionIden i -> return ([], TypeIden (goTypeIden i))
-  A.ExpressionApplication {} -> unsupported "application in a type"
+  A.ExpressionApplication a -> do
+    a' <- goTypeApplication a
+    return ([], TypeApp a')
   A.ExpressionUniverse {} -> return ([], TypeUniverse)
   A.ExpressionLiteral {} -> unsupported "literal in a type"
   where

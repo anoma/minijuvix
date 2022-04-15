@@ -6,14 +6,12 @@ where
 
 import Data.Text qualified as Text
 import MiniJuvix.Prelude
-import MiniJuvix.Syntax.Backends
-import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.MicroJuvix.InfoTable qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.Language
+import MiniJuvix.Syntax.NameId
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
-import Prettyprinter
 
 entryMonoJuvix ::
   Member (Error Err) r =>
@@ -23,7 +21,7 @@ entryMonoJuvix i = do
   _resultModules <- mapM goModule' (i ^. Micro.resultModules)
   return MonoJuvixResult {..}
   where
-    _resultMicroJuvixTyped = i
+    _resultMicroTyped = i
     goModule' m = runReader table (goModule m)
       where
         table = Micro.buildTable m
@@ -52,53 +50,48 @@ goModuleBody ::
   Micro.ModuleBody ->
   Sem r ModuleBody
 goModuleBody Micro.ModuleBody {..} =
-  ModuleBody <$> mapMaybeM goStatement _moduleStatements
+  ModuleBody <$> mapM goStatement _moduleStatements
 
-goStatement :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Statement -> Sem r (Maybe Statement)
+goStatement :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Statement -> Sem r Statement
 goStatement = \case
-  Micro.StatementInductive d -> Just . StatementInductive <$> goInductive d
-  Micro.StatementFunction d -> Just . StatementFunction <$> goFunctionDef d
-  Micro.StatementForeign d -> return (goForeign d)
-  Micro.StatementAxiom {} -> return Nothing
+  Micro.StatementInductive d -> StatementInductive <$> goInductive d
+  Micro.StatementFunction d -> StatementFunction <$> goFunctionDef d
+  Micro.StatementForeign d -> return (StatementForeign d)
+  Micro.StatementAxiom a -> StatementAxiom <$> goAxiomDef a
 
-goForeign :: ForeignBlock -> Maybe Statement
-goForeign b = case b ^. foreignBackend of
-  BackendGhc -> Just (StatementVerbatim (b ^. foreignCode))
-  _ -> Nothing
+goAxiomDef :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.AxiomDef -> Sem r AxiomDef
+goAxiomDef Micro.AxiomDef {..} = do
+  _axiomType' <- goType _axiomType
+  return AxiomDef {
+    _axiomName = goName _axiomName,
+    _axiomType = _axiomType',
+    _axiomBackendItems = _axiomBackendItems
+  }
 
 lookupAxiom :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Name -> Sem r Micro.AxiomInfo
 lookupAxiom n =
   fromMaybe impossible . (^. Micro.infoAxioms . at n) <$> ask
 
-goIden :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Iden -> Sem r Expression
+goIden :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Iden -> Sem r Iden
 goIden = \case
-  Micro.IdenFunction fun -> return (goName' fun)
-  Micro.IdenConstructor c -> return (goName' c)
-  Micro.IdenVar v -> return (goName' v)
-  Micro.IdenAxiom a -> ExpressionVerbatim <$> goAxiomIden a
+  Micro.IdenFunction fun -> return (IdenFunction (goName fun))
+  Micro.IdenConstructor c -> return (IdenConstructor (goName c))
+  Micro.IdenVar v -> return (IdenVar (goName v))
+  Micro.IdenAxiom a -> return (IdenAxiom (goName a))
 
 throwErr :: Member (Error Err) r => Text -> Sem r a
 throwErr = throw
 
-goAxiomIden :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Name -> Sem r Text
-goAxiomIden n = do
-  backends <- (^. Micro.axiomInfoBackends) <$> lookupAxiom n
-  case firstJust getCode backends of
-    Nothing -> throwErr ("ghc does not support this primitive:" <> show (pretty n))
-    Just t -> return t
-  where
-    getCode :: BackendItem -> Maybe Text
-    getCode b =
-      guard (BackendGhc == b ^. backendItemBackend)
-        $> b ^. backendItemCode
-
-goName' :: Micro.Name -> Expression
-goName' = ExpressionIden . goName
+-- goName' :: Micro.Name -> Expression
+-- goName' = ExpressionIden . goName
 
 goName :: Micro.Name -> Name
 goName n =
   Name
     { _nameText = goNameText n,
+      _nameId = n ^. Micro.nameId,
+      _nameDefined = n ^. Micro.nameDefined,
+      _nameLoc = n ^. Micro.nameLoc,
       _nameKind = n ^. Micro.nameKind
     }
 
@@ -168,7 +161,7 @@ goExpression ::
   Micro.Expression ->
   Sem r Expression
 goExpression = \case
-  Micro.ExpressionIden i -> goIden i
+  Micro.ExpressionIden i -> ExpressionIden <$> goIden i
   Micro.ExpressionTyped t -> goExpression (t ^. Micro.typedExpression)
   Micro.ExpressionApplication a -> ExpressionApplication <$> goApplication a
   Micro.ExpressionLiteral l -> return (ExpressionLiteral l)
@@ -196,6 +189,7 @@ goFunctionClause Micro.FunctionClause {..} = do
   return
     FunctionClause
       { _clauseBody = _clauseBody',
+        _clauseName = goName _clauseName,
         _clausePatterns = _clausePatterns'
       }
 
