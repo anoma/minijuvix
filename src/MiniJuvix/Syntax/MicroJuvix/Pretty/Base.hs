@@ -45,6 +45,7 @@ instance PrettyCode Iden where
     IdenConstructor na -> ppCode na
     IdenVar na -> ppCode na
     IdenAxiom a -> ppCode a
+    IdenInductive a -> ppCode a
 
 instance PrettyCode TypeApplication where
   ppCode (TypeApplication l r) = do
@@ -126,8 +127,9 @@ instance PrettyCode BackendItem where
       backend <+> kwMapsto <+> pretty _backendItemCode
 
 instance PrettyCode TypeAbstraction where
-  ppCode (TypeAbstraction l r) = do
-    l' <- ppLeftExpression funFixity l
+  ppCode (TypeAbstraction v r) = do
+    v' <- ppCode v
+    let l' = parens (v' <+> colon <+> kwType)
     r' <- ppRightExpression funFixity r
     return $ l' <+> kwArrow <+> r'
 

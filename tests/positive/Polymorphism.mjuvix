@@ -19,9 +19,20 @@ inductive Bool {
 };
 
 l1 : List Nat;
-l1 := cons Nat zero nil;
+l1 := cons Nat zero (nil Nat);
 
 fst : (A : Type) → (B : Type) → Pair A B → B;
 fst _ _ (mkPair _ _ a b) := b;
+
+p : Pair Bool Bool;
+p := mkPair Bool Bool true false;
+
+swap : (A : Type) → (B : Type) → Pair A B → Pair A B;
+swap A B (mkPair _ _ a b) := mkPair A B a b;
+
+-- curry : (A : Type) → (B : Type) → (C : Type)
+--   → (Pair A B → C) → A → B → C;
+-- curry A B C f a b := f (mkPair A B a b) ;
+
 
 end;

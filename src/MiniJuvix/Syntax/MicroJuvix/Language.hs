@@ -93,6 +93,7 @@ data Iden
   | IdenConstructor Name
   | IdenVar VarName
   | IdenAxiom Name
+  | IdenInductive Name
   deriving stock (Show)
 
 data TypedExpression = TypedExpression
@@ -251,3 +252,4 @@ instance HasLoc Iden where
     IdenConstructor c -> C.getLoc c
     IdenVar v -> C.getLoc v
     IdenAxiom a -> C.getLoc a
+    IdenInductive a -> C.getLoc a

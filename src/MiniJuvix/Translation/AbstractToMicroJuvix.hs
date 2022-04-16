@@ -177,7 +177,7 @@ goIden i = case i of
   A.IdenConstructor c -> IdenConstructor (goName (c ^. A.constructorRefName))
   A.IdenVar v -> IdenVar (goSymbol v)
   A.IdenAxiom a -> IdenAxiom (goName (a ^. A.axiomRefName))
-  A.IdenInductive {} -> unsupported "inductive identifier"
+  A.IdenInductive a -> IdenInductive (goName (a ^. A.inductiveRefName))
 
 goExpression :: A.Expression -> Sem r Expression
 goExpression e = case e of
