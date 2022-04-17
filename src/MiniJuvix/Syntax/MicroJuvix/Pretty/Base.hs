@@ -9,14 +9,16 @@ import MiniJuvix.Syntax.MicroJuvix.Language
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Ann
 import Prettyprinter
 
-newtype Options = Options
-  { _optIndent :: Int
+data Options = Options
+  { _optIndent :: Int,
+    _optShowNameId :: Bool
   }
 
 defaultOptions :: Options
 defaultOptions =
   Options
-    { _optIndent = 2
+    { _optIndent = 2,
+      _optShowNameId = True
     }
 
 docStream :: PrettyCode c => Options -> c -> SimpleDocStream Ann
@@ -32,11 +34,18 @@ class PrettyCode c where
 runPrettyCode :: PrettyCode c => Options -> c -> Doc Ann
 runPrettyCode opts = run . runReader opts . ppCode
 
+instance PrettyCode NameId where
+  ppCode (NameId k) = return (pretty k)
+
 instance PrettyCode Name where
-  ppCode n =
+  ppCode n = do
+    showNameId <- asks _optShowNameId
+    uid <- if
+      | showNameId -> Just . ("@" <>) <$> ppCode (n ^. nameId)
+      | otherwise -> return Nothing
     return $
       annotate (AnnKind (n ^. nameKind)) $
-        pretty (n ^. nameText) <> "_" <> pretty (n ^. nameId)
+        pretty (n ^. nameText) <?> uid
 
 instance PrettyCode Iden where
   ppCode :: Member (Reader Options) r => Iden -> Sem r (Doc Ann)
@@ -162,7 +171,7 @@ instance PrettyCode Type where
 instance PrettyCode InductiveConstructorDef where
   ppCode c = do
     constructorName' <- ppCode (c ^. constructorName)
-    constructorParameters' <- mapM ppCode (c ^. constructorParameters)
+    constructorParameters' <- mapM ppCodeAtom (c ^. constructorParameters)
     return (hsep $ constructorName' : constructorParameters')
 
 indent' :: Member (Reader Options) r => Doc a -> Sem r (Doc a)
@@ -178,12 +187,22 @@ bracesIndent d = do
   d' <- indent' d
   return $ braces (line <> d' <> line)
 
+instance PrettyCode InductiveParameter where
+  ppCode (InductiveParameter v) = do
+    v' <- ppCode v
+    return $ parens (v' <+> kwColon <+> kwType)
+
 instance PrettyCode InductiveDef where
   ppCode d = do
     inductiveName' <- ppCode (d ^. inductiveName)
+    params <- hsep' <$> mapM ppCode (d ^. inductiveParameters)
     inductiveConstructors' <- mapM ppCode (d ^. inductiveConstructors)
     rhs <- indent' $ align $ concatWith (\a b -> a <> line <> kwPipe <+> b) inductiveConstructors'
-    return $ kwData <+> inductiveName' <+> kwEquals <> line <> rhs
+    return $ kwData <+> inductiveName' <+?> params <+> kwEquals <> line <> rhs
+    where
+      hsep' l
+       | null l = Nothing
+       | otherwise = Just (hsep l)
 
 instance PrettyCode ConstructorApp where
   ppCode c = do

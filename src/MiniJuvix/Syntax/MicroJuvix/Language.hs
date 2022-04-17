@@ -52,7 +52,8 @@ instance HasNameKind Name where
   getNameKind = _nameKind
 
 instance Pretty Name where
-  pretty = pretty . _nameText
+  pretty n = pretty (n ^. nameText) <>
+    "@" <> pretty (n ^. nameId)
 
 data Module = Module
   { _moduleName :: Name,
@@ -119,7 +120,7 @@ data Function = Function
   { _funLeft :: Type,
     _funRight :: Type
   }
-  deriving stock (Show, Eq)
+  deriving stock (Show)
 
 -- | Fully applied constructor in a pattern.
 data ConstructorApp = ConstructorApp
@@ -160,13 +161,13 @@ data TypeApplication = TypeApplication {
   _typeAppLeft :: Type,
   _typeAppRight :: Type
   }
-  deriving stock (Show, Eq)
+  deriving stock (Show)
 
 data TypeAbstraction = TypeAbstraction {
   _typeAbsVar :: VarName,
   _typeAbsBody :: Type
   }
-  deriving stock (Show, Eq)
+  deriving stock (Show)
 
 data Type
   = TypeIden TypeIden
@@ -175,12 +176,12 @@ data Type
   | TypeAbs TypeAbstraction
   | TypeUniverse
   | TypeAny
-  deriving stock (Show, Eq)
+  deriving stock (Show)
 
 data FunctionArgType =
   FunctionArgTypeAbstraction VarName
   | FunctionArgTypeType Type
-  deriving stock (Show, Eq)
+  deriving stock (Show)
 
 makeLenses ''Module
 makeLenses ''Function

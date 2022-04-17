@@ -97,7 +97,7 @@ pipelineMicroJuvixTyped ::
   Members '[Files, Error AJuvixError] r =>
   MicroJuvix.MicroJuvixResult ->
   Sem r MicroJuvix.MicroJuvixTypedResult
-pipelineMicroJuvixTyped = mapError (toAJuvixError @MicroJuvix.TypeCheckerErrors) . MicroJuvix.entryMicroJuvixTyped
+pipelineMicroJuvixTyped = mapError (toAJuvixError @MicroJuvix.TypeCheckerError) . MicroJuvix.entryMicroJuvixTyped
 
 pipelineMonoJuvix ::
   Members '[Files, Error AJuvixError] r =>

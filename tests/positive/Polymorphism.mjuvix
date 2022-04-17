@@ -13,10 +13,17 @@ inductive Nat {
  zero : Nat;
  suc : Nat → Nat;
 };
+
 inductive Bool {
  false : Bool;
  true : Bool;
 };
+
+nil' : (E : Type) → List E;
+nil' E := nil E;
+
+nil'' : (E : Type) → List E;
+nil'' := nil;
 
 l1 : List Nat;
 l1 := cons Nat zero (nil Nat);
@@ -30,9 +37,20 @@ p := mkPair Bool Bool true false;
 swap : (A : Type) → (B : Type) → Pair A B → Pair A B;
 swap A B (mkPair _ _ a b) := mkPair A B a b;
 
--- curry : (A : Type) → (B : Type) → (C : Type)
---   → (Pair A B → C) → A → B → C;
--- curry A B C f a b := f (mkPair A B a b) ;
+curry : (A : Type) → (B : Type) → (C : Type)
+  → (Pair A B → C) → A → B → C;
+curry A B C f a b := f (mkPair A B a b) ;
+
+ap : (A : Type) → (B : Type)
+  → (A → B) → A → B;
+ap A B f a ≔ ap A B f a;
+
+-- zipWith : (A : Type) → (B : Type) → (C : Type)
+--   → (A → B → C)
+--   → List A → List B → List C;
+-- zipWith A B C f (nil _) _ ≔ nil C;
+-- zipWith A B C f _ (nil _) ≔ nil C;
+-- zipWith A B C f (cons _ a as) (cons _ b bs) ≔ cons C (f a b) (zipWith A B C f as bs);
 
 
 end;
