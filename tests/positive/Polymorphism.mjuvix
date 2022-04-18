@@ -19,6 +19,9 @@ inductive Bool {
  true : Bool;
 };
 
+uni : (A : Type) → List A → List A;
+uni A nil ≔ nil A;
+
 nil' : (E : Type) → List E;
 nil' E := nil E;
 
@@ -29,13 +32,13 @@ l1 : List Nat;
 l1 := cons Nat zero (nil Nat);
 
 fst : (A : Type) → (B : Type) → Pair A B → B;
-fst _ _ (mkPair _ _ a b) := b;
+fst _ _ (mkPair a b) := b;
 
 p : Pair Bool Bool;
 p := mkPair Bool Bool true false;
 
-swap : (A : Type) → (B : Type) → Pair A B → Pair A B;
-swap A B (mkPair _ _ a b) := mkPair A B a b;
+swap : (A : Type) → (B : Type) → Pair A B → Pair B A;
+swap A B (mkPair a b) := mkPair B A b a;
 
 curry : (A : Type) → (B : Type) → (C : Type)
   → (Pair A B → C) → A → B → C;
@@ -43,14 +46,22 @@ curry A B C f a b := f (mkPair A B a b) ;
 
 ap : (A : Type) → (B : Type)
   → (A → B) → A → B;
-ap A B f a ≔ ap A B f a;
+ap A B f a ≔ f a;
 
--- zipWith : (A : Type) → (B : Type) → (C : Type)
---   → (A → B → C)
---   → List A → List B → List C;
--- zipWith A B C f (nil _) _ ≔ nil C;
--- zipWith A B C f _ (nil _) ≔ nil C;
--- zipWith A B C f (cons _ a as) (cons _ b bs) ≔ cons C (f a b) (zipWith A B C f as bs);
+zip : (A : Type) → (B : Type)
+    → List A → List B → List (Pair A B);
+zip A B nil _ ≔ nil (Pair A B);
+zip A B _ nil ≔ nil (Pair A B);
+zip A B (cons a as) (cons b bs) ≔ nil (Pair A B);
 
+zipWith : (A : Type) → (B : Type) → (C : Type)
+  → (A → B → C)
+  → List A → List B → List C;
+zipWith A B C f nil _ ≔ nil C;
+zipWith A B C f _ nil ≔ nil C;
+zipWith A B C f (cons a as) (cons b bs) ≔ cons C (f a b) (zipWith A B C f as bs);
+
+rankn : ((A : Type) → A → A) → Bool → Nat → Pair Bool Nat;
+rankn f b n ≔ mkPair Bool Nat (f Bool b) (f Nat n)
 
 end;

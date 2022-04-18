@@ -140,8 +140,8 @@ alphaEq ty = runReader ini . go ty
     (TypeIdenAxiom a, TypeIdenAxiom b) -> return (a == b)
     (TypeIdenVariable a, TypeIdenVariable b) -> do
       mappedEq <- fromMaybe False . fmap (== b) . HashMap.lookup a <$> ask
-      namedArgEq <- checkEqual a b <$> ask
-      return (a == b || mappedEq || namedArgEq)
+      -- namedArgEq <- checkEqual a b <$> ask
+      return (a == b || mappedEq)
     _ -> return False
   goApp :: TypeApplication -> TypeApplication -> Sem r Bool
   goApp (TypeApplication f x) (TypeApplication f' x') = andM [go f f', go x x']
@@ -184,12 +184,10 @@ constructorType c = do
                     ind as
   return (foldFunType args saturatedTy)
 
-constructorArgTypes :: ConstructorInfo -> ([VarName],[Type])
+constructorArgTypes :: ConstructorInfo -> ([VarName], [Type])
 constructorArgTypes i =
-  (map goParam (i ^. constructorInfoInductiveParameters)
+  (map (^. inductiveParamName) (i ^. constructorInfoInductiveParameters)
   , i ^. constructorInfoArgs)
-  where
-  goParam = (^. inductiveParamName)
 
 -- | [a, b] c ==> a -> (b -> c)
 foldFunType :: [FunctionArgType] -> Type -> Type
@@ -218,11 +216,14 @@ checkFunctionClause info clause@FunctionClause {..} = do
       (patTys, restTys) = splitAt (length _clausePatterns) argTys
       bodyTy = foldFunType restTys rty
   if
+    -- TODO consider zip exact
     | length patTys /= length _clausePatterns -> throw (tyErr patTys)
     | otherwise -> do
-      locals <- checkPatterns _clauseName patTys _clausePatterns
+      locals <- checkPatterns _clauseName (zip patTys _clausePatterns)
+      let bodyTy' = substitution (HashMap.toList $ fmap (TypeIden . TypeIdenVariable)
+                                    (locals ^. localTyMap)) bodyTy
       _clauseBody' <-
-          runReader locals (checkExpression bodyTy _clauseBody)
+          runReader locals (checkExpression bodyTy' _clauseBody)
       return
         FunctionClause
           { _clauseBody = _clauseBody',
@@ -241,21 +242,29 @@ checkFunctionClause info clause@FunctionClause {..} = do
 checkPatterns ::
   Members '[Reader InfoTable, Error TypeCheckerError] r =>
   FunctionName ->
-  [FunctionArgType] ->
-  [Pattern] ->
+  [(FunctionArgType, Pattern)] ->
   Sem r LocalVars
-checkPatterns name ctorTys ctorPs =
-  execState emptyLocalVars (zipWithM (checkPattern name) ctorTys ctorPs)
+checkPatterns name = execState emptyLocalVars . go
+  where
+  go :: Members '[Error TypeCheckerError, Reader InfoTable, State LocalVars] r
+     => [(FunctionArgType, Pattern)] -> Sem r ()
+  go = mapM_ (uncurry (checkPattern name))
 
 typeOfArg :: FunctionArgType -> Type
 typeOfArg a = case a of
   FunctionArgTypeAbstraction {} -> TypeUniverse
   FunctionArgTypeType ty -> ty
 
-substitution1 :: (VarName, Type) -> Type -> Type
-substitution1 s = substitution [first InductiveParameter s]
+substitutionArg :: VarName -> VarName -> FunctionArgType -> FunctionArgType
+substitutionArg from v a = case a of
+  FunctionArgTypeAbstraction {} -> a
+  FunctionArgTypeType ty -> FunctionArgTypeType
+   (substitution1 (from, TypeIden (TypeIdenVariable v)) ty)
 
-substitution :: [(InductiveParameter, Type)] -> Type -> Type
+substitution1 :: (VarName, Type) -> Type -> Type
+substitution1 = substitution . pure
+
+substitution :: [(VarName, Type)] -> Type -> Type
 substitution as = go
   where
   go :: Type -> Type
@@ -279,7 +288,10 @@ substitution as = go
     TypeIdenVariable v -> case HashMap.lookup v m of
       Just ty -> ty
       Nothing -> TypeIden i
-  m = HashMap.fromList (map (first (^. inductiveParamName)) as)
+  m = HashMap.fromList as
+
+substituteIndParams :: [(InductiveParameter, Type)] -> Type -> Type
+substituteIndParams = substitution . map (first (^. inductiveParamName))
 
 checkPattern ::
   forall r.
@@ -290,41 +302,32 @@ checkPattern ::
   Sem r ()
 checkPattern funName type_ pat = go type_ pat
   where
-    checkSaturatedInductive :: Type -> Sem r (InductiveName, [(InductiveParameter, Type)])
-    checkSaturatedInductive t = do
-      (ind, args) <- viewInductiveApp t
-      params <- (^. inductiveInfoDef . inductiveParameters)
-          <$> lookupInductive ind
-      let numArgs = length args
-          numParams = length params
-      when (numArgs < numParams) (error "unsaturated inductive type")
-      when (numArgs > numParams) (error "too many arguments to inductive type")
-      return (ind, zip params args)
     go :: FunctionArgType -> Pattern -> Sem r ()
-    go argTy p =
-      let ty = typeOfArg argTy in
+    go argTy p = do
+      tyVarMap <- fmap (TypeIden . TypeIdenVariable) . (^. localTyMap) <$> get
+      let ty = substitution (HashMap.toList tyVarMap) (typeOfArg argTy)
       case p of
-      PatternWildcard -> return ()
-      PatternVariable v -> do
-        modify (addType v ty)
-        case argTy of
-          FunctionArgTypeAbstraction v' -> modify (addEquality v v')
-          _ -> return ()
-      PatternConstructorApp a -> do
-        (ind, tyArgs) <- checkSaturatedInductive ty
-        info <- lookupConstructor (a ^. constrAppConstructor)
-        let constrInd = info ^. constructorInfoInductive
-        when (ind /= constrInd) (throw (ErrWrongConstructorType
-                 (WrongConstructorType (a ^. constrAppConstructor) ind constrInd funName)))
-        goConstr a tyArgs
+        PatternWildcard -> return ()
+        PatternVariable v -> do
+          modify (addType v ty)
+          case argTy of
+            FunctionArgTypeAbstraction v' -> do
+              modify (over localTyMap (HashMap.insert v' v))
+            _ -> return ()
+        PatternConstructorApp a -> do
+          (ind, tyArgs) <- checkSaturatedInductive ty
+          info <- lookupConstructor (a ^. constrAppConstructor)
+          let constrInd = info ^. constructorInfoInductive
+          when (ind /= constrInd) (throw (ErrWrongConstructorType
+                    (WrongConstructorType (a ^. constrAppConstructor) ind constrInd funName)))
+          goConstr a tyArgs
       where
         goConstr :: ConstructorApp -> [(InductiveParameter, Type)] -> Sem r ()
         goConstr app@(ConstructorApp c ps) ctx = do
-          (tyvars, psTys) <- constructorArgTypes <$> lookupConstructor c
-          let psTys' = map (substitution ctx) psTys
-              expectedNum = length tyvars + length psTys
-          let w = map FunctionArgTypeAbstraction tyvars
-                  ++ map FunctionArgTypeType psTys'
+          (_, psTys) <- constructorArgTypes <$> lookupConstructor c
+          let psTys' = map (substituteIndParams ctx) psTys
+              expectedNum = length psTys
+          let w = map FunctionArgTypeType psTys'
           when (expectedNum /= length ps) (throw (appErr app w))
           zipWithM_ go w ps
         appErr :: ConstructorApp -> [FunctionArgType] -> TypeCheckerError
@@ -336,6 +339,17 @@ checkPattern funName type_ pat = go type_ pat
                   _wrongCtorAppName = funName
                 }
             )
+    checkSaturatedInductive :: Type -> Sem r (InductiveName, [(InductiveParameter, Type)])
+    checkSaturatedInductive t = do
+      (ind, args) <- viewInductiveApp t
+      params <- (^. inductiveInfoDef . inductiveParameters)
+          <$> lookupInductive ind
+      let numArgs = length args
+          numParams = length params
+      when (numArgs < numParams) (error "unsaturated inductive type")
+      when (numArgs > numParams) (error "too many arguments to inductive type")
+      return (ind, zip params args)
+
 
 -- | The expression is assumed to be of type TypeUniverse.
 -- If the assumption holds, it should never fail.
