@@ -6,6 +6,7 @@ inductive Pair (A : Type) (B : Type) {
 
 inductive List (A : Type) {
  nil : List A;
+ -- TODO check that the return type is saturated with the proper variable
  cons : A → List A → List A;
 };
 
@@ -19,34 +20,50 @@ inductive Bool {
  true : Bool;
 };
 
-uni : (A : Type) → List A → List A;
-uni A nil ≔ nil A;
+id : (A : Type) → A → A;
+id _ a ≔ a;
+
+undefined : (A : Type) → A;
+undefined A ≔ undefined A;
 
 nil' : (E : Type) → List E;
-nil' E := nil E;
+nil' E ≔ nil E;
 
 nil'' : (E : Type) → List E;
-nil'' := nil;
+nil'' ≔ nil;
 
 l1 : List Nat;
-l1 := cons Nat zero (nil Nat);
+l1 ≔ cons Nat zero (nil Nat);
 
 fst : (A : Type) → (B : Type) → Pair A B → B;
-fst _ _ (mkPair a b) := b;
+fst _ _ (mkPair a b) ≔ b;
 
 p : Pair Bool Bool;
-p := mkPair Bool Bool true false;
+p ≔ mkPair Bool Bool true false;
 
 swap : (A : Type) → (B : Type) → Pair A B → Pair B A;
-swap A B (mkPair a b) := mkPair B A b a;
+swap A B (mkPair a b) ≔ mkPair B A b a;
 
 curry : (A : Type) → (B : Type) → (C : Type)
   → (Pair A B → C) → A → B → C;
-curry A B C f a b := f (mkPair A B a b) ;
+curry A B C f a b ≔ f (mkPair A B a b) ;
 
 ap : (A : Type) → (B : Type)
   → (A → B) → A → B;
 ap A B f a ≔ f a;
+
+ite : (A : Type) → Bool → A → A → A;
+ite _ true tt _ ≔ tt;
+ite _ false _ ff ≔ ff;
+
+filter : (A : Type) → (A → Bool) → List A → List A;
+filter A f nil ≔ nil A;
+filter A f (cons x xs) ≔ ite (List A) (f x) (cons A x (filter A f xs)) (filter A f xs);
+
+map : (A : Type) → (B : Type) →
+  (A → B) → List A → List B;
+map A B f nil ≔ nil B ;
+map A B f (cons x xs) ≔ cons B (f x) (map A B f xs);
 
 zip : (A : Type) → (B : Type)
     → List A → List B → List (Pair A B);
@@ -62,6 +79,9 @@ zipWith A B C f _ nil ≔ nil C;
 zipWith A B C f (cons a as) (cons b bs) ≔ cons C (f a b) (zipWith A B C f as bs);
 
 rankn : ((A : Type) → A → A) → Bool → Nat → Pair Bool Nat;
-rankn f b n ≔ mkPair Bool Nat (f Bool b) (f Nat n)
+rankn f b n ≔ mkPair Bool Nat (f Bool b) (f Nat n);
+
+trankn : Pair Bool Nat;
+trankn ≔ rankn id false zero;
 
 end;

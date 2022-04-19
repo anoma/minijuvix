@@ -220,7 +220,7 @@ checkFunctionClause info clause@FunctionClause {..} = do
     | length patTys /= length _clausePatterns -> throw (tyErr patTys)
     | otherwise -> do
       locals <- checkPatterns _clauseName (zip patTys _clausePatterns)
-      let bodyTy' = substitution (HashMap.toList $ fmap (TypeIden . TypeIdenVariable)
+      let bodyTy' = substitution (fmap (TypeIden . TypeIdenVariable)
                                     (locals ^. localTyMap)) bodyTy
       _clauseBody' <-
           runReader locals (checkExpression bodyTy' _clauseBody)
@@ -262,10 +262,10 @@ substitutionArg from v a = case a of
    (substitution1 (from, TypeIden (TypeIdenVariable v)) ty)
 
 substitution1 :: (VarName, Type) -> Type -> Type
-substitution1 = substitution . pure
+substitution1 = substitution . uncurry HashMap.singleton
 
-substitution :: [(VarName, Type)] -> Type -> Type
-substitution as = go
+substitution :: HashMap VarName Type -> Type -> Type
+substitution m = go
   where
   go :: Type -> Type
   go = \case
@@ -288,10 +288,9 @@ substitution as = go
     TypeIdenVariable v -> case HashMap.lookup v m of
       Just ty -> ty
       Nothing -> TypeIden i
-  m = HashMap.fromList as
 
 substituteIndParams :: [(InductiveParameter, Type)] -> Type -> Type
-substituteIndParams = substitution . map (first (^. inductiveParamName))
+substituteIndParams = substitution . HashMap.fromList . map (first (^. inductiveParamName))
 
 checkPattern ::
   forall r.
@@ -305,7 +304,7 @@ checkPattern funName type_ pat = go type_ pat
     go :: FunctionArgType -> Pattern -> Sem r ()
     go argTy p = do
       tyVarMap <- fmap (TypeIden . TypeIdenVariable) . (^. localTyMap) <$> get
-      let ty = substitution (HashMap.toList tyVarMap) (typeOfArg argTy)
+      let ty = substitution tyVarMap (typeOfArg argTy)
       case p of
         PatternWildcard -> return ()
         PatternVariable v -> do
@@ -423,7 +422,6 @@ inferExpression' e = case e of
                       },
                 _typedType = substitution1 (ta ^. typeAbsVar, tr) (ta ^. typeAbsBody)
               }
-
         Right f -> do
           r <- checkExpression (f ^. funLeft) (a ^. appRight)
           return
