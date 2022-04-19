@@ -13,6 +13,7 @@ data InfoTableBuilder m a where
   RegisterFunction :: TypeSignature 'Scoped -> InfoTableBuilder m ()
   RegisterFunctionClause :: FunctionClause 'Scoped -> InfoTableBuilder m ()
   RegisterName :: S.Name -> InfoTableBuilder m ()
+  RegisterCompileBlock :: CompileBlock 'Scoped -> InfoTableBuilder m ()
 
 makeSem ''InfoTableBuilder
 
@@ -40,6 +41,12 @@ registerAxiom' ::
   Sem r (AxiomDef 'Scoped)
 registerAxiom' a = registerAxiom a $> a
 
+registerCompileBlock' ::
+  Member InfoTableBuilder r =>
+  CompileBlock 'Scoped ->
+  Sem r (CompileBlock 'Scoped)
+registerCompileBlock' c = registerCompileBlock c $> c
+
 registerFunctionClause' ::
   Member InfoTableBuilder r =>
   FunctionClause 'Scoped ->
@@ -50,18 +57,15 @@ toState :: Sem (InfoTableBuilder ': r) a -> Sem (State InfoTable ': r) a
 toState = reinterpret $ \case
   RegisterAxiom d ->
     let ref = AxiomRef' (S.unqualifiedSymbol (d ^. axiomName))
-        info =
-          AxiomInfo
-            { _axiomInfoType = d ^. axiomType,
-              _axiomInfoBackends = d ^. axiomBackendItems
-            }
+        info = AxiomInfo {_axiomInfoType = d ^. axiomType}
      in modify (over infoAxioms (HashMap.insert ref info))
+  RegisterCompileBlock c ->
+    let symbol = S.unqualifiedSymbol (c ^. compileName)
+        backends = c ^. compileBackends
+     in modify (over infoCompilationRules (HashMap.insert symbol backends))
   RegisterConstructor c ->
     let ref = ConstructorRef' (S.unqualifiedSymbol (c ^. constructorName))
-        info =
-          ConstructorInfo
-            { _constructorInfoType = c ^. constructorType
-            }
+        info = ConstructorInfo {_constructorInfoType = c ^. constructorType}
      in modify (over infoConstructors (HashMap.insert ref info))
   RegisterInductive ity ->
     let ref = InductiveRef' (S.unqualifiedSymbol (ity ^. inductiveName))

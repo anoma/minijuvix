@@ -13,7 +13,8 @@ import Data.Text.IO
 
 };
 
-axiom Action : Type {
+axiom Action : Type;
+compile Action {
  ghc ↦ "IO ()";
  agda   ↦ "void";
 };

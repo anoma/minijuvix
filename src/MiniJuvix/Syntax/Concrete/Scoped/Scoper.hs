@@ -776,6 +776,9 @@ lookupLocalEntry sym = do
     SymbolInfo {..} <- ms
     HashMap.lookup path _symbolInfo
 
+localScope :: Sem (Reader LocalVars : r) a -> Sem r a
+localScope = runReader (LocalVars mempty)
+
 checkAxiomDef ::
   Members '[InfoTableBuilder, Error ScopeError, State Scope, State ScoperState] r =>
   AxiomDef 'Parsed ->
@@ -785,8 +788,16 @@ checkAxiomDef AxiomDef {..} = do
   axiomName' <- bindAxiomSymbol _axiomName
   registerAxiom' AxiomDef {_axiomName = axiomName', _axiomType = axiomType', ..}
 
-localScope :: Sem (Reader LocalVars : r) a -> Sem r a
-localScope = runReader (LocalVars mempty)
+checkCompileBlock ::
+  Members '[InfoTableBuilder, Error ScopeError, State Scope, State ScoperState] r =>
+  CompileBlock 'Parsed ->
+  Sem r (CompileBlock 'Scoped)
+checkCompileBlock CompileBlock {..} = undefined
+
+-- TODO
+-- compileName' <- GlobalScope ..
+-- registerCompileBlock (CompileBlock {_compileName = compileName' , ..})
+-- check the symbol name is in scope
 
 checkEval ::
   Members '[Error ScopeError, State Scope, State ScoperState, InfoTableBuilder] r =>
@@ -1097,6 +1108,7 @@ checkStatement s = case s of
   StatementEval e -> StatementEval <$> checkEval e
   StatementPrint e -> StatementPrint <$> checkPrint e
   StatementForeign d -> return $ StatementForeign d
+  StatementCompile c -> StatementCompile <$> checkCompileBlock c
 
 -------------------------------------------------------------------------------
 -- Infix Expression

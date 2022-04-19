@@ -52,6 +52,7 @@ data Statement
   | StatementForeign ForeignBlock
   | StatementLocalModule LocalModule
   | StatementAxiom AxiomDef
+  | StatementCompile CompileBlock
   deriving stock (Eq, Show)
 
 data FunctionDef = FunctionDef
@@ -188,10 +189,14 @@ data InductiveConstructorDef = InductiveConstructorDef
   }
   deriving stock (Eq, Show)
 
+data CompileBlock = CompileBlock
+  { _compileName :: S.Symbol,
+    _compileBackends :: [BackendItem]
+  }
+
 data AxiomDef = AxiomDef
   { _axiomName :: AxiomName,
-    _axiomType :: Expression,
-    _axiomBackendItems :: [BackendItem]
+    _axiomType :: Expression
   }
   deriving stock (Eq, Show)
 
@@ -209,6 +214,7 @@ makeLenses ''ConstructorRef
 makeLenses ''InductiveRef
 makeLenses ''AxiomRef
 makeLenses ''AxiomDef
+makeLenses ''CompileBlock
 
 idenName :: Iden -> Name
 idenName = \case
