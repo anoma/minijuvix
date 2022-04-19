@@ -4,15 +4,15 @@ inductive Pair (A : Type) (B : Type) {
  mkPair : A → B → Pair A B;
 };
 
-inductive List (A : Type) {
- nil : List A;
- -- TODO check that the return type is saturated with the proper variable
- cons : A → List A → List A;
-};
-
 inductive Nat {
  zero : Nat;
  suc : Nat → Nat;
+};
+
+inductive List (A : Type) {
+ nil : List A;
+ -- TODO check that the return type is saturated with the proper variable
+ cons : A → List A → Nat;
 };
 
 inductive Bool {
@@ -27,7 +27,7 @@ undefined : (A : Type) → A;
 undefined A ≔ undefined A;
 
 nil' : (E : Type) → List E;
-nil' E ≔ nil E;
+nil' A ≔ nil A;
 
 nil'' : (E : Type) → List E;
 nil'' ≔ nil;
@@ -35,8 +35,8 @@ nil'' ≔ nil;
 l1 : List Nat;
 l1 ≔ cons Nat zero (nil Nat);
 
-fst : (A : Type) → (B : Type) → Pair A B → B;
-fst _ _ (mkPair a b) ≔ b;
+fst : (A : Type) → (B : Type) → Pair A B → A;
+fst _ _ (mkPair a b) ≔ a;
 
 p : Pair Bool Bool;
 p ≔ mkPair Bool Bool true false;

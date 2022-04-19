@@ -15,7 +15,6 @@ import MiniJuvix.Syntax.MicroJuvix.LocalVars
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
 import Polysemy.Error (fromEither)
-import Debug.Trace
 import MiniJuvix.Prelude.Pretty (prettyText)
 
 entryMicroJuvixTyped ::
@@ -88,11 +87,10 @@ checkExpression ::
 checkExpression t e = do
   e' <- inferExpression' e
   let inferredType = e' ^. typedType
-  tmp <- ask @LocalVars
-  unlessM (matchTypes t inferredType) (throw (err tmp inferredType))
+  unlessM (matchTypes t inferredType) (throw (err inferredType))
   return (ExpressionTyped e')
   where
-    err tmp infTy = trace (unpack (prettyText tmp)) $
+    err infTy =
       ErrWrongType
         ( WrongType
             { _wrongTypeExpression = e,
@@ -116,12 +114,12 @@ matchTypes a b = do
     _ -> False
 
 -- | Alpha equivalence
-alphaEq :: Member (Reader LocalVars) r => Type -> Type -> Sem r Bool
+alphaEq :: Type -> Type -> Sem r Bool
 alphaEq ty = runReader ini . go ty
  where
  ini :: HashMap VarName VarName
  ini = mempty
- go :: forall r. Members '[Reader (HashMap VarName VarName), Reader LocalVars] r
+ go :: forall r. Members '[Reader (HashMap VarName VarName)] r
       => Type -> Type -> Sem r Bool
  go a' b' = case (a', b') of
   (TypeIden a, TypeIden b) -> goIden a b
@@ -129,6 +127,7 @@ alphaEq ty = runReader ini . go ty
   (TypeAbs a, TypeAbs b) -> goAbs a b
   (TypeFunction a, TypeFunction b) -> goFunction a b
   (TypeUniverse, TypeUniverse) -> return True
+  -- TODO TypeAny should match anything?
   (TypeAny, TypeAny) -> return True
   -- TODO is the final wildcard bad style?
   -- what if more Type constructors are added
@@ -278,7 +277,7 @@ substitution m = go
   goApp :: TypeApplication -> TypeApplication
   goApp (TypeApplication l r) = TypeApplication (go l) (go r)
   goAbs :: TypeAbstraction -> TypeAbstraction
-  goAbs (TypeAbstraction v b) = (TypeAbstraction v (go b))
+  goAbs (TypeAbstraction v b) = TypeAbstraction v (go b)
   goFunction :: Function -> Function
   goFunction (Function l r) = Function (go l) (go r)
   goIden :: TypeIden -> Type
@@ -455,7 +454,7 @@ viewInductiveApp :: Member (Error TypeCheckerError) r =>
    Type -> Sem r (InductiveName, [Type])
 viewInductiveApp ty = case t of
   TypeIden (TypeIdenInductive n) -> return (n, as)
-  _ -> error "only inductive types can be pattern matched"
+  _ -> throw @TypeCheckerError (error "only inductive types can be pattern matched")
   where
   (t, as) = viewTypeApp ty
 
