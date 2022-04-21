@@ -82,16 +82,13 @@ goIden = \case
 throwErr :: Member (Error Err) r => Text -> Sem r a
 throwErr = throw
 
--- goName' :: Micro.Name -> Expression
--- goName' = ExpressionIden . goName
-
 goName :: Micro.Name -> Name
 goName n =
   Name
     { _nameText = goNameText n,
       _nameId = n ^. Micro.nameId,
-      _nameDefined = n ^. Micro.nameDefined,
-      _nameLoc = n ^. Micro.nameLoc,
+      _nameDefined = Just (n ^. Micro.nameDefined),
+      _nameLoc = Just (n ^. Micro.nameLoc),
       _nameKind = n ^. Micro.nameKind
     }
 
