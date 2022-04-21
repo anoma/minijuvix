@@ -15,7 +15,6 @@ import MiniJuvix.Syntax.MicroJuvix.LocalVars
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
 import Polysemy.Error (fromEither)
-import MiniJuvix.Prelude.Pretty (prettyText)
 
 entryMicroJuvixTyped ::
   (Member (Error TypeCheckerError) r) =>
@@ -139,7 +138,6 @@ alphaEq ty = runReader ini . go ty
     (TypeIdenAxiom a, TypeIdenAxiom b) -> return (a == b)
     (TypeIdenVariable a, TypeIdenVariable b) -> do
       mappedEq <- fromMaybe False . fmap (== b) . HashMap.lookup a <$> ask
-      -- namedArgEq <- checkEqual a b <$> ask
       return (a == b || mappedEq)
     _ -> return False
   goApp :: TypeApplication -> TypeApplication -> Sem r Bool

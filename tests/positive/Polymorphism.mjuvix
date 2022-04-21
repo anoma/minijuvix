@@ -29,6 +29,7 @@ undefined A ≔ undefined A;
 nil' : (E : Type) → List E;
 nil' A ≔ nil A;
 
+-- currying
 nil'' : (E : Type) → List E;
 nil'' ≔ nil;
 
@@ -81,6 +82,7 @@ zipWith A B C f (cons a as) (cons b bs) ≔ cons C (f a b) (zipWith A B C f as b
 rankn : ((A : Type) → A → A) → Bool → Nat → Pair Bool Nat;
 rankn f b n ≔ mkPair Bool Nat (f Bool b) (f Nat n);
 
+-- currying
 trankn : Pair Bool Nat;
 trankn ≔ rankn id false zero;
 
