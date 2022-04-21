@@ -20,7 +20,7 @@ serialize (CCode {..}) = pack (show (P.pretty tUnit))
 mkCDecl :: Declaration -> CDecl
 mkCDecl Declaration {..} =
   CDecl
-    (maybe [] mkDeclSpecifier _declType)
+    (mkDeclSpecifier _declType)
     [(Just declrName, initializer, Nothing)]
     C.undefNode
   where
@@ -138,7 +138,7 @@ mkIdent t = C.Ident (unpack t) 0 C.undefNode
 example1 :: Declaration
 example1 =
   Declaration
-    { _declType = Just t,
+    { _declType = t,
       _declIsPtr = True,
       _declName = "n",
       _declInitializer = Just i
@@ -191,7 +191,7 @@ example3 =
       _funcName = "nat_is_zero",
       _funcArgs =
         [ Declaration
-            { _declType = Just (DeclTypeDefType "nat_t"),
+            { _declType = DeclTypeDefType "nat_t",
               _declIsPtr = True,
               _declName = "n",
               _declInitializer = Nothing
@@ -211,7 +211,7 @@ example4 =
       _funcBody =
         [ BodyDecl
             ( Declaration
-                { _declType = Just (DeclTypeDefType "nat_t"),
+                { _declType = DeclTypeDefType "nat_t",
                   _declIsPtr = True,
                   _declName = "n",
                   _declInitializer =
@@ -236,7 +236,7 @@ example4 =
             ),
           BodyDecl
             ( Declaration
-                { _declType = Just (DeclTypeDefType "nat_t"),
+                { _declType = DeclTypeDefType "nat_t",
                   _declIsPtr = False,
                   _declName = "m",
                   _declInitializer =

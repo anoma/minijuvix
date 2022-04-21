@@ -13,7 +13,7 @@ data External
 --------------------------------------------------------------------------------
 
 data Declaration = Declaration
-  { _declType :: Maybe DeclType,
+  { _declType :: DeclType,
     _declIsPtr :: Bool,
     _declName :: Text,
     _declInitializer :: Maybe Initializer
