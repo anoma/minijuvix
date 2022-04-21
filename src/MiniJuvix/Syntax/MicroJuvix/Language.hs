@@ -52,8 +52,10 @@ instance HasNameKind Name where
   getNameKind = _nameKind
 
 instance Pretty Name where
-  pretty n = pretty (n ^. nameText) <>
-    "@" <> pretty (n ^. nameId)
+  pretty n =
+    pretty (n ^. nameText)
+      <> "@"
+      <> pretty (n ^. nameId)
 
 data Module = Module
   { _moduleName :: Name,
@@ -135,9 +137,9 @@ data Pattern
   | PatternWildcard
   deriving stock (Show)
 
-newtype InductiveParameter = InductiveParameter {
-  _inductiveParamName :: VarName
- }
+newtype InductiveParameter = InductiveParameter
+  { _inductiveParamName :: VarName
+  }
   deriving stock (Show, Eq)
 
 data InductiveDef = InductiveDef
@@ -157,15 +159,15 @@ data TypeIden
   | TypeIdenVariable VarName
   deriving stock (Show, Eq)
 
-data TypeApplication = TypeApplication {
-  _typeAppLeft :: Type,
-  _typeAppRight :: Type
+data TypeApplication = TypeApplication
+  { _typeAppLeft :: Type,
+    _typeAppRight :: Type
   }
   deriving stock (Show)
 
-data TypeAbstraction = TypeAbstraction {
-  _typeAbsVar :: VarName,
-  _typeAbsBody :: Type
+data TypeAbstraction = TypeAbstraction
+  { _typeAbsVar :: VarName,
+    _typeAbsBody :: Type
   }
   deriving stock (Show)
 
@@ -178,8 +180,8 @@ data Type
   | TypeAny
   deriving stock (Show)
 
-data FunctionArgType =
-  FunctionArgTypeAbstraction VarName
+data FunctionArgType
+  = FunctionArgTypeAbstraction VarName
   | FunctionArgTypeType Type
   deriving stock (Show)
 

@@ -8,11 +8,11 @@ import Data.Text qualified as Text
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.ForeignBlock
+import MiniJuvix.Syntax.MiniHaskell.Language
+import MiniJuvix.Syntax.MiniHaskell.MiniHaskellResult
 import MiniJuvix.Syntax.MonoJuvix.InfoTable qualified as Mono
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult qualified as Mono
-import MiniJuvix.Syntax.MiniHaskell.Language
-import MiniJuvix.Syntax.MiniHaskell.MiniHaskellResult
 import Prettyprinter
 
 entryMiniHaskell ::
@@ -23,11 +23,10 @@ entryMiniHaskell i = do
   _resultModules <- mapM goModule' (i ^. Mono.resultModules)
   return MiniHaskellResult {..}
   where
-  _resultMonoJuvix = i
-  goModule' m = runReader table (goModule m)
-   where
-   table = Mono.buildTable m
-
+    _resultMonoJuvix = i
+    goModule' m = runReader table (goModule m)
+      where
+        table = Mono.buildTable m
 
 translateModule :: Mono.Module -> Either Err Module
 translateModule m = run (runError (runReader table (goModule m)))

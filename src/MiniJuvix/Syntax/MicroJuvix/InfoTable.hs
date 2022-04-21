@@ -6,8 +6,7 @@ import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.MicroJuvix.Language
 
 data ConstructorInfo = ConstructorInfo
-  {
-    _constructorInfoInductiveParameters :: [InductiveParameter],
+  { _constructorInfoInductiveParameters :: [InductiveParameter],
     _constructorInfoArgs :: [Type],
     _constructorInfoInductive :: InductiveName
   }
@@ -22,9 +21,8 @@ data AxiomInfo = AxiomInfo
   }
 
 data InductiveInfo = InductiveInfo
- { _inductiveInfoDef :: InductiveDef
- }
-
+  { _inductiveInfoDef :: InductiveDef
+  }
 
 data InfoTable = InfoTable
   { _infoConstructors :: HashMap Name ConstructorInfo,
@@ -38,12 +36,14 @@ buildTable :: Module -> InfoTable
 buildTable m = InfoTable {..}
   where
     _infoInductives :: HashMap Name InductiveInfo
-    _infoInductives = HashMap.fromList
+    _infoInductives =
+      HashMap.fromList
         [ (d ^. inductiveName, InductiveInfo d)
           | StatementInductive d <- ss
         ]
     _infoConstructors :: HashMap Name ConstructorInfo
-    _infoConstructors = HashMap.fromList
+    _infoConstructors =
+      HashMap.fromList
         [ (c ^. constructorName, ConstructorInfo params args ind)
           | StatementInductive d <- ss,
             let ind = d ^. inductiveName,

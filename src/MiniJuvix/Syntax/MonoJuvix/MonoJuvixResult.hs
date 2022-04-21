@@ -5,9 +5,9 @@ module MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
 where
 
 import MiniJuvix.Prelude
+import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.InfoTable
 import MiniJuvix.Syntax.MonoJuvix.Language
-import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
 
 data MonoJuvixResult = MonoJuvixResult
   { _resultMicroTyped :: Micro.MicroJuvixTypedResult,

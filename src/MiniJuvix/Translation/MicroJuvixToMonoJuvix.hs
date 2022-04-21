@@ -10,8 +10,8 @@ import MiniJuvix.Syntax.MicroJuvix.InfoTable qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.Language
-import MiniJuvix.Syntax.NameId
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
+import MiniJuvix.Syntax.NameId
 
 entryMonoJuvix ::
   Member (Error Err) r =>
@@ -62,11 +62,12 @@ goStatement = \case
 goAxiomDef :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.AxiomDef -> Sem r AxiomDef
 goAxiomDef Micro.AxiomDef {..} = do
   _axiomType' <- goType _axiomType
-  return AxiomDef {
-    _axiomName = goName _axiomName,
-    _axiomType = _axiomType',
-    _axiomBackendItems = _axiomBackendItems
-  }
+  return
+    AxiomDef
+      { _axiomName = goName _axiomName,
+        _axiomType = _axiomType',
+        _axiomBackendItems = _axiomBackendItems
+      }
 
 lookupAxiom :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Name -> Sem r Micro.AxiomInfo
 lookupAxiom n =
