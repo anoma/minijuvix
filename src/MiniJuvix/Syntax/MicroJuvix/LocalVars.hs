@@ -2,10 +2,21 @@ module MiniJuvix.Syntax.MicroJuvix.LocalVars where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Language
+import Data.HashMap.Strict qualified as HashMap
 
-newtype LocalVars = LocalVars
-  { _localTypes :: HashMap VarName Type
+data LocalVars = LocalVars
+  { _localTypes :: HashMap VarName Type,
+    _localTyMap :: HashMap VarName VarName
   }
-  deriving newtype (Semigroup, Monoid)
+  deriving stock (Show)
 
 makeLenses ''LocalVars
+
+addType :: VarName -> Type -> LocalVars -> LocalVars
+addType v t = over localTypes (HashMap.insert v t)
+
+emptyLocalVars :: LocalVars
+emptyLocalVars = LocalVars {
+    _localTypes = mempty,
+    _localTyMap = mempty
+    }
