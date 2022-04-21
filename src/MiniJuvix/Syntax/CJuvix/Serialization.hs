@@ -1,21 +1,31 @@
 module MiniJuvix.Syntax.CJuvix.Serialization where
 
+import Data.Text qualified as T
 import Language.C qualified as C
 import Language.C.Data.Ident qualified as C
 import Language.C.Pretty qualified as P
 import Language.C.Syntax
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.CJuvix.Language
+import Prettyprinter
 
 serialize :: CCode -> Text
-serialize (CCode {..}) = pack (show (P.pretty tUnit))
+serialize (CCode {..}) = T.unlines [cppText, show (P.pretty tUnit)]
   where
+    cppText :: Text
+    cppText = show (vsep (serializeCpp <$> _ccodeCpp))
     tUnit :: CTranslUnit
     tUnit = CTranslUnit (f <$> _ccodeExternal) C.undefNode
     f :: External -> CExtDecl
     f = \case
       ExternalDecl decl -> CDeclExt (mkCDecl decl)
       ExternalFunc fun -> CFDefExt (mkCFunDef fun)
+
+serializeCpp :: Cpp -> Doc a
+serializeCpp = \case
+  CppIncludeFile i -> "#include" <+> dquotes (pretty i)
+  CppIncludeSystem i -> "#include" <+> angles (pretty i)
+  CppDefine (Define {..}) -> "#define" <+> pretty _defineName <+> parens (pretty _defineBody)
 
 mkCDecl :: Declaration -> CDecl
 mkCDecl Declaration {..} =
@@ -282,5 +292,30 @@ example4 =
             ),
           BodyStatement
             (StatementReturn (Just (ExpressionVar "n")))
+        ]
+    }
+
+example5 :: CCode
+example5 =
+  CCode
+    { _ccodeCpp =
+        [ CppIncludeSystem "stdlib.h",
+          CppIncludeFile "myfile.h",
+          CppDefine
+            ( Define
+                { _defineName = "NAT",
+                  _defineBody = "nat_t"
+                }
+            )
+        ],
+      _ccodeExternal =
+        [ ExternalDecl
+            ( Declaration
+                { _declType = DeclTypeDefType "NAT",
+                  _declIsPtr = False,
+                  _declName = "bar",
+                  _declInitializer = Nothing
+                }
+            )
         ]
     }

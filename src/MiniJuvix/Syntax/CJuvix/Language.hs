@@ -2,11 +2,28 @@ module MiniJuvix.Syntax.CJuvix.Language where
 
 import MiniJuvix.Prelude hiding (Enum)
 
-newtype CCode = CCode {_ccodeExternal :: [External]}
+data CCode = CCode
+  { _ccodeCpp :: [Cpp],
+    _ccodeExternal :: [External]
+  }
 
 data External
   = ExternalDecl Declaration
   | ExternalFunc Function
+
+--------------------------------------------------------------------------------
+-- Prepreocessor Directives
+--------------------------------------------------------------------------------
+
+data Cpp
+  = CppIncludeFile Text
+  | CppIncludeSystem Text
+  | CppDefine Define
+
+data Define = Define
+  { _defineName :: Text,
+    _defineBody :: Text
+  }
 
 --------------------------------------------------------------------------------
 -- Declaration
