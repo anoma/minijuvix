@@ -9,14 +9,14 @@ import MiniJuvix.Prelude
 import MiniJuvix.Syntax.CJuvix.Language
 import Prettyprinter
 
-serialize :: CCode -> Text
-serialize (CCode {..}) = T.unlines [cppText, show (P.pretty tUnit)]
+serialize :: CCodeUnit -> Text
+serialize (CCodeUnit {..}) = T.unlines [cppText, show (P.pretty tUnit)]
   where
     cppText :: Text
     cppText = show (vsep (serializeCpp <$> _ccodeCpp))
     tUnit :: CTranslUnit
-    tUnit = CTranslUnit (f <$> _ccodeExternal) C.undefNode
-    f :: External -> CExtDecl
+    tUnit = CTranslUnit (f <$> _ccodeCode) C.undefNode
+    f :: CCode-> CExtDecl
     f = \case
       ExternalDecl decl -> CDeclExt (mkCDecl decl)
       ExternalFunc fun -> CFDefExt (mkCFunDef fun)
@@ -295,9 +295,9 @@ example4 =
         ]
     }
 
-example5 :: CCode
+example5 :: CCodeUnit
 example5 =
-  CCode
+  CCodeUnit
     { _ccodeCpp =
         [ CppIncludeSystem "stdlib.h",
           CppIncludeFile "myfile.h",
@@ -308,7 +308,7 @@ example5 =
                 }
             )
         ],
-      _ccodeExternal =
+      _ccodeCode =
         [ ExternalDecl
             ( Declaration
                 { _declType = DeclTypeDefType "NAT",
