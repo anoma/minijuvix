@@ -7,7 +7,6 @@ where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Backends
-import MiniJuvix.Syntax.Concrete.Language (HasLoc)
 import MiniJuvix.Syntax.Concrete.Language qualified as C
 import MiniJuvix.Syntax.Concrete.Scoped.Name (NameId (..))
 import MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind
@@ -29,13 +28,10 @@ data Name = Name
   { _nameText :: Text,
     _nameId :: NameId,
     _nameKind :: NameKind,
-    _nameDefined :: C.Interval,
-    _nameLoc :: C.Interval
+    _nameDefined :: Maybe C.Interval,
+    _nameLoc :: Maybe C.Interval
   }
   deriving stock (Show)
-
-instance HasLoc Name where
-  getLoc = _nameLoc
 
 makeLenses ''Name
 
@@ -197,17 +193,3 @@ instance HasAtomicity Pattern where
     PatternConstructorApp a -> atomicity a
     PatternVariable {} -> Atom
     PatternWildcard {} -> Atom
-
-instance HasLoc Expression where
-  getLoc = \case
-    ExpressionIden i -> C.getLoc i
-    ExpressionApplication a -> C.getLoc (a ^. appLeft)
-    ExpressionTyped t -> C.getLoc (t ^. typedExpression)
-    ExpressionLiteral l -> C.getLoc l
-
-instance HasLoc Iden where
-  getLoc = \case
-    IdenFunction f -> C.getLoc f
-    IdenConstructor c -> C.getLoc c
-    IdenVar v -> C.getLoc v
-    IdenAxiom a -> C.getLoc a

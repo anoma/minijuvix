@@ -17,8 +17,8 @@ import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult qualified as MicroJuvix
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as MicroJuvix
 import MiniJuvix.Syntax.MicroJuvix.TypeChecker qualified as MicroJuvix
 import MiniJuvix.Translation.AbstractToMicroJuvix qualified as MicroJuvix
-import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as MonoJuvix
+import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 
 type StageInput :: Pipe -> GHC.Type

@@ -40,9 +40,10 @@ instance PrettyCode NameId where
 instance PrettyCode Name where
   ppCode n = do
     showNameId <- asks _optShowNameId
-    uid <- if
-      | showNameId -> Just . ("@" <>) <$> ppCode (n ^. nameId)
-      | otherwise -> return Nothing
+    uid <-
+      if
+          | showNameId -> Just . ("@" <>) <$> ppCode (n ^. nameId)
+          | otherwise -> return Nothing
     return $
       annotate (AnnKind (n ^. nameKind)) $
         pretty (n ^. nameText) <?> uid
@@ -201,8 +202,8 @@ instance PrettyCode InductiveDef where
     return $ kwData <+> inductiveName' <+?> params <+> kwEquals <> line <> rhs
     where
       hsep' l
-       | null l = Nothing
-       | otherwise = Just (hsep l)
+        | null l = Nothing
+        | otherwise = Just (hsep l)
 
 instance PrettyCode ConstructorApp where
   ppCode c = do

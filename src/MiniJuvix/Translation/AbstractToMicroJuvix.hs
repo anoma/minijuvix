@@ -28,10 +28,11 @@ entryMicroJuvix ares = do
 translateModule :: A.TopModule -> Sem r Module
 translateModule m = do
   _moduleBody' <- goModuleBody (m ^. A.moduleBody)
-  return Module
-    { _moduleName = goTopModuleName (m ^. A.moduleName),
-      _moduleBody = _moduleBody'
-    }
+  return
+    Module
+      { _moduleName = goTopModuleName (m ^. A.moduleName),
+        _moduleBody = _moduleBody'
+      }
 
 goTopModuleName :: A.TopModuleName -> Name
 goTopModuleName = goSymbol . S.topModulePathName
@@ -78,11 +79,12 @@ goTypeIden i = case i of
 goAxiomDef :: A.AxiomDef -> Sem r AxiomDef
 goAxiomDef a = do
   _axiomType' <- goType (a ^. A.axiomType)
-  return AxiomDef
-    { _axiomName = goSymbol (a ^. A.axiomName),
-      _axiomType = _axiomType',
-      _axiomBackendItems = a ^. A.axiomBackendItems
-    }
+  return
+    AxiomDef
+      { _axiomName = goSymbol (a ^. A.axiomName),
+        _axiomType = _axiomType',
+        _axiomBackendItems = a ^. A.axiomBackendItems
+      }
 
 goFunctionParameter :: A.FunctionParameter -> Sem r (Either VarName Type)
 goFunctionParameter f = case f ^. A.paramName of
@@ -110,11 +112,12 @@ goFunctionDef :: A.FunctionDef -> Sem r FunctionDef
 goFunctionDef f = do
   _funDefClauses' <- mapM (goFunctionClause _funDefName') (f ^. A.funDefClauses)
   _funDefType' <- goType (f ^. A.funDefTypeSig)
-  return FunctionDef
-    { _funDefName = _funDefName',
-      _funDefType = _funDefType',
-      _funDefClauses = _funDefClauses'
-    }
+  return
+    FunctionDef
+      { _funDefName = _funDefName',
+        _funDefType = _funDefType',
+        _funDefClauses = _funDefClauses'
+      }
   where
     _funDefName' :: Name
     _funDefName' = goSymbol (f ^. A.funDefName)
@@ -123,11 +126,12 @@ goFunctionClause :: Name -> A.FunctionClause -> Sem r FunctionClause
 goFunctionClause n c = do
   _clauseBody' <- goExpression (c ^. A.clauseBody)
   _clausePatterns' <- mapM goPattern (c ^. A.clausePatterns)
-  return FunctionClause
-    { _clauseName = n,
-      _clausePatterns = _clausePatterns',
-      _clauseBody = _clauseBody'
-    }
+  return
+    FunctionClause
+      { _clauseName = n,
+        _clausePatterns = _clausePatterns',
+        _clauseBody = _clauseBody'
+      }
 
 goPattern :: A.Pattern -> Sem r Pattern
 goPattern p = case p of
@@ -138,11 +142,12 @@ goPattern p = case p of
 
 goConstructorApp :: A.ConstructorApp -> Sem r ConstructorApp
 goConstructorApp c = do
-  _constrAppParameters'<- mapM goPattern (c ^. A.constrAppParameters)
-  return ConstructorApp {
-    _constrAppConstructor = goName (c ^. A.constrAppConstructor . A.constructorRefName),
-    _constrAppParameters = _constrAppParameters'
-  }
+  _constrAppParameters' <- mapM goPattern (c ^. A.constrAppParameters)
+  return
+    ConstructorApp
+      { _constrAppConstructor = goName (c ^. A.constrAppConstructor . A.constructorRefName),
+        _constrAppParameters = _constrAppParameters'
+      }
 
 isSmallType :: A.Expression -> Bool
 isSmallType e = case e of
@@ -192,9 +197,10 @@ goInductiveParameter f =
   case (f ^. A.paramName, f ^. A.paramUsage, f ^. A.paramType) of
     (Just var, A.UsageOmega, A.ExpressionUniverse u)
       | isSmallUni u ->
-        return InductiveParameter {
-          _inductiveParamName = goSymbol var
-             }
+          return
+            InductiveParameter
+              { _inductiveParamName = goSymbol var
+              }
     (Just {}, _, _) -> unsupported "only type variables of small types are allowed"
     (Nothing, _, _) -> unsupported "unnamed inductive parameters"
 
@@ -204,32 +210,35 @@ goInductiveDef i = case i ^. A.inductiveType of
   _ -> do
     _inductiveParameters' <- mapM goInductiveParameter (i ^. A.inductiveParameters)
     _inductiveConstructors' <- mapM goConstructorDef (i ^. A.inductiveConstructors)
-    return InductiveDef {
-      _inductiveName = indName,
-      _inductiveParameters = _inductiveParameters',
-      _inductiveConstructors = _inductiveConstructors'
-      }
+    return
+      InductiveDef
+        { _inductiveName = indName,
+          _inductiveParameters = _inductiveParameters',
+          _inductiveConstructors = _inductiveConstructors'
+        }
   where
-  indName = goSymbol (i ^. A.inductiveName)
-  goConstructorDef :: A.InductiveConstructorDef -> Sem r InductiveConstructorDef
-  goConstructorDef c = do
-    _constructorParameters' <- goConstructorType (c ^. A.constructorType)
-    return InductiveConstructorDef
-      { _constructorName = goSymbol (c ^. A.constructorName),
-        _constructorParameters = _constructorParameters'
-      }
-  --TODO check that the return type corresponds with the inductive type
-  goConstructorType :: A.Expression -> Sem r [Type]
-  goConstructorType = fmap fst . viewConstructorType
+    indName = goSymbol (i ^. A.inductiveName)
+    goConstructorDef :: A.InductiveConstructorDef -> Sem r InductiveConstructorDef
+    goConstructorDef c = do
+      _constructorParameters' <- goConstructorType (c ^. A.constructorType)
+      return
+        InductiveConstructorDef
+          { _constructorName = goSymbol (c ^. A.constructorName),
+            _constructorParameters = _constructorParameters'
+          }
+    -- TODO check that the return type corresponds with the inductive type
+    goConstructorType :: A.Expression -> Sem r [Type]
+    goConstructorType = fmap fst . viewConstructorType
 
 goTypeApplication :: A.Application -> Sem r TypeApplication
 goTypeApplication (A.Application l r) = do
   l' <- goType l
   r' <- goType r
-  return TypeApplication {
-    _typeAppLeft = l',
-    _typeAppRight = r'
-   }
+  return
+    TypeApplication
+      { _typeAppLeft = l',
+        _typeAppRight = r'
+      }
 
 viewConstructorType :: A.Expression -> Sem r ([Type], Type)
 viewConstructorType e = case e of
@@ -241,10 +250,10 @@ viewConstructorType e = case e of
   A.ExpressionUniverse {} -> return ([], TypeUniverse)
   A.ExpressionLiteral {} -> unsupported "literal in a type"
   where
-  viewFunctionType :: A.Function -> Sem r (NonEmpty Type, Type)
-  viewFunctionType (A.Function p r) = do
-    (args, ret) <- viewConstructorType r
-    p' <- goFunctionParameter p
-    return $ case p' of
-      Left {} -> unsupported "type abstraction in constructor type"
-      Right ty -> (ty :| args, ret)
+    viewFunctionType :: A.Function -> Sem r (NonEmpty Type, Type)
+    viewFunctionType (A.Function p r) = do
+      (args, ret) <- viewConstructorType r
+      p' <- goFunctionParameter p
+      return $ case p' of
+        Left {} -> unsupported "type abstraction in constructor type"
+        Right ty -> (ty :| args, ret)

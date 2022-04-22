@@ -10,8 +10,8 @@ import MiniJuvix.Syntax.MicroJuvix.InfoTable qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.Language
-import MiniJuvix.Syntax.NameId
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
+import MiniJuvix.Syntax.NameId
 
 entryMonoJuvix ::
   Member (Error Err) r =>
@@ -62,11 +62,12 @@ goStatement = \case
 goAxiomDef :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.AxiomDef -> Sem r AxiomDef
 goAxiomDef Micro.AxiomDef {..} = do
   _axiomType' <- goType _axiomType
-  return AxiomDef {
-    _axiomName = goName _axiomName,
-    _axiomType = _axiomType',
-    _axiomBackendItems = _axiomBackendItems
-  }
+  return
+    AxiomDef
+      { _axiomName = goName _axiomName,
+        _axiomType = _axiomType',
+        _axiomBackendItems = _axiomBackendItems
+      }
 
 lookupAxiom :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Name -> Sem r Micro.AxiomInfo
 lookupAxiom n =
@@ -82,16 +83,13 @@ goIden = \case
 throwErr :: Member (Error Err) r => Text -> Sem r a
 throwErr = throw
 
--- goName' :: Micro.Name -> Expression
--- goName' = ExpressionIden . goName
-
 goName :: Micro.Name -> Name
 goName n =
   Name
     { _nameText = goNameText n,
       _nameId = n ^. Micro.nameId,
-      _nameDefined = n ^. Micro.nameDefined,
-      _nameLoc = n ^. Micro.nameLoc,
+      _nameDefined = Just (n ^. Micro.nameDefined),
+      _nameLoc = Just (n ^. Micro.nameLoc),
       _nameKind = n ^. Micro.nameKind
     }
 

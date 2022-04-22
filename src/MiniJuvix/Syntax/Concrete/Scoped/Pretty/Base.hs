@@ -463,9 +463,10 @@ instance PrettyCode n => PrettyCode (S.Name' n) where
   ppCode S.Name' {..} = do
     nameConcrete' <- annotateKind _nameKind <$> ppCode _nameConcrete
     showNameId <- asks _optShowNameId
-    uid <- if
-      | showNameId -> Just . ("@" <>) <$> ppCode _nameId
-      | otherwise -> return Nothing
+    uid <-
+      if
+          | showNameId -> Just . ("@" <>) <$> ppCode _nameId
+          | otherwise -> return Nothing
     return $ annSRef (nameConcrete' <?> uid)
     where
       annSRef :: Doc Ann -> Doc Ann
