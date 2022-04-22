@@ -32,7 +32,7 @@ data Define = Define
 data Declaration = Declaration
   { _declType :: DeclType,
     _declIsPtr :: Bool,
-    _declName :: Text,
+    _declName :: Maybe Text,
     _declInitializer :: Maybe Initializer
   }
 
@@ -174,3 +174,78 @@ data If = If
     _ifThen :: Statement,
     _ifElse :: Maybe Statement
   }
+
+--------------------------------------------------------------------------------
+-- Constructions
+--------------------------------------------------------------------------------
+
+functionCall :: Text -> [Expression] -> Expression
+functionCall fName args =
+  ExpressionCall
+    ( Call
+        { _callCallee = ExpressionVar fName,
+          _callArgs = args
+        }
+    )
+
+ptrType :: DeclType -> Text -> Declaration
+ptrType typ n =
+  Declaration
+    { _declType = typ,
+      _declIsPtr = True,
+      _declName = Just n,
+      _declInitializer = Nothing
+    }
+
+typeDefType :: Text -> Text -> Declaration
+typeDefType typName declName =
+  Declaration
+    { _declType = DeclTypeDefType typName,
+      _declIsPtr = False,
+      _declName = Just declName,
+      _declInitializer = Nothing
+    }
+
+equals :: Expression -> Expression -> Expression
+equals e1 e2 =
+  ExpressionBinary
+    ( Binary
+        { _binaryOp = Eq,
+          _binaryLeft = e1,
+          _binaryRight = e2
+        }
+    )
+
+memberAccess :: MemberAccessOp -> Expression -> Text -> Expression
+memberAccess op e fieldName =
+  ExpressionMember
+    ( MemberAccess
+        { _memberSubject = e,
+          _memberField = fieldName,
+          _memberOp = op
+        }
+    )
+
+staticInlineFunc :: DeclType -> Bool -> Text -> [Declaration] -> [BodyItem] -> Function
+staticInlineFunc t isPtr name args body =
+  Function
+    { _funcReturnType = t,
+      _funcIsPtr = isPtr,
+      _funcQualifier = StaticInline,
+      _funcName = name,
+      _funcArgs = args,
+      _funcBody = body
+    }
+
+typeDefWrap :: Text -> DeclType -> Declaration
+typeDefWrap typeDefName typ =
+  Declaration
+    { _declType = DeclTypeDef typ,
+      _declIsPtr = False,
+      _declName = Just typeDefName,
+      _declInitializer = Nothing
+    }
+
+returnStatement :: Expression -> BodyItem
+returnStatement e =
+  BodyStatement (StatementReturn (Just e))

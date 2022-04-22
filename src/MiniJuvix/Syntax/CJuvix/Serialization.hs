@@ -16,7 +16,7 @@ serialize (CCodeUnit {..}) = T.unlines [cppText, show (P.pretty tUnit)]
     cppText = show (vsep (serializeCpp <$> _ccodeCpp))
     tUnit :: CTranslUnit
     tUnit = CTranslUnit (f <$> _ccodeCode) C.undefNode
-    f :: CCode-> CExtDecl
+    f :: CCode -> CExtDecl
     f = \case
       ExternalDecl decl -> CDeclExt (mkCDecl decl)
       ExternalFunc fun -> CFDefExt (mkCFunDef fun)
@@ -35,7 +35,7 @@ mkCDecl Declaration {..} =
     C.undefNode
   where
     declrName :: CDeclr
-    declrName = CDeclr (Just (mkIdent _declName)) ptrDeclr Nothing [] C.undefNode
+    declrName = CDeclr (mkIdent <$> _declName) ptrDeclr Nothing [] C.undefNode
     ptrDeclr :: [CDerivedDeclarator C.NodeInfo]
     ptrDeclr = [CPtrDeclr [] C.undefNode | _declIsPtr]
     initializer :: Maybe CInit
@@ -150,7 +150,7 @@ example1 =
   Declaration
     { _declType = t,
       _declIsPtr = True,
-      _declName = "n",
+      _declName = Just "n",
       _declInitializer = Just i
     }
   where
@@ -203,7 +203,7 @@ example3 =
         [ Declaration
             { _declType = DeclTypeDefType "nat_t",
               _declIsPtr = True,
-              _declName = "n",
+              _declName = Just "n",
               _declInitializer = Nothing
             }
         ],
@@ -223,7 +223,7 @@ example4 =
             ( Declaration
                 { _declType = DeclTypeDefType "nat_t",
                   _declIsPtr = True,
-                  _declName = "n",
+                  _declName = Just "n",
                   _declInitializer =
                     Just
                       ( ExprInitializer
@@ -248,7 +248,7 @@ example4 =
             ( Declaration
                 { _declType = DeclTypeDefType "nat_t",
                   _declIsPtr = False,
-                  _declName = "m",
+                  _declName = Just "m",
                   _declInitializer =
                     Just
                       ( DesignatorInitializer
@@ -313,7 +313,7 @@ example5 =
             ( Declaration
                 { _declType = DeclTypeDefType "NAT",
                   _declIsPtr = False,
-                  _declName = "bar",
+                  _declName = Just "bar",
                   _declInitializer = Nothing
                 }
             )
