@@ -247,14 +247,15 @@ instance PrettyCode ForeignBlock where
         <> line
         <> rbrace
 
+instance PrettyCode CompileBlock where
+  ppCode CompileBlock {..} = undefined --TODO
+
+
 instance PrettyCode AxiomDef where
   ppCode AxiomDef {..} = do
     axiomName' <- ppCode _axiomName
     axiomType' <- ppCode _axiomType
-    axiomBackendItems' <- case _axiomBackendItems of
-      [] -> return Nothing
-      bs -> Just <$> ppBlock bs
-    return $ kwAxiom <+> axiomName' <+> kwColon <+> axiomType' <+?> axiomBackendItems'
+    return $ kwAxiom <+> axiomName' <+> kwColon <+> axiomType'
 
 instance PrettyCode Statement where
   ppCode = \case
@@ -262,6 +263,7 @@ instance PrettyCode Statement where
     StatementFunction f -> ppCode f
     StatementInductive f -> ppCode f
     StatementAxiom f -> ppCode f
+    StatementCompile f -> ppCode f
 
 instance PrettyCode ModuleBody where
   ppCode m = do

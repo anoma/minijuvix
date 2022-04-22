@@ -16,8 +16,7 @@ newtype FunctionInfo = FunctionInfo
   }
 
 data AxiomInfo = AxiomInfo
-  { _axiomInfoType :: Type,
-    _axiomInfoBackends :: [BackendItem]
+  { _axiomInfoType :: Type
   }
 
 newtype InductiveInfo = InductiveInfo
@@ -28,7 +27,8 @@ data InfoTable = InfoTable
   { _infoConstructors :: HashMap Name ConstructorInfo,
     _infoAxioms :: HashMap Name AxiomInfo,
     _infoFunctions :: HashMap Name FunctionInfo,
-    _infoInductives :: HashMap Name InductiveInfo
+    _infoInductives :: HashMap Name InductiveInfo,
+    _infoCompilationRules :: HashMap Name [BackendItem]
   }
 
 -- TODO temporary function.
@@ -60,7 +60,7 @@ buildTable m = InfoTable {..}
     _infoAxioms :: HashMap Name AxiomInfo
     _infoAxioms =
       HashMap.fromList
-        [ (d ^. axiomName, AxiomInfo (d ^. axiomType) (d ^. axiomBackendItems))
+        [ (d ^. axiomName, AxiomInfo (d ^. axiomType))
           | StatementAxiom d <- ss
         ]
     ss = m ^. (moduleBody . moduleStatements)

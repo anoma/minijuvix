@@ -1073,7 +1073,7 @@ deriving stock instance
 
 data CompileBlock s = CompileBlock
   { _compileName :: SymbolType s,
-    _compileBackends :: [BackendItem]
+    _compileBackendItems :: [BackendItem]
   }
 
 deriving stock instance

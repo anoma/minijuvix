@@ -301,8 +301,8 @@ instance PrettyCode Backend where
 instance SingI s => PrettyCode (CompileBlock s) where
   ppCode CompileBlock {..} = do
     compileName' <- ppSymbol _compileName
-    compileBackends' <- ppBlock _compileBackends
-    return $ kwCompile <+> compileName' <+> compileBackends'
+    compileBackendItems' <- ppBlock _compileBackendItems
+    return $ kwCompile <+> compileName' <+> compileBackendItems'
 
 instance PrettyCode ForeignBlock where
   ppCode ForeignBlock {..} = do

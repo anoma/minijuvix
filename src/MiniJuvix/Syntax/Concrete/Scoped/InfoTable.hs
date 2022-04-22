@@ -1,6 +1,6 @@
 module MiniJuvix.Syntax.Concrete.Scoped.InfoTable where
 
-import GHC.Event (FdKey (keyFd))
+
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Concrete.Language
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S

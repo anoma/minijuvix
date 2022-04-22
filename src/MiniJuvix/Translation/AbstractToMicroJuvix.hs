@@ -82,8 +82,7 @@ goAxiomDef a = do
   return
     AxiomDef
       { _axiomName = goSymbol (a ^. A.axiomName),
-        _axiomType = _axiomType',
-        _axiomBackendItems = a ^. A.axiomBackendItems
+        _axiomType = _axiomType'
       }
 
 goFunctionParameter :: A.FunctionParameter -> Sem r (Either VarName Type)

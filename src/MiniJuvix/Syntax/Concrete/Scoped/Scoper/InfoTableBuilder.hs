@@ -61,7 +61,7 @@ toState = reinterpret $ \case
      in modify (over infoAxioms (HashMap.insert ref info))
   RegisterCompileBlock c ->
     let symbol = S.unqualifiedSymbol (c ^. compileName)
-        backends = c ^. compileBackends
+        backends = c ^. compileBackendItems
      in modify (over infoCompilationRules (HashMap.insert symbol backends))
   RegisterConstructor c ->
     let ref = ConstructorRef' (S.unqualifiedSymbol (c ^. constructorName))

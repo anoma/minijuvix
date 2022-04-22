@@ -189,16 +189,17 @@ data InductiveConstructorDef = InductiveConstructorDef
   }
   deriving stock (Eq, Show)
 
-data CompileBlock = CompileBlock
-  { _compileName :: S.Symbol,
-    _compileBackends :: [BackendItem]
-  }
-
 data AxiomDef = AxiomDef
   { _axiomName :: AxiomName,
     _axiomType :: Expression
   }
   deriving stock (Eq, Show)
+
+data CompileBlock = CompileBlock
+  { _compileName :: S.Symbol,
+    _compileBackendItems :: [BackendItem]
+  }
+  deriving stock (Eq , Show)
 
 makeLenses ''Module
 makeLenses ''FunctionParameter
