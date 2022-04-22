@@ -402,14 +402,21 @@ runCLI cli = do
     Termination (CallGraph o@CallGraphOptions {..}) -> do
       a <- head . (^. Abstract.resultModules) <$> runIO (upToAbstract (getEntryPoint root o))
       let callMap = T.buildCallMap a
-          opts' = Abstract.defaultOptions
+          opts' =
+            Abstract.defaultOptions
+              { Abstract._optShowNameId = globalOptions ^. globalShowNameIds
+              }
           completeGraph = T.completeCallGraph callMap
           filteredGraph = maybe completeGraph (`T.unsafeFilterGraph` completeGraph) _graphFunctionNameFilter
           recBehav = map T.recursiveBehaviour (T.reflexiveEdges filteredGraph)
       renderStdOutAbs (Abstract.ppOut opts' filteredGraph)
       putStrLn ""
       forM_ recBehav $ \r -> do
-        let n = toAnsiText' (Scoper.ppOutDefault (A._recBehaviourFunction r))
+        let sopts =
+              Scoper.defaultOptions
+                { Scoper._optShowNameId = globalOptions ^. globalShowNameIds
+                }
+            n = toAnsiText' (Scoper.ppOut sopts (A._recBehaviourFunction r))
         renderStdOutAbs (Abstract.ppOut opts' r)
         putStrLn ""
         case T.findOrder r of
