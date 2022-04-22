@@ -20,7 +20,7 @@ data AxiomInfo = AxiomInfo
     _axiomInfoBackends :: [BackendItem]
   }
 
-data InductiveInfo = InductiveInfo
+newtype InductiveInfo = InductiveInfo
   { _inductiveInfoDef :: InductiveDef
   }
 

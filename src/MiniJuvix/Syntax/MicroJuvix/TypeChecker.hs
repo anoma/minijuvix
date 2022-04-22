@@ -141,7 +141,7 @@ alphaEq ty = runReader ini . go ty
           (TypeIdenInductive a, TypeIdenInductive b) -> return (a == b)
           (TypeIdenAxiom a, TypeIdenAxiom b) -> return (a == b)
           (TypeIdenVariable a, TypeIdenVariable b) -> do
-            mappedEq <- maybe False (== b) . HashMap.lookup a <$> ask
+            mappedEq <- (== Just b) . HashMap.lookup a <$> ask
             return (a == b || mappedEq)
           _ -> return False
         goApp :: TypeApplication -> TypeApplication -> Sem r Bool
