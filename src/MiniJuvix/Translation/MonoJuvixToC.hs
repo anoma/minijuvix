@@ -6,12 +6,46 @@ import MiniJuvix.Syntax.CJuvix.Language
 import MiniJuvix.Syntax.CJuvix.Serialization
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
+import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult qualified as Mono
 import MiniJuvix.Syntax.NameId (unNameId)
+
+newtype MiniCResult = MiniCResult
+  { _resultCCode :: Text
+  }
+
+makeLenses ''MiniCResult
+
+entryMiniC ::
+  Mono.MonoJuvixResult ->
+  Sem r MiniCResult
+entryMiniC i = return (MiniCResult (serialize cunitResult))
+  where
+    cunitResult :: CCodeUnit
+    cunitResult =
+      CCodeUnit
+        { _ccodeCpp = [CppIncludeSystem "stdlib.h"],
+          _ccodeCode = toList (i ^. Mono.resultModules) >>= goModule
+        }
 
 type Err = Text
 
 unsupported :: Err -> a
 unsupported msg = error (msg <> "Mono to C: not yet supported")
+
+goModule :: Mono.Module -> [CCode]
+goModule Mono.Module {..} = goModuleBody _moduleBody
+
+goModuleBody ::
+  Mono.ModuleBody ->
+  [CCode]
+goModuleBody Mono.ModuleBody {..} = _moduleStatements >>= goStatement
+
+goStatement :: Mono.Statement -> [CCode]
+goStatement = \case
+  Mono.StatementInductive d -> goInductiveDef d
+  Mono.StatementFunction d -> unsupported "StatementFunction"
+  Mono.StatementForeign d -> unsupported "StatementForeign"
+  Mono.StatementAxiom {} -> unsupported "StatementAxiom"
 
 type CTypeName = Text
 
@@ -28,7 +62,7 @@ asNew :: Text -> Text
 asNew n = n <> "_new"
 
 mkName :: Mono.Name -> Text
-mkName name = nameText <> "_" <> nameId
+mkName name = nameText
   where
     nameText :: Text
     nameText = T.toLower (name ^. Mono.nameText)
