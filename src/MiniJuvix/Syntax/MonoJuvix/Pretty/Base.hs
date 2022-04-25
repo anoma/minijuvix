@@ -79,6 +79,9 @@ kwCompile = keyword Str.compile
 kwAgda :: Doc Ann
 kwAgda = keyword Str.agda
 
+kwC :: Doc Ann
+kwC = keyword Str.cBackend
+
 kwGhc :: Doc Ann
 kwGhc = keyword Str.ghc
 
@@ -197,6 +200,7 @@ instance PrettyCode Backend where
   ppCode = \case
     BackendGhc -> return kwGhc
     BackendAgda -> return kwAgda
+    BackendC -> return kwC
 
 instance PrettyCode ForeignBlock where
   ppCode ForeignBlock {..} = do

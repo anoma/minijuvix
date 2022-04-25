@@ -64,6 +64,9 @@ kwGhc = keyword Str.ghc
 kwAgda :: Doc Ann
 kwAgda = keyword Str.agda
 
+kwC :: Doc Ann
+kwC = keyword Str.cBackend
+
 kwWhere :: Doc Ann
 kwWhere = keyword Str.where_
 
@@ -285,6 +288,7 @@ instance PrettyCode Backend where
   ppCode = \case
     BackendGhc -> return kwGhc
     BackendAgda -> return kwAgda
+    BackendC -> return kwC
 
 instance SingI s => PrettyCode (Compile s) where
   ppCode Compile {..} = do

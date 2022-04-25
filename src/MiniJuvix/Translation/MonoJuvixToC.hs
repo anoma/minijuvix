@@ -2,8 +2,10 @@ module MiniJuvix.Translation.MonoJuvixToC where
 
 import Data.Text qualified as T
 import MiniJuvix.Prelude
+import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.CJuvix.Language
 import MiniJuvix.Syntax.CJuvix.Serialization
+import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult qualified as Mono
@@ -49,8 +51,8 @@ goStatement :: Mono.Statement -> [CCode]
 goStatement = \case
   Mono.StatementInductive d -> goInductiveDef d
   Mono.StatementFunction d -> unsupported "StatementFunction"
-  Mono.StatementForeign d -> unsupported "StatementForeign"
   Mono.StatementAxiom {} -> unsupported "StatementAxiom"
+  Mono.StatementForeign d -> goForeign d
 
 type CTypeName = Text
 
@@ -73,6 +75,11 @@ mkName name = nameText
     nameText = T.toLower (name ^. Mono.nameText)
     nameId :: Text
     nameId = show (name ^. Mono.nameId . unNameId)
+
+goForeign :: ForeignBlock -> [CCode]
+goForeign b = case b ^. foreignBackend of
+  BackendC -> [Verbatim (b ^. foreignCode)]
+  _ -> error ("Could not find " <> show (b ^. foreignBackend))
 
 mkInductiveName :: Mono.InductiveDef -> Text
 mkInductiveName i = mkName (i ^. Mono.inductiveName)

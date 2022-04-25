@@ -250,3 +250,5 @@ typeDefWrap typeDefName typ =
 returnStatement :: Expression -> BodyItem
 returnStatement e =
   BodyStatement (StatementReturn (Just e))
+
+makeLenses ''CCodeUnit

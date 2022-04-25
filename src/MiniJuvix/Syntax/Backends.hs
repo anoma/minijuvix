@@ -2,7 +2,7 @@ module MiniJuvix.Syntax.Backends where
 
 import MiniJuvix.Prelude
 
-data Backend = BackendGhc | BackendAgda
+data Backend = BackendGhc | BackendAgda | BackendC
   deriving stock (Show, Eq, Ord, Generic)
 
 instance Hashable Backend
