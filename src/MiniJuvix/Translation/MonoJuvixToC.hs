@@ -23,7 +23,8 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
     cunitResult :: CCodeUnit
     cunitResult =
       CCodeUnit
-        { _ccodeCpp = [CppIncludeSystem "stdlib.h"],
+        { _ccodeCpp = [CppIncludeSystem "stdlib.h",
+                       CppIncludeSystem "stdbool.h"],
           _ccodeCode = toList (i ^. Mono.resultModules) >>= goModule
         }
 
