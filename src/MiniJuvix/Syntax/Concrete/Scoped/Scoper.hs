@@ -11,8 +11,8 @@ import Control.Monad.Combinators.Expr qualified as P
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet qualified as HashSet
 import Data.List.NonEmpty qualified as NonEmpty
-import MiniJuvix.Internal.NameIdGen
 import Lens.Micro.Platform
+import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Pipeline.EntryPoint
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Concrete.Base qualified as P

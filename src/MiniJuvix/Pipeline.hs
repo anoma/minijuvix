@@ -6,6 +6,7 @@ module MiniJuvix.Pipeline
 where
 
 import Data.Kind qualified as GHC
+import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Pipeline.EntryPoint
 import MiniJuvix.Pipeline.Stage
 import MiniJuvix.Prelude
@@ -19,7 +20,6 @@ import MiniJuvix.Translation.AbstractToMicroJuvix qualified as MicroJuvix
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as MonoJuvix
 import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
-import MiniJuvix.Internal.NameIdGen
 
 type StageInput :: Pipe -> GHC.Type
 type family StageInput c = res where

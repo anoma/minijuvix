@@ -4,12 +4,12 @@ import Base
 import Data.Algorithm.Diff
 import Data.Algorithm.DiffOutput
 import Data.HashMap.Strict qualified as HashMap
+import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Pipeline
 import MiniJuvix.Syntax.Concrete.Parser qualified as Parser
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty.Text qualified as M
 import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
 import MiniJuvix.Syntax.Concrete.Scoped.Utils
-import MiniJuvix.Internal.NameIdGen
 import Text.Show.Pretty hiding (Html)
 
 data PosTest = PosTest

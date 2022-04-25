@@ -1,11 +1,12 @@
-module MiniJuvix.Internal.NameIdGen (
-  module MiniJuvix.Internal.NameIdGen,
-  module MiniJuvix.Syntax.NameId,
- ) where
+module MiniJuvix.Internal.NameIdGen
+  ( module MiniJuvix.Internal.NameIdGen,
+    module MiniJuvix.Syntax.NameId,
+  )
+where
 
+import Data.Stream (Stream (Cons))
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.NameId
-import Data.Stream (Stream (Cons))
 
 allNameIds :: Stream NameId
 allNameIds = NameId <$> ids

@@ -47,7 +47,6 @@ isChildOf child parent
 (<.>) :: AbsModulePath -> C.Symbol -> AbsModulePath
 absP <.> localMod = absP {absLocalPath = absLocalPath absP ++ [localMod]}
 
-
 -- | Why a symbol is in scope.
 data WhyInScope
   = -- | Inherited from the parent module.
