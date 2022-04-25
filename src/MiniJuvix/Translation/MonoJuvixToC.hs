@@ -51,8 +51,8 @@ goStatement :: Mono.Statement -> [CCode]
 goStatement = \case
   Mono.StatementInductive d -> goInductiveDef d
   Mono.StatementFunction d -> unsupported "StatementFunction"
-  Mono.StatementAxiom {} -> unsupported "StatementAxiom"
   Mono.StatementForeign d -> goForeign d
+  Mono.StatementAxiom d -> goAxiomDef d
 
 type CTypeName = Text
 
@@ -75,6 +75,22 @@ mkName name = nameText
     nameText = T.toLower (name ^. Mono.nameText)
     nameId :: Text
     nameId = show (name ^. Mono.nameId . unNameId)
+
+goAxiomDef :: Mono.AxiomDef -> [CCode]
+goAxiomDef a =
+  case firstJust getCode backends of
+    Nothing -> error ("c does not support this primitive:" <> show (a ^. Mono.axiomName))
+    Just _defineBody ->
+      [ExternalMacro (CppDefine (Define {..}))]
+  where
+    _defineName :: Text
+    _defineName = mkName (a ^. Mono.axiomName)
+    backends :: [BackendItem]
+    backends = a ^. Mono.axiomBackendItems
+    getCode :: BackendItem -> Maybe Text
+    getCode b =
+      guard (BackendC == b ^. backendItemBackend)
+        $> b ^. backendItemCode
 
 goForeign :: ForeignBlock -> [CCode]
 goForeign b = case b ^. foreignBackend of
@@ -394,7 +410,7 @@ goType :: Text -> Mono.Type -> Declaration
 goType n = \case
   Mono.TypeIden ti ->
     Declaration
-      { _declType = DeclTypeDefType (asTypeDef (mkName (getMonoName ti))),
+      { _declType = DeclTypeDefType (getMonoName ti),
         _declIsPtr = True,
         _declName = Just n,
         _declInitializer = Nothing
@@ -403,10 +419,10 @@ goType n = \case
   Mono.TypeUniverse {} -> unsupported "TypeUniverse"
   Mono.TypeAny {} -> unsupported "TypeAny"
   where
-    getMonoName :: Mono.TypeIden -> Mono.Name
+    getMonoName :: Mono.TypeIden -> Text
     getMonoName = \case
-      Mono.TypeIdenInductive mn -> mn
-      Mono.TypeIdenAxiom mn -> mn
+      Mono.TypeIdenInductive mn -> (asTypeDef (mkName mn))
+      Mono.TypeIdenAxiom mn -> mkName mn
 
 mallocSizeOf :: Text -> Expression
 mallocSizeOf typeName =
