@@ -7,25 +7,32 @@ import Language.C.Pretty qualified as P
 import Language.C.Syntax
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.CJuvix.Language
-import Prettyprinter
+import Text.PrettyPrint.HughesPJ qualified as HP
+
+encAngles :: HP.Doc -> HP.Doc
+encAngles p = HP.char '<' HP.<> p HP.<> HP.char '>'
+
+instance P.Pretty Cpp where
+  pretty = \case
+    CppIncludeFile i -> "#include" HP.<+> HP.doubleQuotes (P.pretty i)
+    CppIncludeSystem i -> "#include" HP.<+> encAngles (P.pretty i)
+    CppDefine (Define {..}) -> "#define" HP.<+> (P.pretty _defineName HP.<+> P.pretty _defineBody)
+
+instance P.Pretty Text where
+  pretty = HP.text . unpack
+
+instance P.Pretty CCodeUnit where
+  pretty c = HP.vcat (map P.pretty (c ^. ccodeCode))
+
+instance P.Pretty CCode where
+  pretty = \case
+    ExternalDecl decl -> P.pretty (CDeclExt (mkCDecl decl))
+    ExternalFunc fun -> P.pretty (CFDefExt (mkCFunDef fun))
+    ExternalMacro m -> P.pretty m
+    Verbatim t -> P.pretty t
 
 serialize :: CCodeUnit -> Text
-serialize (CCodeUnit {..}) = T.unlines [cppText, show (P.pretty tUnit)]
-  where
-    cppText :: Text
-    cppText = show (vsep (serializeCpp <$> _ccodeCpp))
-    tUnit :: CTranslUnit
-    tUnit = CTranslUnit (f <$> _ccodeCode) C.undefNode
-    f :: CCode -> CExtDecl
-    f = \case
-      ExternalDecl decl -> CDeclExt (mkCDecl decl)
-      ExternalFunc fun -> CFDefExt (mkCFunDef fun)
-
-serializeCpp :: Cpp -> Doc a
-serializeCpp = \case
-  CppIncludeFile i -> "#include" <+> dquotes (pretty i)
-  CppIncludeSystem i -> "#include" <+> angles (pretty i)
-  CppDefine (Define {..}) -> "#define" <+> pretty _defineName <+> parens (pretty _defineBody)
+serialize = show . P.pretty
 
 mkCDecl :: Declaration -> CDecl
 mkCDecl Declaration {..} =
@@ -298,18 +305,19 @@ example4 =
 example5 :: CCodeUnit
 example5 =
   CCodeUnit
-    { _ccodeCpp =
-        [ CppIncludeSystem "stdlib.h",
-          CppIncludeFile "myfile.h",
-          CppDefine
+    {_ccodeCode =
+        [ ExternalMacro
+           ( CppIncludeSystem "stdlib.h" ),
+          ExternalMacro
+           ( CppIncludeFile "myfile.h" ),
+          ExternalMacro
+           (CppDefine
             ( Define
                 { _defineName = "NAT",
                   _defineBody = "nat_t"
                 }
-            )
-        ],
-      _ccodeCode =
-        [ ExternalDecl
+            )),
+          ExternalDecl
             ( Declaration
                 { _declType = DeclTypeDefType "NAT",
                   _declIsPtr = False,

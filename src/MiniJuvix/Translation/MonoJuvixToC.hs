@@ -23,10 +23,14 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
     cunitResult :: CCodeUnit
     cunitResult =
       CCodeUnit
-        { _ccodeCpp = [CppIncludeSystem "stdlib.h",
-                       CppIncludeSystem "stdbool.h"],
-          _ccodeCode = toList (i ^. Mono.resultModules) >>= goModule
+        { _ccodeCode = cheader <> (toList (i ^. Mono.resultModules) >>= goModule)
         }
+    cheader =
+      map
+        ExternalMacro
+        [ CppIncludeSystem "stdlib.h",
+          CppIncludeSystem "stdbool.h"
+        ]
 
 type Err = Text
 
@@ -440,4 +444,4 @@ exConstructor n i args =
         }
 
 exCode :: CCodeUnit
-exCode = CCodeUnit [] (goInductiveDef exInductive)
+exCode = CCodeUnit (goInductiveDef exInductive)

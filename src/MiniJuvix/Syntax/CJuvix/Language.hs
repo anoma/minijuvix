@@ -2,14 +2,15 @@ module MiniJuvix.Syntax.CJuvix.Language where
 
 import MiniJuvix.Prelude hiding (Enum)
 
-data CCodeUnit = CCodeUnit
-  { _ccodeCpp :: [Cpp],
-    _ccodeCode :: [CCode]
+newtype CCodeUnit = CCodeUnit
+  { _ccodeCode :: [CCode]
   }
 
 data CCode
   = ExternalDecl Declaration
   | ExternalFunc Function
+  | ExternalMacro Cpp
+  | Verbatim Text
 
 --------------------------------------------------------------------------------
 -- Prepreocessor Directives
