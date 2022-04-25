@@ -451,7 +451,7 @@ runCLI cli = do
       renderStdOutMini (MiniHaskell.ppOutDefault minihaskell)
     MiniC o -> do
       miniC <- (^. MiniC.resultCCode) <$> runIO (upToMiniC (getEntryPoint root o))
-      putStr miniC
+      putStrLn miniC
     Termination (Calls opts@CallsOptions {..}) -> do
       results <- runIO (upToAbstract (getEntryPoint root opts))
       let topModule = head (results ^. Abstract.resultModules)
