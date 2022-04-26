@@ -1,10 +1,9 @@
-module MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder where
+module MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder (buildTypeCallMap) where
 
 import Data.HashSet qualified as HashSet
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
-import Data.HashMap.Strict qualified as HashMap
 import Data.List.NonEmpty qualified as NonEmpty
 
 
@@ -94,9 +93,6 @@ goExpression = \case
   ExpressionLiteral {} -> return ()
   ExpressionTyped t -> goExpression (t ^. typedExpression)
 
-lookupFunction :: Member (Reader InfoTable) r => Name -> Sem r FunctionInfo
-lookupFunction f = HashMap.lookupDefault impossible f <$> asks _infoFunctions
-
 expressionAsType' :: Expression -> Type
 expressionAsType' = fromMaybe impossible . expressionAsType
 
@@ -106,7 +102,7 @@ goApplication a = do
   mapM_ goExpression args
   case f of
     ExpressionIden (IdenFunction fun) -> do
-      funTy <- (^. functionInfoType) <$> lookupFunction fun
+      funTy <- (^. functionInfoDef . funDefType) <$> lookupFunction fun
       let numTyArgs = length (fst (unfoldTypeAbsType funTy))
       when (numTyArgs > 0) $ do
           let tyArgs = fmap expressionAsType' (take' numTyArgs args)

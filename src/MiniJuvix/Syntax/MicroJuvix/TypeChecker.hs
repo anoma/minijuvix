@@ -153,18 +153,6 @@ inferExpression ::
   Sem r Expression
 inferExpression = fmap ExpressionTyped . inferExpression'
 
-lookupConstructor :: Member (Reader InfoTable) r => Name -> Sem r ConstructorInfo
-lookupConstructor f = HashMap.lookupDefault impossible f <$> asks _infoConstructors
-
-lookupInductive :: Member (Reader InfoTable) r => InductiveName -> Sem r InductiveInfo
-lookupInductive f = HashMap.lookupDefault impossible f <$> asks _infoInductives
-
-lookupFunction :: Member (Reader InfoTable) r => Name -> Sem r FunctionInfo
-lookupFunction f = HashMap.lookupDefault impossible f <$> asks _infoFunctions
-
-lookupAxiom :: Member (Reader InfoTable) r => Name -> Sem r AxiomInfo
-lookupAxiom f = HashMap.lookupDefault impossible f <$> asks _infoAxioms
-
 lookupVar :: Member (Reader LocalVars) r => Name -> Sem r Type
 lookupVar v = HashMap.lookupDefault impossible v <$> asks _localTypes
 
@@ -201,7 +189,7 @@ checkFunctionClause ::
   FunctionClause ->
   Sem r FunctionClause
 checkFunctionClause info clause@FunctionClause {..} = do
-  let (argTys, rty) = unfoldFunType (info ^. functionInfoType)
+  let (argTys, rty) = unfoldFunType (info ^. functionInfoDef . funDefType)
       (patTys, restTys) = splitAt (length _clausePatterns) argTys
       bodyTy = foldFunType restTys rty
   if
@@ -337,7 +325,7 @@ inferExpression' e = case e of
     inferIden i = case i of
       IdenFunction fun -> do
         info <- lookupFunction fun
-        return (TypedExpression (info ^. functionInfoType) (ExpressionIden i))
+        return (TypedExpression (info ^. functionInfoDef . funDefType) (ExpressionIden i))
       IdenConstructor c -> do
         ty <- constructorType c
         return (TypedExpression ty (ExpressionIden i))

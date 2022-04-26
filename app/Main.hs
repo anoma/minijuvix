@@ -28,7 +28,7 @@ import MiniJuvix.Termination qualified as T
 import MiniJuvix.Termination.CallGraph qualified as A
 import MiniJuvix.Translation.AbstractToMicroJuvix qualified as Micro
 import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
-import MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder qualified as Mono
+import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as Mono
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 import MiniJuvix.Utils.Version (runDisplayVersion)
 import Options.Applicative
@@ -399,6 +399,9 @@ runCLI cli = do
             putStrLn ""
             let typeCalls = Mono.buildTypeCallMap res
             renderStdOutMicro (Micro.ppOut ppOpts typeCalls)
+            putStrLn ""
+            let concreteTypeCalls = Mono.collectTypeCalls res
+            renderStdOutMicro (Micro.ppOut ppOpts concreteTypeCalls)
         Left err -> printErrorAnsiSafe err >> exitFailure
     MiniHaskell o -> do
       minihaskell <- head . (^. MiniHaskell.resultModules) <$> runIO (upToMiniHaskell (getEntryPoint root o))

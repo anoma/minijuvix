@@ -283,6 +283,9 @@ instance PrettyCode TypeAppIden where
     InductiveIden n -> ppCode n
     FunctionIden n -> ppCode n
 
+instance PrettyCode ConcreteTypeCall where
+  ppCode = ppCode . fmap (^. unconcreteType)
+
 instance PrettyCode TypeCall where
   ppCode (TypeCall' caller f args) = do
     f' <- ppCode f
@@ -296,7 +299,14 @@ instance PrettyCode TypeCallsMap where
         flatten = concat . map toList . toList
         elems = flatten (m ^. typeCallsMap)
     elems' <- mapM ppCode (sortOn (^. typeCallCaller) elems)
-    return $ title <> line <> vsep elems'
+    return $ title <> line <> vsep elems' <> line
+
+instance PrettyCode TypeCalls where
+  ppCode m = do
+    let title = keyword "Propagated Type Calls:"
+        elems = toList (m ^. typeCallSet)
+    elems' <- mapM ppCode (sortOn (^. typeCallCaller) elems)
+    return $ title <> line <> vsep elems' <> line
 
 parensCond :: Bool -> Doc Ann -> Doc Ann
 parensCond t d = if t then parens d else d

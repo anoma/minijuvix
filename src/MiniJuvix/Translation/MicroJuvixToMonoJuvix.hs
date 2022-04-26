@@ -1,5 +1,7 @@
 module MiniJuvix.Translation.MicroJuvixToMonoJuvix
   ( module MiniJuvix.Translation.MicroJuvixToMonoJuvix,
+    module MiniJuvix.Translation.MicroJuvixToMonoJuvix.ConcreteTypeCalls,
+    module MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder,
     module MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult,
   )
 where
@@ -9,6 +11,8 @@ import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.InfoTable qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
+import MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder
+import MiniJuvix.Translation.MicroJuvixToMonoJuvix.ConcreteTypeCalls
 import MiniJuvix.Syntax.MonoJuvix.Language
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
 import MiniJuvix.Internal.NameIdGen

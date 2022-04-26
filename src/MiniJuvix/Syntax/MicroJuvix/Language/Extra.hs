@@ -33,12 +33,21 @@ newtype ConcreteType = ConcreteType {_unconcreteType :: Type}
 type ConcreteTypeCall = TypeCall' ConcreteType
 type TypeCall = TypeCall' Type
 
+newtype TypeCalls = TypeCalls {
+  _typeCallSet :: HashSet ConcreteTypeCall
+   }
+
+emptyCalls :: TypeCalls
+emptyCalls = TypeCalls mempty
+
 instance Hashable TypeAppIden
 instance Hashable TypeCall
 instance Hashable ConcreteTypeCall
 instance Hashable ConcreteType
+makeLenses ''TypeCalls
 makeLenses ''TypeCall'
 makeLenses ''TypeCallsMap
+makeLenses ''ConcreteType
 
 mkTypeCallsMap :: HashSet TypeCall -> TypeCallsMap
 mkTypeCallsMap s = TypeCallsMap {
@@ -110,17 +119,30 @@ substitutionArg from v a = case a of
 substitution1 :: (VarName, Type) -> Type -> Type
 substitution1 = substitution . uncurry HashMap.singleton
 
-typeVarsAssoc :: forall a. FunctionDef -> [a] -> HashMap VarName a
-typeVarsAssoc def l = sig <> mconcatMap clause (def ^. funDefClauses)
+inductiveTypeVarsAssoc :: Foldable f => InductiveDef -> f a -> HashMap VarName a
+inductiveTypeVarsAssoc def l
+  | length vars < n = impossible
+  | otherwise = HashMap.fromList (zip vars (toList l))
+  where
+  n = length l
+  vars :: [VarName]
+  vars = def ^.. inductiveParameters . each . inductiveParamName
+
+functionTypeVarsAssoc :: forall a f. Foldable f => FunctionDef -> f a -> HashMap VarName a
+functionTypeVarsAssoc def l = sig <> mconcatMap clause (def ^. funDefClauses)
   where
   n = length l
   zipl :: [Maybe VarName] -> HashMap VarName a
-  zipl x = HashMap.fromList (mapMaybe aux (zip x l))
+  zipl x = HashMap.fromList (mapMaybe aux (zip x (toList l)))
      where
      aux = \case
        (Just a, b) -> Just (a, b)
        _ -> Nothing
-  sig = zipl (map Just (fst (unfoldTypeAbsType (def ^. funDefType))))
+  sig
+   | length tyVars < n = impossible
+   | otherwise = zipl (map Just tyVars)
+    where
+    tyVars = fst (unfoldTypeAbsType (def ^. funDefType))
   clause :: FunctionClause -> HashMap VarName a
   clause c = zipl clauseVars
     where
@@ -131,6 +153,9 @@ typeVarsAssoc def l = sig <> mconcatMap clause (def ^. funDefClauses)
       patternVar = \case
         PatternVariable v -> Just v
         _ -> Nothing
+
+substitutionConcrete :: HashMap VarName ConcreteType -> Type -> ConcreteType
+substitutionConcrete m = mkConcreteType' . substitution ((^. unconcreteType) <$> m)
 
 substitution :: HashMap VarName Type -> Type -> Type
 substitution m = go

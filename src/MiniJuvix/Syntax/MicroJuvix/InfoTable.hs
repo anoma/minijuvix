@@ -12,7 +12,7 @@ data ConstructorInfo = ConstructorInfo
   }
 
 newtype FunctionInfo = FunctionInfo
-  { _functionInfoType :: Type
+  { _functionInfoDef :: FunctionDef
   }
 
 newtype AxiomInfo = AxiomInfo
@@ -53,7 +53,7 @@ instance Monoid InfoTable where
    }
 
 buildTable :: Foldable f => f Module -> InfoTable
-buildTable = mconcatMap buildTable1 . toList
+buildTable = mconcatMap buildTable1
 
 buildTable1 :: Module -> InfoTable
 buildTable1 m = InfoTable {..}
@@ -77,7 +77,7 @@ buildTable1 m = InfoTable {..}
     _infoFunctions :: HashMap Name FunctionInfo
     _infoFunctions =
       HashMap.fromList
-        [ (f ^. funDefName, FunctionInfo (f ^. funDefType))
+        [ (f ^. funDefName, FunctionInfo f)
           | StatementFunction f <- ss
         ]
     _infoAxioms :: HashMap Name AxiomInfo
@@ -87,3 +87,15 @@ buildTable1 m = InfoTable {..}
           | StatementAxiom d <- ss
         ]
     ss = m ^. (moduleBody . moduleStatements)
+
+lookupConstructor :: Member (Reader InfoTable) r => Name -> Sem r ConstructorInfo
+lookupConstructor f = HashMap.lookupDefault impossible f <$> asks _infoConstructors
+
+lookupInductive :: Member (Reader InfoTable) r => InductiveName -> Sem r InductiveInfo
+lookupInductive f = HashMap.lookupDefault impossible f <$> asks _infoInductives
+
+lookupFunction :: Member (Reader InfoTable) r => Name -> Sem r FunctionInfo
+lookupFunction f = HashMap.lookupDefault impossible f <$> asks _infoFunctions
+
+lookupAxiom :: Member (Reader InfoTable) r => Name -> Sem r AxiomInfo
+lookupAxiom f = HashMap.lookupDefault impossible f <$> asks _infoAxioms
