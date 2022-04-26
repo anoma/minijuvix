@@ -203,8 +203,8 @@ instance PrettyCode ForeignBlock where
         <> line
         <> rbrace
 
-instance PrettyCode CompileBlock where
-  ppCode CompileBlock {..} = do
+instance PrettyCode Compile where
+  ppCode Compile {..} = do
     compileName' <- ppCode _compileName
     compileBackendItems' <- ppBlock _compileBackendItems
     return $ kwCompile <+> compileName' <+> compileBackendItems'

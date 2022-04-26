@@ -97,8 +97,17 @@ goStatement (Indexed idx s) =
     StatementModule f -> Just . A.StatementLocalModule <$> goLocalModule f
     StatementTypeSignature {} -> return Nothing
     StatementFunctionClause {} -> return Nothing
+    StatementCompile c -> Just . A.StatementCompile <$> goCompile c
 
-goFunctionDef :: forall r. Members '[Error Err, InfoTableBuilder] r => TypeSignature 'Scoped -> NonEmpty (FunctionClause 'Scoped) -> Sem r A.FunctionDef
+goCompile :: Compile 'Scoped -> Sem r A.Compile
+goCompile c = return (A.Compile (c ^. compileName) (c ^. compileBackendItems))
+
+goFunctionDef ::
+  forall r.
+  Members '[Error Err, InfoTableBuilder] r =>
+  TypeSignature 'Scoped ->
+  NonEmpty (FunctionClause 'Scoped) ->
+  Sem r A.FunctionDef
 goFunctionDef sig clauses = do
   let _funDefName = sig ^. sigName
   _funDefClauses <- mapM goFunctionClause clauses

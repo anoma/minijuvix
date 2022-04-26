@@ -8,14 +8,14 @@ import Data.Text qualified as Text
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.ForeignBlock
-
 import MiniJuvix.Syntax.MiniHaskell.Language
 import MiniJuvix.Syntax.MiniHaskell.MiniHaskellResult
 import MiniJuvix.Syntax.MonoJuvix.InfoTable qualified as Mono
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult qualified as Mono
-import Prettyprinter
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix (goCompile)
+import Prettyprinter
+
 -- import Base (Members)
 
 entryMiniHaskell ::
@@ -70,13 +70,17 @@ goForeign b = case b ^. foreignBackend of
   BackendGhc -> Just (StatementVerbatim (b ^. foreignCode))
   _ -> Nothing
 
-lookupCompile :: Members '[Error Err, Reader Mono.InfoTable] r =>
-  Mono.Name -> Sem r Mono.CompileInfo
+lookupCompile ::
+  Members '[Error Err, Reader Mono.InfoTable] r =>
+  Mono.Name ->
+  Sem r Mono.CompileInfo
 lookupCompile name =
   fromMaybe impossible . (^. Mono.infoCompilationRules . at name) <$> ask
 
-lookupAxiom :: Members '[Error Err, Reader Mono.InfoTable] r =>
-  Mono.Name -> Sem r Mono.AxiomInfo
+lookupAxiom ::
+  Members '[Error Err, Reader Mono.InfoTable] r =>
+  Mono.Name ->
+  Sem r Mono.AxiomInfo
 lookupAxiom n =
   fromMaybe impossible . (^. Mono.infoAxioms . at n) <$> ask
 
@@ -90,8 +94,10 @@ goIden = \case
 throwErr :: Member (Error Err) r => Text -> Sem r a
 throwErr = throw
 
-goCompile :: Members '[Error Err , Reader Mono.InfoTable ] r =>
-                     Mono.Name -> Sem r Text
+goCompile ::
+  Members '[Error Err, Reader Mono.InfoTable] r =>
+  Mono.Name ->
+  Sem r Text
 goCompile name = do
   backends <- (^. Mono.compileInfoBackendItems) <$> lookupCompile name
   case firstJust getCode backends of

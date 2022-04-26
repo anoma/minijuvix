@@ -14,13 +14,13 @@ newtype FunctionInfo = FunctionInfo
   { _functionInfoType :: Type
   }
 
-data AxiomInfo = AxiomInfo
+newtype AxiomInfo = AxiomInfo
   { _axiomInfoType :: Type
   }
 
-newtype CompileInfo = CompileInfo {
-  _compileInfoBackendItems :: [BackendItem]
-}
+newtype CompileInfo = CompileInfo
+  { _compileInfoBackendItems :: [BackendItem]
+  }
 
 data InfoTable = InfoTable
   { _infoConstructors :: HashMap Name ConstructorInfo,
@@ -57,7 +57,7 @@ buildTable m = InfoTable {..}
     _infoCompilationRules :: HashMap Name CompileInfo
     _infoCompilationRules =
       HashMap.fromList
-        [ (d ^. compileName , CompileInfo (d ^. compileBackendItems))
+        [ (d ^. compileName, CompileInfo (d ^. compileBackendItems))
           | StatementCompile d <- ss
         ]
     ss = m ^. (moduleBody . moduleStatements)

@@ -85,6 +85,9 @@ kwMapsto = keyword Str.mapstoUnicode
 kwForeign :: Doc Ann
 kwForeign = keyword Str.foreign_
 
+kwCompile :: Doc Ann
+kwCompile = keyword Str.compile
+
 kwAgda :: Doc Ann
 kwAgda = keyword Str.agda
 
@@ -174,7 +177,10 @@ indent' d = do
   i <- asks _optIndent
   return $ indent i d
 
-ppBlock :: (PrettyCode a, Members '[Reader Options] r, Traversable t) => t a -> Sem r (Doc Ann)
+ppBlock ::
+  (PrettyCode a, Members '[Reader Options] r, Traversable t) =>
+  t a ->
+  Sem r (Doc Ann)
 ppBlock items = mapM ppCode items >>= bracesIndent . vsep . toList
 
 bracesIndent :: Members '[Reader Options] r => Doc Ann -> Sem r (Doc Ann)
@@ -241,9 +247,11 @@ instance PrettyCode ForeignBlock where
         <> line
         <> rbrace
 
-instance PrettyCode CompileBlock where
-  ppCode CompileBlock {..} = undefined --TODO
-
+instance PrettyCode Compile where
+  ppCode Compile {..} = do
+    name <- ppCode _compileName
+    backends <- ppBlock _compileBackendItems
+    return $ kwCompile <+> name <+> backends
 
 instance PrettyCode AxiomDef where
   ppCode AxiomDef {..} = do

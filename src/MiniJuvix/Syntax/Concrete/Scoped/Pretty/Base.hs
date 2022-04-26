@@ -286,8 +286,8 @@ instance PrettyCode Backend where
     BackendGhc -> return kwGhc
     BackendAgda -> return kwAgda
 
-instance SingI s => PrettyCode (CompileBlock s) where
-  ppCode CompileBlock {..} = do
+instance SingI s => PrettyCode (Compile s) where
+  ppCode Compile {..} = do
     compileName' <- ppSymbol _compileName
     compileBackendItems' <- ppBlock _compileBackendItems
     return $ kwCompile <+> compileName' <+> compileBackendItems'

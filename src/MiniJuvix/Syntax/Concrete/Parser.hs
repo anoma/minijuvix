@@ -121,12 +121,12 @@ statement =
 -- Compile
 --------------------------------------------------------------------------------
 
-compileBlock :: Member InfoTableBuilder r => ParsecS r (CompileBlock 'Parsed)
+compileBlock :: Member InfoTableBuilder r => ParsecS r (Compile 'Parsed)
 compileBlock = do
   kwCompile
   _compileName <- symbol
-  _compileBackends <- backends
-  return CompileBlock {..}
+  _compileBackendItems <- backends
+  return Compile {..}
   where
     backends = toList <$> braces (P.sepEndBy1 backendItem kwSemicolon)
     backendItem = do
@@ -190,7 +190,7 @@ import_ = do
 
 expressionAtom :: Member InfoTableBuilder r => ParsecS r (ExpressionAtom 'Parsed)
 expressionAtom =
-  do (AtomLiteral <$> P.try literal)
+  do AtomLiteral <$> P.try literal
     <|> (AtomIdentifier <$> name)
     <|> (AtomUniverse <$> universe)
     <|> (AtomLambda <$> lambda)

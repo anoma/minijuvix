@@ -29,7 +29,10 @@ import MiniJuvix.Syntax.Concrete.Scoped.Scope
 import MiniJuvix.Syntax.Concrete.Scoped.Scoper.InfoTableBuilder
 import MiniJuvix.Syntax.Concrete.Scoped.Scoper.ScoperResult
 
-entryScoper :: Members '[Error ScopeError, Files, NameIdGen] r => ParserResult -> Sem r ScoperResult
+entryScoper ::
+  Members '[Error ScopeError, Files, NameIdGen] r =>
+  ParserResult ->
+  Sem r ScoperResult
 entryScoper pr = do
   let root = pr ^. Parser.resultEntry . entryRoot
       modules = pr ^. Parser.resultModules
@@ -591,8 +594,7 @@ checkClausesExist ss = whenJust msig (throw . ErrLacksFunctionClause . LacksFunc
     msig =
       listToMaybe
         [ ts | StatementTypeSignature ts <- ss, null
-                                                  [ c | StatementFunctionClause c <- ss, c ^. clauseOwnerFunction == ts ^. sigName
-                                                  ]
+                                                  [c | StatementFunctionClause c <- ss, c ^. clauseOwnerFunction == ts ^. sigName]
         ]
 
 checkOrphanFixities :: forall r. Members '[Error ScopeError, State Scope] r => Sem r ()
@@ -780,16 +782,39 @@ checkAxiomDef AxiomDef {..} = do
   axiomName' <- bindAxiomSymbol _axiomName
   registerAxiom' AxiomDef {_axiomName = axiomName', _axiomType = axiomType', ..}
 
-checkCompileBlock ::
-  Members '[InfoTableBuilder, Error ScopeError, State Scope, State ScoperState] r =>
-  CompileBlock 'Parsed ->
-  Sem r (CompileBlock 'Scoped)
-checkCompileBlock CompileBlock {..} = undefined
+checkCompile ::
+  Members '[InfoTableBuilder, Error ScopeError, State Scope, Reader LocalVars, State ScoperState] r =>
+  Compile 'Parsed ->
+  Sem r (Compile 'Scoped)
+checkCompile c@Compile {..} = do
+  sname <- checkCompileName c
+  modify (over scopeCompilationRules (HashMap.insert _compileName (CompileInfo _compileBackendItems)))
+  registerCompile' $ Compile {_compileName = sname, ..}
 
--- TODO
--- compileName' <- GlobalScope ..
--- registerCompileBlock (CompileBlock {_compileName = compileName' , ..})
--- check the symbol name is in scope
+checkCompileName ::
+  Members
+    '[ Error ScopeError,
+       State Scope,
+       Reader LocalVars,
+       State ScoperState,
+       InfoTableBuilder
+     ]
+    r =>
+  Compile 'Parsed ->
+  Sem r S.Symbol
+checkCompileName Compile {..} = do
+  let sym :: Symbol = _compileName
+  let name :: Name = NameUnqualified sym
+  scope <- get
+  locals <- ask
+  entries <- filter S.canBeCompiled <$> lookupQualifiedSymbol ([], sym)
+  case entries of
+    [] -> throw (ErrSymNotInScope (NotInScope sym locals scope))
+    [x] -> return (entryToSymbol x sym)
+    xs -> throw (ErrAmbiguousSym (AmbiguousSym name xs))
+
+entryToSymbol :: SymbolEntry -> Symbol -> S.Symbol
+entryToSymbol sentry csym = set S.nameConcrete csym (symbolEntryToSName sentry)
 
 checkEval ::
   Members '[Error ScopeError, State Scope, State ScoperState, InfoTableBuilder, NameIdGen] r =>
@@ -879,7 +904,11 @@ checkLambdaClause LambdaClause {..} = do
         lambdaBody = lambdaBody'
       }
 
-scopedVar :: Members '[InfoTableBuilder] r => LocalVariable -> Symbol -> Sem r S.Symbol
+scopedVar ::
+  Members '[InfoTableBuilder] r =>
+  LocalVariable ->
+  Symbol ->
+  Sem r S.Symbol
 scopedVar (LocalVariable s) n = do
   let scoped = set S.nameConcrete n s
   registerName (S.unqualifiedSymbol scoped)
@@ -1099,8 +1128,8 @@ checkStatement s = case s of
   StatementAxiom ax -> StatementAxiom <$> checkAxiomDef ax
   StatementEval e -> StatementEval <$> checkEval e
   StatementPrint e -> StatementPrint <$> checkPrint e
-  StatementForeign d -> return $ StatementForeign d
-  StatementCompile c -> StatementCompile <$> checkCompileBlock c
+  StatementForeign d -> return (StatementForeign d)
+  StatementCompile c -> StatementCompile <$> checkCompile c
 
 -------------------------------------------------------------------------------
 -- Infix Expression

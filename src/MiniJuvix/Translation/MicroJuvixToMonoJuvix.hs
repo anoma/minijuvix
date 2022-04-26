@@ -60,10 +60,9 @@ goStatement = \case
   Micro.StatementAxiom a -> StatementAxiom <$> goAxiomDef a
   Micro.StatementCompile a -> StatementCompile <$> goCompile a
 
-goCompile :: Members '[Error Err, Reader Micro.InfoTable] r =>
-  Micro.CompileBlock -> Sem r CompileBlock
-goCompile Micro.CompileBlock {..} = do
-  return CompileBlock { _compileName = goName _compileName, ..}
+goCompile :: Micro.Compile -> Sem r Compile
+goCompile Micro.Compile {..} = do
+  return Compile {_compileName = goName _compileName, ..}
 
 goAxiomDef :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.AxiomDef -> Sem r AxiomDef
 goAxiomDef Micro.AxiomDef {..} = do
@@ -78,7 +77,7 @@ lookupAxiom :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Name -> S
 lookupAxiom n =
   fromMaybe impossible . (^. Micro.infoAxioms . at n) <$> ask
 
-goIden :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Iden -> Sem r Iden
+goIden :: Micro.Iden -> Sem r Iden
 goIden = \case
   Micro.IdenFunction fun -> return (IdenFunction (goName fun))
   Micro.IdenConstructor c -> return (IdenConstructor (goName c))

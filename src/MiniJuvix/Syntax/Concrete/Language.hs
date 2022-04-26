@@ -105,7 +105,7 @@ data Statement (s :: Stage)
   | StatementEval (Eval s)
   | StatementPrint (Print s)
   | StatementForeign ForeignBlock
-  | StatementCompile (CompileBlock s)
+  | StatementCompile (Compile s)
 
 deriving stock instance
   ( Show (ImportType s),
@@ -1071,19 +1071,19 @@ deriving stock instance
 -- Compile statements
 --------------------------------------------------------------------------------
 
-data CompileBlock s = CompileBlock
+data Compile s = Compile
   { _compileName :: SymbolType s,
     _compileBackendItems :: [BackendItem]
   }
 
 deriving stock instance
-  (Show (SymbolType s)) => Show (CompileBlock s)
+  (Show (SymbolType s)) => Show (Compile s)
 
 deriving stock instance
-  (Ord (SymbolType s)) => Ord (CompileBlock s)
+  (Ord (SymbolType s)) => Ord (Compile s)
 
 deriving stock instance
-  (Eq (SymbolType s)) => Eq (CompileBlock s)
+  (Eq (SymbolType s)) => Eq (Compile s)
 
 --------------------------------------------------------------------------------
 -- Debugging statements
@@ -1133,7 +1133,7 @@ makeLenses ''PatternApp
 makeLenses ''PatternInfixApp
 makeLenses ''PatternPostfixApp
 makeLenses ''LiteralLoc
-makeLenses ''CompileBlock
+makeLenses ''Compile
 
 --------------------------------------------------------------------------------
 

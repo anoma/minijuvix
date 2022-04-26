@@ -15,7 +15,7 @@ data InfoTableBuilder m a where
   RegisterConstructor :: InductiveInfo -> InductiveConstructorDef -> InfoTableBuilder m ()
   RegisterInductive :: InductiveDef -> InfoTableBuilder m InductiveInfo
   RegisterFunction :: FunctionDef -> InfoTableBuilder m ()
-  RegisterCompileBlock :: CompileBlock -> InfoTableBuilder m ()
+  RegisterCompile :: Compile -> InfoTableBuilder m ()
 
 makeSem ''InfoTableBuilder
 
@@ -62,9 +62,10 @@ toState = reinterpret $ \case
             { ..
             }
      in modify (over infoFunctions (HashMap.insert ref info))
-  RegisterCompileBlock c ->
-     let name = c ^. compileName
-         backends = c ^. compileBackendItems
-      in modify (over infoCompilationRules (HashMap.insert name backends))
+  RegisterCompile c ->
+    let name = c ^. compileName
+        backends = c ^. compileBackendItems
+     in modify (over infoCompilationRules (HashMap.insert name backends))
+
 runInfoTableBuilder :: Sem (InfoTableBuilder ': r) a -> Sem r (InfoTable, a)
 runInfoTableBuilder = runState emptyInfoTable . toState

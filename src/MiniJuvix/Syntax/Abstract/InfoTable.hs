@@ -13,7 +13,7 @@ data ConstructorInfo = ConstructorInfo
     _constructorInfoType :: Expression
   }
 
-data AxiomInfo = AxiomInfo
+newtype AxiomInfo = AxiomInfo
   { _axiomInfoType :: Expression
   }
 

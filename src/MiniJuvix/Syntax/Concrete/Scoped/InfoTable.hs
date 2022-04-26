@@ -1,6 +1,5 @@
 module MiniJuvix.Syntax.Concrete.Scoped.InfoTable where
 
-
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Concrete.Language
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
@@ -15,13 +14,18 @@ newtype ConstructorInfo = ConstructorInfo
   }
   deriving stock (Eq, Show)
 
-data AxiomInfo = AxiomInfo
+newtype AxiomInfo = AxiomInfo
   { _axiomInfoType :: Expression
   }
   deriving stock (Eq, Show)
 
 newtype InductiveInfo = InductiveInfo
   { _inductiveInfoDef :: InductiveDef 'Scoped
+  }
+  deriving stock (Eq, Show)
+
+newtype CompileInfo = CompileInfo
+  { _compileInfoBackendItems :: [BackendItem]
   }
   deriving stock (Eq, Show)
 
@@ -32,10 +36,7 @@ data InfoTable = InfoTable
     _infoFunctions :: HashMap FunctionRef FunctionInfo,
     _infoFunctionClauses :: HashMap S.Symbol (FunctionClause 'Scoped),
     _infoNames :: [S.Name],
-    _infoCompilationRules :: HashMap S.Name [BackendItem]
-    -- TODO: consider S.Symbol as the type of the key
-    --       also, better to have a dict instead of a list for the backends.
-    --       maybe, create a data type for the values
+    _infoCompilationRules :: HashMap S.Symbol CompileInfo
   }
   deriving stock (Eq, Show)
 
@@ -56,3 +57,4 @@ makeLenses ''InductiveInfo
 makeLenses ''ConstructorInfo
 makeLenses ''AxiomInfo
 makeLenses ''FunctionInfo
+makeLenses ''CompileInfo

@@ -63,13 +63,13 @@ data Statement
   = StatementInductive InductiveDef
   | StatementFunction FunctionDef
   | StatementForeign ForeignBlock
-  | StatementCompile CompileBlock
+  | StatementCompile Compile
   | StatementAxiom AxiomDef
 
-data CompileBlock = CompileBlock {
-  _compileName :: Name,
-  _compileBackendItems :: [ BackendItem ]
-}
+data Compile = Compile
+  { _compileName :: Name,
+    _compileBackendItems :: [BackendItem]
+  }
 
 data AxiomDef = AxiomDef
   { _axiomName :: AxiomName,
@@ -167,7 +167,7 @@ makeLenses ''Application
 makeLenses ''TypedExpression
 makeLenses ''InductiveConstructorDef
 makeLenses ''ConstructorApp
-makeLenses ''CompileBlock
+makeLenses ''Compile
 
 instance HasAtomicity Application where
   atomicity = const (Aggregate appFixity)
