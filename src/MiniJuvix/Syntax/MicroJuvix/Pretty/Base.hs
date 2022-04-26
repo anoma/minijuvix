@@ -310,7 +310,7 @@ instance PrettyCode TypeCallsMap where
 instance PrettyCode TypeCalls where
   ppCode m = do
     let title = keyword "Propagated Type Calls:"
-        elems = toList (m ^. typeCallSet)
+        elems = sortOn (^. typeCallIden) (toList (m ^. typeCallSet))
     elems' <- mapM ppCode elems
     return $ title <> line <> vsep elems' <> line
 
