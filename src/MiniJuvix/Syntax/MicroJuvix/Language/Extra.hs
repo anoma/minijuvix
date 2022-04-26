@@ -13,7 +13,6 @@ data TypeAppIden =
   deriving stock (Eq, Ord, Generic)
 
 data TypeCall' a = TypeCall'  {
-  _typeCallCaller :: TypeAppIden,
   _typeCallIden :: TypeAppIden,
   _typeCallArguments :: NonEmpty a
   }
@@ -25,7 +24,7 @@ newtype TypeCallsMap = TypeCallsMap {
  }
 
 instance Functor TypeCall' where
-  fmap f (TypeCall' fun i args) = TypeCall' fun i (fmap f args)
+  fmap f (TypeCall' i args) = TypeCall' i (fmap f args)
 
 newtype ConcreteType = ConcreteType {_unconcreteType :: Type}
   deriving stock (Eq, Generic)
@@ -48,16 +47,6 @@ makeLenses ''TypeCalls
 makeLenses ''TypeCall'
 makeLenses ''TypeCallsMap
 makeLenses ''ConcreteType
-
-mkTypeCallsMap :: HashSet TypeCall -> TypeCallsMap
-mkTypeCallsMap s = TypeCallsMap {
-  _typeCallsMap = HashMap.fromList
-    [ (h ^. typeCallCaller, g) | g <- s',
-      let h = head g]
-  }
-  where
-  s' :: [NonEmpty TypeCall]
-  s' = groupSortOn (^. typeCallCaller) (toList s)
 
 mkConcreteType' :: Type -> ConcreteType
 mkConcreteType' = fromMaybe (error "the given type is not concrete")

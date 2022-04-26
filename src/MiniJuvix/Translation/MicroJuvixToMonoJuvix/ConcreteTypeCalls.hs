@@ -7,21 +7,25 @@ import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder
 
 collectTypeCalls :: MicroJuvixTypedResult -> TypeCalls
-collectTypeCalls res = run (execState emptyCalls (runReader typesTable (runReader infoTable goMain)))
+collectTypeCalls res = run (execState emptyCalls (runReader typesTable (runReader infoTable goTopLevel)))
   where
-  goMain :: Members '[State TypeCalls, Reader TypeCallsMap, Reader InfoTable] r => Sem r ()
-  goMain = do
-    calls <- fmap (fmap mkConcreteType') <$> lookupTypeCalls mainIden
-    mapM_ go calls
+  goTopLevel :: Members '[State TypeCalls, Reader TypeCallsMap, Reader InfoTable] r => Sem r ()
+  goTopLevel = mapM_ goConcreteFun entries
     where
-    mainIden :: TypeAppIden
-    mainIden = FunctionIden (mainFunction ^. funDefName)
-  mainFunction :: FunctionDef
-  mainFunction = fromMaybe (error "no main function found")
-            (find isMainFun [ fun |  StatementFunction fun <- main ^. moduleBody . moduleStatements ])
-    where
-    isMainFun :: FunctionDef -> Bool
-    isMainFun = ("main" == ) . (^. funDefName . nameText)
+    -- | the list of functions defined in the Main module with concrete types.
+    entries :: [FunctionDef]
+    entries = [ f | StatementFunction f <- main ^. moduleBody . moduleStatements,
+              hasConcreteType f ]
+      where
+        hasConcreteType :: FunctionDef -> Bool
+        hasConcreteType = isJust . mkConcreteType . (^. funDefType)
+    goConcreteFun :: Members '[State TypeCalls, Reader TypeCallsMap, Reader InfoTable] r => FunctionDef -> Sem r ()
+    goConcreteFun fun = do
+      calls <- fmap (fmap mkConcreteType') <$> lookupTypeCalls funIden
+      mapM_ go calls
+      where
+      funIden :: TypeAppIden
+      funIden = FunctionIden (fun ^. funDefName)
   main :: Module
   main = res ^. mainModule
   typesTable :: TypeCallsMap
@@ -35,8 +39,8 @@ isRegistered c = gets (HashSet.member c . (^. typeCallSet))
 register :: Members '[State TypeCalls] r => ConcreteTypeCall -> Sem r ()
 register c = modify (over typeCallSet (HashSet.insert c))
 
-lookupTypeCalls :: Members '[Reader TypeCallsMap] r => TypeAppIden -> Sem r (NonEmpty TypeCall)
-lookupTypeCalls t = fromJust <$> asks (^. typeCallsMap . at t)
+lookupTypeCalls :: Members '[Reader TypeCallsMap] r => TypeAppIden -> Sem r [TypeCall]
+lookupTypeCalls t = fromMaybe [] . fmap toList <$> asks (^. typeCallsMap . at t)
 
 toConcreteCall :: HashMap VarName ConcreteType -> TypeCall -> ConcreteTypeCall
 toConcreteCall m = fmap (substitutionConcrete m)
@@ -45,14 +49,14 @@ go :: Members '[State TypeCalls, Reader TypeCallsMap, Reader InfoTable] r
   => ConcreteTypeCall -> Sem r ()
 go c = unlessM (isRegistered c) $ do
   register c
-  calls :: NonEmpty TypeCall <- lookupTypeCalls (c ^. typeCallCaller)
-  assocs :: HashMap VarName ConcreteType <- case c ^. typeCallCaller of
+  calls :: [TypeCall] <- lookupTypeCalls (c ^. typeCallIden)
+  assocs :: HashMap VarName ConcreteType <- case c ^. typeCallIden of
     InductiveIden i -> do
       def <- (^. inductiveInfoDef) <$> lookupInductive i
       return (inductiveTypeVarsAssoc def (c ^. typeCallArguments))
     FunctionIden f -> do
       def <- (^. functionInfoDef) <$> lookupFunction f
       return (functionTypeVarsAssoc def (c ^. typeCallArguments))
-  let ccalls :: NonEmpty ConcreteTypeCall
+  let ccalls :: [ConcreteTypeCall]
       ccalls = fmap (toConcreteCall assocs) calls
   mapM_ go ccalls

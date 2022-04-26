@@ -14,6 +14,7 @@ import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Ann
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Options
+import Data.HashMap.Strict qualified as HashMap
 
 docStream :: PrettyCode c => Options -> c -> SimpleDocStream Ann
 docStream opts =
@@ -287,25 +288,30 @@ instance PrettyCode ConcreteTypeCall where
   ppCode = ppCode . fmap (^. unconcreteType)
 
 instance PrettyCode TypeCall where
-  ppCode (TypeCall' caller f args) = do
+  ppCode (TypeCall' f args) = do
     f' <- ppCode f
-    caller' <- ppCode caller
     args' <- mapM ppCodeAtom args
-    return $ caller' <+> kwMapsto <+> f' <+> hsep args'
+    return $ f' <+> hsep args'
 
 instance PrettyCode TypeCallsMap where
   ppCode m = do
     let title = keyword "Type Calls Map:"
-        flatten = concat . map toList . toList
-        elems = flatten (m ^. typeCallsMap)
-    elems' <- mapM ppCode (sortOn (^. typeCallCaller) elems)
+        elems :: [(TypeAppIden, TypeCall)]
+        elems =  [ (caller, t) | (caller, l) <- HashMap.toList (m ^. typeCallsMap),
+                   t <- toList l]
+    elems' <- mapM ppCodeElem (sortOn fst elems)
     return $ title <> line <> vsep elems' <> line
+    where
+    ppCodeElem (caller, t) = do
+      caller' <- ppCode caller
+      t' <- ppCode t
+      return $ caller' <+> kwMapsto <+> t'
 
 instance PrettyCode TypeCalls where
   ppCode m = do
     let title = keyword "Propagated Type Calls:"
         elems = toList (m ^. typeCallSet)
-    elems' <- mapM ppCode (sortOn (^. typeCallCaller) elems)
+    elems' <- mapM ppCode elems
     return $ title <> line <> vsep elems' <> line
 
 parensCond :: Bool -> Doc Ann -> Doc Ann

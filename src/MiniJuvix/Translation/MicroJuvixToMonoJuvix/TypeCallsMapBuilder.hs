@@ -1,31 +1,30 @@
 module MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder (buildTypeCallMap) where
 
-import Data.HashSet qualified as HashSet
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
+import Data.List.NonEmpty qualified as NonEmpty
+import Data.HashMap.Strict qualified as HashMap
 import Data.List.NonEmpty qualified as NonEmpty
 
 
 buildTypeCallMap :: MicroJuvixTypedResult -> TypeCallsMap
 buildTypeCallMap r =
-  mkTypeCallsMap
-  . fst
-  . run
+  run
   . runReader (buildTable modules)
-  . runOutputMonoid HashSet.singleton
+  . execState (TypeCallsMap mempty)
   . mapM_ goModule
   $ modules
   where
     modules = r ^. resultModules
 
-goModule :: Members '[Output TypeCall, Reader InfoTable] r => Module -> Sem r ()
+goModule :: Members '[State TypeCallsMap, Reader InfoTable] r => Module -> Sem r ()
 goModule = goModuleBody . (^. moduleBody)
 
-goModuleBody :: Members '[Output TypeCall, Reader InfoTable] r => ModuleBody -> Sem r ()
+goModuleBody :: Members '[State TypeCallsMap, Reader InfoTable] r => ModuleBody -> Sem r ()
 goModuleBody = mapM_ goStatement . (^. moduleStatements)
 
-goStatement :: Members '[Output TypeCall, Reader InfoTable] r => Statement -> Sem r ()
+goStatement :: Members '[State TypeCallsMap, Reader InfoTable] r => Statement -> Sem r ()
 goStatement = \case
   StatementInductive d -> goInductiveDef d
   StatementFunction f -> goFunctionDef f
@@ -36,15 +35,15 @@ goStatement = \case
 goAxiomDef :: AxiomDef -> Sem r ()
 goAxiomDef _ = return ()
 
-goFunctionDef :: Members '[Output TypeCall, Reader InfoTable] r => FunctionDef -> Sem r ()
+goFunctionDef :: Members '[State TypeCallsMap, Reader InfoTable] r => FunctionDef -> Sem r ()
 goFunctionDef d = runReader (FunctionIden (d ^. funDefName)) $ do
   goType (d ^. funDefType)
   mapM_ goFunctionClause (d ^. funDefClauses)
 
-goFunctionClause :: Members '[Output TypeCall, Reader TypeAppIden, Reader InfoTable] r => FunctionClause -> Sem r ()
+goFunctionClause :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => FunctionClause -> Sem r ()
 goFunctionClause c = goExpression (c ^. clauseBody)
 
-goInductiveDef :: Members '[Output TypeCall, Reader InfoTable] r => InductiveDef -> Sem r ()
+goInductiveDef :: Members '[State TypeCallsMap, Reader InfoTable] r => InductiveDef -> Sem r ()
 goInductiveDef d = runReader (InductiveIden (d ^. inductiveName)) $ do
   mapM_ goInductiveParameter (d ^. inductiveParameters)
   mapM_ goInductiveConstructorDef (d ^. inductiveConstructors)
@@ -52,32 +51,42 @@ goInductiveDef d = runReader (InductiveIden (d ^. inductiveName)) $ do
 goInductiveParameter :: InductiveParameter -> Sem r ()
 goInductiveParameter _ = return ()
 
-goInductiveConstructorDef :: Members '[Output TypeCall, Reader TypeAppIden, Reader InfoTable] r => InductiveConstructorDef -> Sem r ()
+goInductiveConstructorDef :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => InductiveConstructorDef -> Sem r ()
 goInductiveConstructorDef c = mapM_ goType (c ^. constructorParameters)
 
-goFunction :: Members '[Output TypeCall, Reader TypeAppIden, Reader InfoTable] r => Function -> Sem r ()
+goFunction :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => Function -> Sem r ()
 goFunction (Function l r) = do
   goType l
   goType r
 
-goTypeApplication :: Members '[Output TypeCall, Reader TypeAppIden, Reader InfoTable] r => TypeApplication -> Sem r ()
+registerTypeCall :: Members '[State TypeCallsMap] r => TypeAppIden -> TypeCall -> Sem r ()
+registerTypeCall caller t = modify (over typeCallsMap addElem)
+  where
+  addElem :: HashMap TypeAppIden (NonEmpty TypeCall) -> HashMap TypeAppIden (NonEmpty TypeCall)
+  addElem = HashMap.alter (Just . aux) caller
+    where
+    aux = \case
+      Nothing -> pure t
+      Just l -> NonEmpty.cons t l
+
+
+goTypeApplication :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => TypeApplication -> Sem r ()
 goTypeApplication a = do
   let (t, args) = unfoldTypeApplication a
   mapM_ goType args
   case t of
     TypeIden (TypeIdenInductive n) -> do
       caller <- ask
-      output TypeCall' {
-        _typeCallCaller = caller,
+      registerTypeCall caller TypeCall' {
         _typeCallIden = InductiveIden n,
         _typeCallArguments = args
     }
     _ -> return ()
 
-goTypeAbstraction :: Members '[Output TypeCall, Reader TypeAppIden, Reader InfoTable] r => TypeAbstraction -> Sem r ()
+goTypeAbstraction :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => TypeAbstraction -> Sem r ()
 goTypeAbstraction t = goType (t ^. typeAbsBody)
 
-goType :: Members '[Output TypeCall, Reader TypeAppIden, Reader InfoTable] r => Type -> Sem r ()
+goType :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => Type -> Sem r ()
 goType = \case
   TypeIden {} -> return ()
   TypeApp a -> goTypeApplication a
@@ -86,7 +95,7 @@ goType = \case
   TypeFunction f -> goFunction f
   TypeAbs a -> goTypeAbstraction a
 
-goExpression :: Members '[Output TypeCall, Reader TypeAppIden, Reader InfoTable] r => Expression -> Sem r ()
+goExpression :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => Expression -> Sem r ()
 goExpression = \case
   ExpressionIden {} -> return ()
   ExpressionApplication a -> goApplication a
@@ -96,7 +105,7 @@ goExpression = \case
 expressionAsType' :: Expression -> Type
 expressionAsType' = fromMaybe impossible . expressionAsType
 
-goApplication :: Members '[Output TypeCall, Reader TypeAppIden, Reader InfoTable] r => Application -> Sem r ()
+goApplication :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => Application -> Sem r ()
 goApplication a = do
   let (f, args) = unfoldApplication a
   mapM_ goExpression args
@@ -107,11 +116,10 @@ goApplication a = do
       when (numTyArgs > 0) $ do
           let tyArgs = fmap expressionAsType' (take' numTyArgs args)
           caller <- ask
-          output TypeCall' {
-          _typeCallCaller = caller,
-          _typeCallIden = FunctionIden fun,
-          _typeCallArguments = tyArgs
-          }
+          registerTypeCall caller TypeCall' {
+            _typeCallIden = FunctionIden fun,
+            _typeCallArguments = tyArgs
+            }
     _ -> return ()
   where
   take' :: Int -> NonEmpty a -> NonEmpty a
