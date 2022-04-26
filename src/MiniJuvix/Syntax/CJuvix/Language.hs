@@ -180,11 +180,11 @@ data If = If
 -- Constructions
 --------------------------------------------------------------------------------
 
-functionCall :: Text -> [Expression] -> Expression
-functionCall fName args =
+functionCall :: Expression -> [Expression] -> Expression
+functionCall fExpr args =
   ExpressionCall
     ( Call
-        { _callCallee = ExpressionVar fName,
+        { _callCallee = fExpr,
           _callArgs = args
         }
     )
@@ -252,3 +252,4 @@ returnStatement e =
   BodyStatement (StatementReturn (Just e))
 
 makeLenses ''CCodeUnit
+makeLenses ''Declaration

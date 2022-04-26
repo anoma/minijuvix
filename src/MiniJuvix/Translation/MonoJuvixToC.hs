@@ -10,6 +10,7 @@ import MiniJuvix.Syntax.MonoJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult qualified as Mono
 import MiniJuvix.Syntax.NameId (unNameId)
+import MiniJuvix.Syntax.Concrete.Language qualified as C
 
 newtype MiniCResult = MiniCResult
   { _resultCCode :: Text
@@ -37,7 +38,7 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
 type Err = Text
 
 unsupported :: Err -> a
-unsupported msg = error (msg <> "Mono to C: not yet supported")
+unsupported msg = error (msg <> " Mono to C: not yet supported")
 
 goModule :: Mono.Module -> [CCode]
 goModule Mono.Module {..} = goModuleBody _moduleBody
@@ -50,7 +51,7 @@ goModuleBody Mono.ModuleBody {..} = _moduleStatements >>= goStatement
 goStatement :: Mono.Statement -> [CCode]
 goStatement = \case
   Mono.StatementInductive d -> goInductiveDef d
-  Mono.StatementFunction d -> unsupported "StatementFunction"
+  Mono.StatementFunction d -> goFunctionDef d
   Mono.StatementForeign d -> goForeign d
   Mono.StatementAxiom d -> goAxiomDef d
 
@@ -75,6 +76,63 @@ mkName name = nameText
     nameText = T.toLower (name ^. Mono.nameText)
     nameId :: Text
     nameId = show (name ^. Mono.nameId . unNameId)
+
+goFunctionDef :: Mono.FunctionDef -> [CCode]
+goFunctionDef Mono.FunctionDef {..} =
+  [ ExternalFunc
+      ( Function
+          { _funcReturnType = funReturnType,
+            _funcIsPtr = True,
+            _funcQualifier = None,
+            _funcName = (mkName _funDefName),
+            _funcArgs = namedArgs funArgTypes,
+            _funcBody = (toList _funDefClauses) >>= goFunctionClause
+          }
+      )
+  ]
+  where
+    funArgTypes :: [DeclType]
+    funArgTypes = fst funType
+    funReturnType :: DeclType
+    funReturnType = snd funType
+    funType :: ([DeclType], DeclType)
+    funType = unfoldFunType _funDefType
+    unfoldFunType :: Mono.Type -> ([DeclType], DeclType)
+    unfoldFunType = \case
+      Mono.TypeFunction (Mono.Function l r) -> first (goType l :) (unfoldFunType r)
+      t -> ([], (goType t))
+
+goFunctionClause :: Mono.FunctionClause -> [BodyItem]
+goFunctionClause Mono.FunctionClause {..} = [BodyStatement . StatementExpr . goExpression $ _clauseBody]
+
+goExpression :: Mono.Expression -> Expression
+goExpression = \case
+  Mono.ExpressionIden i -> goIden i
+  Mono.ExpressionApplication a -> goApplication a
+  Mono.ExpressionLiteral l -> goLiteral l
+  Mono.ExpressionTyped Mono.TypedExpression {..} -> goExpression _typedExpression
+
+goIden :: Mono.Iden -> Expression
+goIden = \case
+  Mono.IdenFunction n -> ExpressionVar (mkName n)
+  Mono.IdenConstructor n -> ExpressionVar (mkName n)
+  Mono.IdenVar n -> ExpressionVar (mkName n)
+  Mono.IdenAxiom n -> ExpressionVar (mkName n)
+
+goApplication :: Mono.Application -> Expression
+goApplication a = functionCall (fst f) (reverse (snd f))
+  where
+    f :: (Expression, [Expression])
+    f = unfoldApp a
+    unfoldApp :: Mono.Application -> (Expression, [Expression])
+    unfoldApp Mono.Application {..} = case _appLeft of
+      Mono.ExpressionApplication a -> second (goExpression _appRight :) (unfoldApp a)
+      _ -> (goExpression _appLeft, [goExpression _appRight])
+
+goLiteral :: C.LiteralLoc -> Expression
+goLiteral C.LiteralLoc {..} = case _literalLocLiteral of
+  C.LitString s -> ExpressionLiteral (LiteralString s)
+  C.LitInteger i -> ExpressionLiteral (LiteralInt i)
 
 goAxiomDef :: Mono.AxiomDef -> [CCode]
 goAxiomDef a =
@@ -365,14 +423,17 @@ goInductiveConstructorNew i ctor =
             )
         )
 
+namedArgs :: [DeclType] -> [Declaration]
+namedArgs = zipWith goTypeDecl argLabels
+  where
+    argLabels :: [Text]
+    argLabels = (\l -> "v" <> show l) <$> [0 :: Integer ..]
+
 inductiveCtorArgs :: Mono.InductiveConstructorDef -> [Declaration]
-inductiveCtorArgs ctor = zipWith goType argLabels ctorParams
+inductiveCtorArgs ctor = namedArgs (goType <$> ctorParams)
   where
     ctorParams :: [Mono.Type]
     ctorParams = ctor ^. Micro.constructorParameters
-
-    argLabels :: [Text]
-    argLabels = (\l -> "v" <> show l) <$> [0 :: Integer ..]
 
 goInductiveConstructorDef ::
   Mono.InductiveDef ->
@@ -406,15 +467,9 @@ goInductiveConstructorDef i ctor =
             }
         )
 
-goType :: Text -> Mono.Type -> Declaration
-goType n = \case
-  Mono.TypeIden ti ->
-    Declaration
-      { _declType = DeclTypeDefType (getMonoName ti),
-        _declIsPtr = True,
-        _declName = Just n,
-        _declInitializer = Nothing
-      }
+goType :: Mono.Type -> DeclType
+goType = \case
+  Mono.TypeIden ti -> DeclTypeDefType (getMonoName ti)
   Mono.TypeFunction {} -> unsupported "TypeFunction"
   Mono.TypeUniverse {} -> unsupported "TypeUniverse"
   Mono.TypeAny {} -> unsupported "TypeAny"
@@ -424,9 +479,15 @@ goType n = \case
       Mono.TypeIdenInductive mn -> (asTypeDef (mkName mn))
       Mono.TypeIdenAxiom mn -> mkName mn
 
-mallocSizeOf :: Text -> Expression
-mallocSizeOf typeName =
-  functionCall "malloc" [functionCall "sizeof" [ExpressionVar typeName]]
-
+goTypeDecl :: Text -> DeclType -> Declaration
+goTypeDecl n typ =
+  Declaration
+    { _declType = typ,
+      _declIsPtr = True,
+      _declName = Just n,
+      _declInitializer = Nothing
     }
 
+mallocSizeOf :: Text -> Expression
+mallocSizeOf typeName =
+  functionCall (ExpressionVar "malloc") [functionCall (ExpressionVar "sizeof") [ExpressionVar typeName]]
