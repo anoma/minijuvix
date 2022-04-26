@@ -161,6 +161,17 @@ instance PrettyError AmbiguousSym where
 instance PrettyError AmbiguousModuleSym where
   ppError AmbiguousModuleSym {..} = ambiguousMessage _ambiguousModName _ambiguousModSymEntires
 
+instance PrettyError WrongLocationCompileRule where
+  ppError WrongLocationCompileRule {..} =
+    let name = _wrongLocationCompileRuleName in
+    "The set of compilation rules for the symbol" <+> highlight (ppCode name)
+     <+> "at" <+> pretty (getLoc name)
+     <> line
+     <> "need to be defined in the module:"
+     <> line
+     <> highlight (ppCode _wrongLocationCompileRuleExpectedModPath)
+     <> line
+
 ambiguousMessage :: Name -> [SymbolEntry] -> Doc Eann
 ambiguousMessage n es =
   "The symbol" <+> ppCode n <+> "at" <+> pretty (getLoc n) <+> "is ambiguous." <> line

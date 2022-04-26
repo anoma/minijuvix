@@ -810,7 +810,13 @@ checkCompileName Compile {..} = do
   entries <- filter S.canBeCompiled <$> lookupQualifiedSymbol ([], sym)
   case entries of
     [] -> throw (ErrSymNotInScope (NotInScope sym locals scope))
-    [x] -> return (entryToSymbol x sym)
+    [x] -> do
+      actualPath <- gets _scopePath
+      let scoped = entryToSymbol x sym
+      let expectedPath = scoped ^. S.nameDefinedIn
+      if | actualPath == expectedPath -> return scoped
+         | otherwise -> throw (ErrWrongLocationCompileRule
+                              (WrongLocationCompileRule expectedPath name))
     xs -> throw (ErrAmbiguousSym (AmbiguousSym name xs))
 
 entryToSymbol :: SymbolEntry -> Symbol -> S.Symbol
