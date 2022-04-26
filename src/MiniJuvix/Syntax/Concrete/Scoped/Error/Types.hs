@@ -107,8 +107,7 @@ data AmbiguousModuleSym = AmbiguousModuleSym
   deriving stock (Show)
 
 data WrongLocationCompileRule = WrongLocationCompileRule
-  {
-    _wrongLocationCompileRuleExpectedModPath :: S.AbsModulePath,
+  { _wrongLocationCompileRuleExpectedModPath :: S.AbsModulePath,
     _wrongLocationCompileRuleName :: Name
   }
- deriving stock (Show)
+  deriving stock (Show)

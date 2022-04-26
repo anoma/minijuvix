@@ -788,6 +788,7 @@ checkCompile ::
   Sem r (Compile 'Scoped)
 checkCompile c@Compile {..} = do
   sname <- checkCompileName c
+  registerName (S.unqualifiedSymbol sname)
   modify (over scopeCompilationRules (HashMap.insert _compileName (CompileInfo _compileBackendItems)))
   registerCompile' $ Compile {_compileName = sname, ..}
 
@@ -814,9 +815,13 @@ checkCompileName Compile {..} = do
       actualPath <- gets _scopePath
       let scoped = entryToSymbol x sym
       let expectedPath = scoped ^. S.nameDefinedIn
-      if | actualPath == expectedPath -> return scoped
-         | otherwise -> throw (ErrWrongLocationCompileRule
-                              (WrongLocationCompileRule expectedPath name))
+      if
+          | actualPath == expectedPath -> return scoped
+          | otherwise ->
+              throw
+                ( ErrWrongLocationCompileRule
+                    (WrongLocationCompileRule expectedPath name)
+                )
     xs -> throw (ErrAmbiguousSym (AmbiguousSym name xs))
 
 entryToSymbol :: SymbolEntry -> Symbol -> S.Symbol
@@ -824,21 +829,18 @@ entryToSymbol sentry csym = set S.nameConcrete csym (symbolEntryToSName sentry)
 
 checkEval ::
   Members '[Error ScopeError, State Scope, State ScoperState, InfoTableBuilder, NameIdGen] r =>
-  Eval 'Parsed ->
-  Sem r (Eval 'Scoped)
+  Eval 'Parsed -> Sem r (Eval 'Scoped)
 checkEval (Eval s) = Eval <$> localScope (checkParseExpressionAtoms s)
 
 checkPrint ::
   Members '[Error ScopeError, State Scope, State ScoperState, InfoTableBuilder, NameIdGen] r =>
-  Print 'Parsed ->
-  Sem r (Print 'Scoped)
+  Print 'Parsed -> Sem r (Print 'Scoped)
 checkPrint (Print s) = Print <$> localScope (checkParseExpressionAtoms s)
 
 checkFunction ::
   forall r.
   Members '[Error ScopeError, State Scope, State ScoperState, Reader LocalVars, InfoTableBuilder, NameIdGen] r =>
-  Function 'Parsed ->
-  Sem r (Function 'Scoped)
+  Function 'Parsed -> Sem r (Function 'Scoped)
 checkFunction Function {..} = do
   funParameter' <- checkParam
   let scoped = case paramName funParameter' of

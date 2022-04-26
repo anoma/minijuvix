@@ -44,7 +44,14 @@ isModuleKind k = case getNameKind k of
   _ -> False
 
 canBeCompiled :: HasNameKind a => a -> Bool
-canBeCompiled k = isExprKind k && not (isLocallyBounded k)
+canBeCompiled k = case getNameKind k of
+  KNameConstructor -> True
+  KNameInductive -> True
+  KNameFunction -> True
+  KNameAxiom -> True
+  KNameLocal -> False
+  KNameLocalModule -> False
+  KNameTopModule -> False
 
 canHaveFixity :: HasNameKind a => a -> Bool
 canHaveFixity k = case getNameKind k of
