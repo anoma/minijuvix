@@ -1,0 +1,44 @@
+module Polymorphism2;
+
+inductive Pair (A : Type) (B : Type) {
+ mkPair : A → B → Pair A B;
+};
+
+inductive Nat {
+ zero : Nat;
+ suc : Nat → Nat;
+};
+
+inductive List (A : Type) {
+ nil : List A;
+ -- TODO check that the return type is saturated with the proper variable
+ cons : A → List A → Nat;
+};
+
+inductive Bool {
+ false : Bool;
+ true : Bool;
+};
+
+fst : (A : Type) → (B : Type) → Pair A B → A;
+fst _ _ (mkPair a b) ≔ a;
+
+length : (A : Type) → List A → Nat;
+length' : (A : Type) → List A → Nat;
+
+length _ nil ≔ zero;
+length A (cons _ xs) ≔ suc (length' A xs);
+
+length' _ nil ≔ zero;
+length' A (cons _ xs) ≔ suc (length A xs);
+
+
+-- zipWith : (A : Type) → (B : Type) → (C : Type)
+--   → (A → B → C)
+--   → List A → List B → List C;
+-- zipWith A B C f nil _ ≔ nil C;
+-- zipWith A B C f _ nil ≔ nil C;
+-- zipWith A B C f (cons a as) (cons b bs) ≔ cons C (f a b) (zipWith A B C f as bs);
+
+
+end;

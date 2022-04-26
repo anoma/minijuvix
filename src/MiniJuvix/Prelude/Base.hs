@@ -81,9 +81,10 @@ import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.Hashable
 import Data.Int
-import Data.List.Extra hiding (head, last)
+import Data.List.Extra hiding (head, last, groupSortOn, mconcatMap)
+import Data.List.Extra qualified as List
 import Data.List.NonEmpty qualified as NonEmpty
-import Data.List.NonEmpty.Extra (NonEmpty (..), head, last, maximum1, maximumOn1, minimum1, minimumOn1, nonEmpty, some1)
+import Data.List.NonEmpty.Extra (NonEmpty (..), (|:), head, last, maximum1, maximumOn1, minimum1, minimumOn1, nonEmpty, some1)
 import Data.Maybe
 import Data.Monoid
 import Data.Ord
@@ -107,7 +108,7 @@ import GHC.Generics (Generic)
 import GHC.Num
 import GHC.Real
 import GHC.Stack.Types
-import Lens.Micro.Platform hiding (both)
+import Lens.Micro.Platform hiding (both, _head)
 import Polysemy
 import Polysemy.Embed
 import Polysemy.Error hiding (fromEither)
@@ -189,11 +190,24 @@ toUpperFirst [] = []
 toUpperFirst (x : xs) = Char.toUpper x : xs
 
 --------------------------------------------------------------------------------
+-- Foldable
+--------------------------------------------------------------------------------
+
+mconcatMap :: (Monoid c, Foldable t) => (a -> c) -> t a -> c
+mconcatMap f = List.mconcatMap f . toList
+
+--------------------------------------------------------------------------------
 -- NonEmpty
 --------------------------------------------------------------------------------
 
 nonEmptyUnsnoc :: NonEmpty a -> (Maybe (NonEmpty a), a)
 nonEmptyUnsnoc e = (NonEmpty.nonEmpty (NonEmpty.init e), NonEmpty.last e)
+
+groupSortOn :: Ord b => (a -> b) -> [a] -> [NonEmpty a]
+groupSortOn f = map (fromJust . nonEmpty) . List.groupSortOn f
+
+groupSortOn' :: Ord b => (a -> b) -> [a] -> [[a]]
+groupSortOn' = List.groupSortOn
 
 --------------------------------------------------------------------------------
 -- Errors

@@ -7,13 +7,13 @@ where
 
 import MiniJuvix.Internal.Strings qualified as Str
 import MiniJuvix.Prelude
+import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
-import MiniJuvix.Syntax.MicroJuvix.Language
+import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Ann
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Options
-import Prettyprinter
 
 docStream :: PrettyCode c => Options -> c -> SimpleDocStream Ann
 docStream opts =
@@ -277,6 +277,26 @@ instance PrettyCode Module where
         <> line
         <> body'
         <> line
+
+instance PrettyCode TypeAppIden where
+  ppCode = \case
+    InductiveIden n -> ppCode n
+    FunctionIden n -> ppCode n
+
+instance PrettyCode TypeCall where
+  ppCode (TypeCall' caller f args) = do
+    f' <- ppCode f
+    caller' <- ppCode caller
+    args' <- mapM ppCodeAtom args
+    return $ caller' <+> kwMapsto <+> f' <+> hsep args'
+
+instance PrettyCode TypeCallsMap where
+  ppCode m = do
+    let title = keyword "Type Calls Map:"
+        flatten = concat . map toList . toList
+        elems = flatten (m ^. typeCallsMap)
+    elems' <- mapM ppCode (sortOn (^. typeCallCaller) elems)
+    return $ title <> line <> vsep elems'
 
 parensCond :: Bool -> Doc Ann -> Doc Ann
 parensCond t d = if t then parens d else d

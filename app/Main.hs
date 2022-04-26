@@ -28,6 +28,7 @@ import MiniJuvix.Termination qualified as T
 import MiniJuvix.Termination.CallGraph qualified as A
 import MiniJuvix.Translation.AbstractToMicroJuvix qualified as Micro
 import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
+import MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder qualified as Mono
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 import MiniJuvix.Utils.Version (runDisplayVersion)
 import Options.Applicative
@@ -35,8 +36,6 @@ import Options.Applicative.Help.Pretty
 import System.Console.ANSI qualified as Ansi
 import System.IO qualified as IO
 import Text.Show.Pretty hiding (Html)
-
---------------------------------------------------------------------------------
 
 data GlobalOptions = GlobalOptions
   { _globalNoColors :: Bool,
@@ -87,7 +86,7 @@ parseGlobalOptions = do
   _globalNoColors <-
     switch
       ( long "no-colors"
-          <> help "Disable globally ANSI formatting "
+          <> help "Disable globally ANSI formatting"
       )
   _globalShowNameIds <-
     switch
@@ -323,8 +322,11 @@ instance HasEntryPoint HighlightOptions where
 instance HasEntryPoint HtmlOptions where
   getEntryPoint root = EntryPoint root . pure . _htmlInputFile
 
-instance HasEntryPoint MicroJuvixOptions where
-  getEntryPoint root = EntryPoint root . pure . _mjuvixInputFile
+instance HasEntryPoint MicroJuvixTypeOptions where
+  getEntryPoint root = EntryPoint root . pure . _mjuvixTypeInputFile
+
+instance HasEntryPoint MicroJuvixPrettyOptions where
+  getEntryPoint root = EntryPoint root . pure . _mjuvixPrettyInputFile
 
 instance HasEntryPoint MiniHaskellOptions where
   getEntryPoint root = EntryPoint root . pure . _mhaskellInputFile
@@ -383,9 +385,20 @@ runCLI cli = do
               }
       renderStdOutMicro (Micro.ppOut ppOpts micro)
     MicroJuvix (TypeCheck opts) -> do
-      micro <- head . (^. MicroTyped.resultModules) <$> runIO (upToMicroJuvixTyped (getEntryPoint root opts))
-      case MicroTyped.checkModule micro of
-        Right _ -> putStrLn "Well done! It type checks"
+      micro <- runIOEither (upToMicroJuvixTyped (getEntryPoint root opts))
+      case micro of
+        Right res -> do
+          putStrLn "Well done! It type checks"
+          when (opts ^. mjuvixTypePrint) $ do
+            let ppOpts =
+                  Micro.defaultOptions
+                    { Micro._optShowNameId = globalOptions ^. globalShowNameIds
+                    }
+                checkedModule = head (res ^. MicroTyped.resultModules)
+            renderStdOutMicro (Micro.ppOut ppOpts checkedModule)
+            putStrLn ""
+            let typeCalls = Mono.buildTypeCallMap res
+            renderStdOutMicro (Micro.ppOut ppOpts typeCalls)
         Left err -> printErrorAnsiSafe err >> exitFailure
     MiniHaskell o -> do
       minihaskell <- head . (^. MiniHaskell.resultModules) <$> runIO (upToMiniHaskell (getEntryPoint root o))

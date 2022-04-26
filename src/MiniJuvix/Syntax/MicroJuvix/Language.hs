@@ -120,7 +120,9 @@ data Function = Function
   { _funLeft :: Type,
     _funRight :: Type
   }
-  deriving stock (Show)
+  deriving stock (Show, Generic, Eq)
+
+instance Hashable Function
 
 -- | Fully applied constructor in a pattern.
 data ConstructorApp = ConstructorApp
@@ -155,19 +157,25 @@ data TypeIden
   = TypeIdenInductive InductiveName
   | TypeIdenAxiom AxiomName
   | TypeIdenVariable VarName
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Generic)
+
+instance Hashable TypeIden
 
 data TypeApplication = TypeApplication
   { _typeAppLeft :: Type,
     _typeAppRight :: Type
   }
-  deriving stock (Show)
+  deriving stock (Show, Generic, Eq)
+
+instance Hashable TypeApplication
 
 data TypeAbstraction = TypeAbstraction
   { _typeAbsVar :: VarName,
     _typeAbsBody :: Type
   }
-  deriving stock (Show)
+  deriving stock (Show, Eq, Generic)
+
+instance Hashable TypeAbstraction
 
 data Type
   = TypeIden TypeIden
@@ -176,7 +184,9 @@ data Type
   | TypeAbs TypeAbstraction
   | TypeUniverse
   | TypeAny
-  deriving stock (Show)
+  deriving stock (Eq, Show, Generic)
+
+instance Hashable Type
 
 data FunctionArgType
   = FunctionArgTypeAbstraction VarName

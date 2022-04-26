@@ -11,25 +11,23 @@ import MiniJuvix.Syntax.MicroJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.Language
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
-import MiniJuvix.Syntax.NameId
+import MiniJuvix.Internal.NameIdGen
 
 entryMonoJuvix ::
-  Member (Error Err) r =>
+  Members '[NameIdGen, Error Err] r =>
   Micro.MicroJuvixTypedResult ->
   Sem r MonoJuvixResult
 entryMonoJuvix i = do
-  _resultModules <- mapM goModule' (i ^. Micro.resultModules)
+  _resultModules <- runReader table (mapM goModule (i ^. Micro.resultModules))
   return MonoJuvixResult {..}
   where
-    _resultMicroTyped = i
-    goModule' m = runReader table (goModule m)
-      where
-        table = Micro.buildTable m
+  table = Micro.buildTable (i ^. Micro.resultModules)
+  _resultMicroTyped = i
 
-translateModule :: Micro.Module -> Either Err Module
-translateModule m = run (runError (runReader table (goModule m)))
-  where
-    table = Micro.buildTable m
+-- translateModule :: Micro.Module -> Either Err Module
+-- translateModule m = run (runError (runReader table (goModule m)))
+--   where
+--     table = Micro.buildTable m
 
 type Err = Text
 
