@@ -428,43 +428,5 @@ mallocSizeOf :: Text -> Expression
 mallocSizeOf typeName =
   functionCall "malloc" [functionCall "sizeof" [ExpressionVar typeName]]
 
-exInductive :: Mono.InductiveDef
-exInductive =
-  Mono.InductiveDef
-    { _inductiveName =
-        Mono.Name
-          { _nameText = "Indu",
-            _nameId = Mono.NameId 11,
-            _nameKind = Mono.KNameInductive,
-            _nameDefined = Nothing,
-            _nameLoc = Nothing
-          },
-      _inductiveConstructors = [exConstructor "zero" 111 [], exConstructor "cons" 12 ["arg1", "arg2"]]
     }
 
-exConstructor :: Text -> Integer -> [Text] -> Mono.InductiveConstructorDef
-exConstructor n i args =
-  Mono.InductiveConstructorDef
-    { _constructorName =
-        Mono.Name
-          { _nameText = n,
-            _nameId = Mono.NameId (fromInteger i),
-            _nameKind = Mono.KNameConstructor,
-            _nameDefined = Nothing,
-            _nameLoc = Nothing
-          },
-      _constructorParameters = map (Mono.TypeIden . Mono.TypeIdenInductive . typeName) args
-    }
-  where
-    typeName :: Text -> Mono.Name
-    typeName tn =
-      Mono.Name
-        { _nameText = tn,
-          _nameId = Mono.NameId 101,
-          _nameKind = Mono.KNameInductive,
-          _nameDefined = Nothing,
-          _nameLoc = Nothing
-        }
-
-exCode :: CCodeUnit
-exCode = CCodeUnit (goInductiveDef exInductive)
