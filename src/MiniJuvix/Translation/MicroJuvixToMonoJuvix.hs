@@ -1,6 +1,6 @@
 module MiniJuvix.Translation.MicroJuvixToMonoJuvix
   ( module MiniJuvix.Translation.MicroJuvixToMonoJuvix,
-    module MiniJuvix.Translation.MicroJuvixToMonoJuvix.ConcreteTypeCalls,
+    module MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypePropagation,
     module MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder,
     module MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult,
   )
@@ -9,10 +9,10 @@ where
 import Data.Text qualified as Text
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.InfoTable qualified as Micro
-import MiniJuvix.Syntax.MicroJuvix.Language qualified as Micro
+import MiniJuvix.Syntax.MicroJuvix.Language.Extra qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder
-import MiniJuvix.Translation.MicroJuvixToMonoJuvix.ConcreteTypeCalls
+import MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypePropagation
 import MiniJuvix.Syntax.MonoJuvix.Language
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
 import MiniJuvix.Internal.NameIdGen
@@ -22,15 +22,16 @@ entryMonoJuvix ::
   Micro.MicroJuvixTypedResult ->
   Sem r MonoJuvixResult
 entryMonoJuvix i = do
-  _resultModules <- runReader table (mapM goModule (i ^. Micro.resultModules))
+  _resultModules <- runReader typesTable (runReader table (mapM goModule (i ^. Micro.resultModules)))
   return MonoJuvixResult {..}
   where
+  typesTable = collectTypeCalls i
   table = Micro.buildTable (i ^. Micro.resultModules)
   _resultMicroTyped = i
 
 type Err = Text
 
-goModule :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Module -> Sem r Module
+goModule :: Members '[Error Err, Reader Micro.TypeCalls, Reader Micro.InfoTable] r => Micro.Module -> Sem r Module
 goModule Micro.Module {..} = do
   _moduleBody' <- goModuleBody _moduleBody
   return
@@ -43,18 +44,19 @@ unsupported :: Text -> a
 unsupported msg = error $ msg <> " not yet supported"
 
 goModuleBody ::
-  Members '[Error Err, Reader Micro.InfoTable] r =>
+  Members '[Error Err, Reader Micro.InfoTable, Reader Micro.TypeCalls] r =>
   Micro.ModuleBody ->
   Sem r ModuleBody
 goModuleBody Micro.ModuleBody {..} =
-  ModuleBody <$> mapM goStatement _moduleStatements
+  ModuleBody <$> concatMapM goStatement _moduleStatements
 
-goStatement :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Statement -> Sem r Statement
+goStatement :: Members '[Error Err, Reader Micro.InfoTable, Reader Micro.TypeCalls] r =>
+  Micro.Statement -> Sem r [Statement]
 goStatement = \case
-  Micro.StatementInductive d -> StatementInductive <$> goInductive d
-  Micro.StatementFunction d -> StatementFunction <$> goFunctionDef d
-  Micro.StatementForeign d -> return (StatementForeign d)
-  Micro.StatementAxiom a -> StatementAxiom <$> goAxiomDef a
+  Micro.StatementInductive d -> pure . StatementInductive <$> goInductive d
+  Micro.StatementFunction d -> (map StatementFunction ) <$> goFunctionDef d
+  Micro.StatementForeign d -> return [StatementForeign d]
+  Micro.StatementAxiom a -> pure . StatementAxiom <$> goAxiomDef a
 
 goAxiomDef :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.AxiomDef -> Sem r AxiomDef
 goAxiomDef Micro.AxiomDef {..} = do
@@ -126,8 +128,14 @@ goNameText n =
     haskellMainName :: Text
     haskellMainName = "main"
 
-goFunctionDef :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.FunctionDef -> Sem r FunctionDef
+goFunctionDef :: Members '[Reader Micro.TypeCalls, Error Err, Reader Micro.InfoTable] r =>
+  Micro.FunctionDef -> Sem r [FunctionDef]
 goFunctionDef Micro.FunctionDef {..} = do
+  undefined
+
+goFunctionDefOld :: Members '[Reader Micro.TypeCalls, Error Err, Reader Micro.InfoTable] r =>
+  Micro.FunctionDef -> Sem r FunctionDef
+goFunctionDefOld Micro.FunctionDef {..} = do
   _funDefType' <- goType _funDefType
   _funDefClauses' <- mapM goFunctionClause _funDefClauses
   return

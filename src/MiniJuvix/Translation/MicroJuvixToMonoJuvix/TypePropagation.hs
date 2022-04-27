@@ -2,7 +2,7 @@ module MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypePropagation (collectTypeC
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
-import Data.HashSet qualified as HashSet
+import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder
 
@@ -34,10 +34,17 @@ collectTypeCalls res = run (execState emptyCalls (runReader typesTable (runReade
   infoTable = buildTable (res ^. resultModules)
 
 isRegistered :: Members '[State TypeCalls] r => ConcreteTypeCall -> Sem r Bool
-isRegistered c = gets (HashSet.member c . (^. typeCallSet))
+isRegistered c = do
+  t <- gets (^. typeCallSet)
+  return (isJust (HashMap.lookup (c ^. typeCallIden) t >>= HashMap.lookup c))
 
-register :: Members '[State TypeCalls] r => ConcreteTypeCall -> Sem r ()
-register c = modify (over typeCallSet (HashSet.insert c))
+register :: Members '[State TypeCalls] r => ConcreteTypeCall -> HashMap VarName ConcreteType -> Sem r ()
+register c t = modify (over typeCallSet (HashMap.alter (Just . addElem) (c ^. typeCallIden)))
+  where
+  addElem :: Maybe (HashMap ConcreteTypeCall (HashMap VarName ConcreteType)) -> HashMap ConcreteTypeCall (HashMap VarName ConcreteType)
+  addElem = \case
+    Nothing -> HashMap.singleton c t
+    Just m -> HashMap.insert c t m
 
 lookupTypeCalls :: Members '[Reader TypeCallsMap] r => TypeCallIden -> Sem r [TypeCall]
 lookupTypeCalls t = fromMaybe [] . fmap toList <$> asks (^. typeCallsMap . at t)
@@ -48,7 +55,6 @@ toConcreteCall m = fmap (substitutionConcrete m)
 go :: Members '[State TypeCalls, Reader TypeCallsMap, Reader InfoTable] r
   => ConcreteTypeCall -> Sem r ()
 go c = unlessM (isRegistered c) $ do
-  register c
   calls :: [TypeCall] <- lookupTypeCalls (c ^. typeCallIden)
   assocs :: HashMap VarName ConcreteType <- case c ^. typeCallIden of
     InductiveIden i -> do
@@ -59,4 +65,5 @@ go c = unlessM (isRegistered c) $ do
       return (functionTypeVarsAssoc def (c ^. typeCallArguments))
   let ccalls :: [ConcreteTypeCall]
       ccalls = fmap (toConcreteCall assocs) calls
+  register c assocs
   mapM_ go ccalls

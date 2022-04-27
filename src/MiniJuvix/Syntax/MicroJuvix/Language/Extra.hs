@@ -32,8 +32,9 @@ newtype ConcreteType = ConcreteType {_unconcreteType :: Type}
 type ConcreteTypeCall = TypeCall' ConcreteType
 type TypeCall = TypeCall' Type
 
+-- | Indexed by _typeCallIden
 newtype TypeCalls = TypeCalls {
-  _typeCallSet :: HashSet ConcreteTypeCall
+  _typeCallSet :: HashMap TypeCallIden (HashMap ConcreteTypeCall (HashMap VarName ConcreteType))
    }
 
 emptyCalls :: TypeCalls
