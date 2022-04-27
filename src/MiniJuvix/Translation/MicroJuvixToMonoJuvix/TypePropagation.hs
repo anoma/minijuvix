@@ -1,4 +1,4 @@
-module MiniJuvix.Translation.MicroJuvixToMonoJuvix.ConcreteTypeCalls (collectTypeCalls) where
+module MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypePropagation (collectTypeCalls) where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
