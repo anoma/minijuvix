@@ -173,6 +173,22 @@ instance PrettyError WrongLocationCompileRule where
           <> highlight (ppCode _wrongLocationCompileRuleExpectedModPath)
           <> line
 
+instance PrettyError MultipleCompileRule where
+  ppError MultipleCompileRule {..} =
+    let name = _multipleCompileRuleName
+     in "A set of compilation rules for the symbol" <+> highlight (ppCode name)
+          <+> "is already defined at"
+          <+> pretty (getLoc name)
+
+instance PrettyError AmbiguousCompileRule where
+  ppError AmbiguousCompileRule {..} =
+    "Multiple compilation rules for the backend" <+> ppCode backend
+      <+> "of the symbol"
+      <+> highlight (ppCode name)
+    where
+      backend = _ambiguousCompileRuleBackend
+      name = _ambiguousCompileRuleName
+
 ambiguousMessage :: Name -> [SymbolEntry] -> Doc Eann
 ambiguousMessage n es =
   "The symbol" <+> ppCode n <+> "at" <+> pretty (getLoc n) <+> "is ambiguous." <> line

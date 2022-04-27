@@ -30,6 +30,7 @@ infixr 3 &&;
 axiom BackendBool : Type;
 compile BackendBool {
   ghc ↦ "Bool";
+  ghc ↦ "Bool";
 };
 
 axiom backend-true : BackendBool;

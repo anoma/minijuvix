@@ -787,10 +787,42 @@ checkCompile ::
   Compile 'Parsed ->
   Sem r (Compile 'Scoped)
 checkCompile c@Compile {..} = do
-  sname <- checkCompileName c
-  registerName (S.unqualifiedSymbol sname)
-  modify (over scopeCompilationRules (HashMap.insert _compileName (CompileInfo _compileBackendItems)))
-  registerCompile' $ Compile {_compileName = sname, ..}
+  -- 1. Check if the name refers to an actual name that can be conpiled.
+  scopedSym :: S.Symbol <- checkCompileName c
+  let sym :: Symbol = c ^. compileName
+  rules <- gets _scopeCompilationRules
+  -- 2. Check if there is no other compile block for the same symbol.
+  if
+      | HashMap.member sym rules ->
+          throw
+            ( ErrMultipleCompileRule
+                (MultipleCompileRule sym)
+            )
+      -- throw (ErrAmbiguousCompileRule (AmbiguousCompileRule sym))
+      | otherwise -> do
+          backends <- checkBackendItems sym (c ^. compileBackendItems) []
+          registerName (S.unqualifiedSymbol scopedSym)
+          modify
+            ( over
+                scopeCompilationRules
+                (HashMap.insert _compileName (CompileInfo backends))
+            )
+          registerCompile' $ Compile {_compileName = scopedSym, ..}
+
+checkBackendItems ::
+  Members '[Error ScopeError] r =>
+  Symbol ->
+  [BackendItem] ->
+  [BackendItem] ->
+  Sem r [BackendItem]
+checkBackendItems _ [] bset = return bset
+checkBackendItems sym (b : bs) bset
+  | b `elem` bset =
+      throw
+        ( ErrAmbiguousCompileRule
+            (AmbiguousCompileRule b sym)
+        )
+  | otherwise = checkBackendItems sym bs (b : bset)
 
 checkCompileName ::
   Members
@@ -829,18 +861,21 @@ entryToSymbol sentry csym = set S.nameConcrete csym (symbolEntryToSName sentry)
 
 checkEval ::
   Members '[Error ScopeError, State Scope, State ScoperState, InfoTableBuilder, NameIdGen] r =>
-  Eval 'Parsed -> Sem r (Eval 'Scoped)
+  Eval 'Parsed ->
+  Sem r (Eval 'Scoped)
 checkEval (Eval s) = Eval <$> localScope (checkParseExpressionAtoms s)
 
 checkPrint ::
   Members '[Error ScopeError, State Scope, State ScoperState, InfoTableBuilder, NameIdGen] r =>
-  Print 'Parsed -> Sem r (Print 'Scoped)
+  Print 'Parsed ->
+  Sem r (Print 'Scoped)
 checkPrint (Print s) = Print <$> localScope (checkParseExpressionAtoms s)
 
 checkFunction ::
   forall r.
   Members '[Error ScopeError, State Scope, State ScoperState, Reader LocalVars, InfoTableBuilder, NameIdGen] r =>
-  Function 'Parsed -> Sem r (Function 'Scoped)
+  Function 'Parsed ->
+  Sem r (Function 'Scoped)
 checkFunction Function {..} = do
   funParameter' <- checkParam
   let scoped = case paramName funParameter' of

@@ -11,12 +11,8 @@ data BackendItem = BackendItem
   { _backendItemBackend :: Backend,
     _backendItemCode :: Text
   }
-  deriving stock (Show, Ord)
+  deriving stock (Show, Ord, Eq, Generic)
 
-instance Eq BackendItem where
-  (==) = (==) `on` _backendItemBackend
-
-instance Hashable BackendItem where
-  hashWithSalt b = hashWithSalt b . _backendItemBackend
+instance Hashable BackendItem
 
 makeLenses ''BackendItem

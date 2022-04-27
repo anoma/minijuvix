@@ -32,6 +32,8 @@ data ScopeError
   | ErrUnusedOperatorDef UnusedOperatorDef
   | ErrWrongTopModuleName WrongTopModuleName
   | ErrWrongLocationCompileRule WrongLocationCompileRule
+  | ErrMultipleCompileRule MultipleCompileRule
+  | ErrAmbiguousCompileRule AmbiguousCompileRule
   deriving stock (Show)
 
 ppScopeError :: ScopeError -> Doc Eann
@@ -54,6 +56,8 @@ ppScopeError s = case s of
   ErrUnusedOperatorDef e -> ppError e
   ErrLacksFunctionClause e -> ppError e
   ErrWrongLocationCompileRule e -> ppError e
+  ErrMultipleCompileRule e -> ppError e
+  ErrAmbiguousCompileRule e -> ppError e
 
 docStream :: ScopeError -> SimpleDocStream Eann
 docStream = layoutPretty defaultLayoutOptions . ppScopeError

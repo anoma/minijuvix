@@ -111,3 +111,14 @@ data WrongLocationCompileRule = WrongLocationCompileRule
     _wrongLocationCompileRuleName :: Name
   }
   deriving stock (Show)
+
+newtype MultipleCompileRule = MultipleCompileRule
+  { _multipleCompileRuleName :: Symbol
+  }
+  deriving stock (Show)
+
+data AmbiguousCompileRule = AmbiguousCompileRule
+  { _ambiguousCompileRuleBackend :: BackendItem,
+    _ambiguousCompileRuleName :: Symbol
+  }
+  deriving stock (Show)
