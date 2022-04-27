@@ -5,7 +5,7 @@ import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.HashMap.Strict qualified as HashMap
-import Data.List.NonEmpty qualified as NonEmpty
+import Data.HashSet qualified as HashSet
 
 
 buildTypeCallMap :: MicroJuvixTypedResult -> TypeCallsMap
@@ -62,12 +62,12 @@ goFunction (Function l r) = do
 registerTypeCall :: Members '[State TypeCallsMap] r => TypeAppIden -> TypeCall -> Sem r ()
 registerTypeCall caller t = modify (over typeCallsMap addElem)
   where
-  addElem :: HashMap TypeAppIden (NonEmpty TypeCall) -> HashMap TypeAppIden (NonEmpty TypeCall)
+  addElem :: HashMap TypeAppIden (HashSet TypeCall) -> HashMap TypeAppIden (HashSet TypeCall)
   addElem = HashMap.alter (Just . aux) caller
     where
     aux = \case
-      Nothing -> pure t
-      Just l -> NonEmpty.cons t l
+      Nothing -> HashSet.singleton t
+      Just l -> HashSet.insert t l
 
 
 goTypeApplication :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => TypeApplication -> Sem r ()
@@ -100,7 +100,9 @@ goExpression = \case
   ExpressionIden {} -> return ()
   ExpressionApplication a -> goApplication a
   ExpressionLiteral {} -> return ()
-  ExpressionTyped t -> goExpression (t ^. typedExpression)
+  ExpressionTyped t -> do
+    goType (t ^. typedType)
+    goExpression (t ^. typedExpression)
 
 expressionAsType' :: Expression -> Type
 expressionAsType' = fromMaybe impossible . expressionAsType

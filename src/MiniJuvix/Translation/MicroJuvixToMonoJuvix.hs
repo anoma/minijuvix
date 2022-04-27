@@ -28,11 +28,6 @@ entryMonoJuvix i = do
   table = Micro.buildTable (i ^. Micro.resultModules)
   _resultMicroTyped = i
 
--- translateModule :: Micro.Module -> Either Err Module
--- translateModule m = run (runError (runReader table (goModule m)))
---   where
---     table = Micro.buildTable m
-
 type Err = Text
 
 goModule :: Members '[Error Err, Reader Micro.InfoTable] r => Micro.Module -> Sem r Module

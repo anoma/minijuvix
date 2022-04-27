@@ -20,7 +20,7 @@ data TypeCall' a = TypeCall'  {
 
 -- | Indexed by the caller
 newtype TypeCallsMap = TypeCallsMap {
-  _typeCallsMap :: HashMap TypeAppIden (NonEmpty TypeCall)
+  _typeCallsMap :: HashMap TypeAppIden (HashSet TypeCall)
  }
 
 instance Functor TypeCall' where
