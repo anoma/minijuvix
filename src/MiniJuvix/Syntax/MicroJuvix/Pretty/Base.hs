@@ -279,7 +279,7 @@ instance PrettyCode Module where
         <> body'
         <> line
 
-instance PrettyCode TypeAppIden where
+instance PrettyCode TypeCallIden where
   ppCode = \case
     InductiveIden n -> ppCode n
     FunctionIden n -> ppCode n
@@ -296,7 +296,7 @@ instance PrettyCode TypeCall where
 instance PrettyCode TypeCallsMap where
   ppCode m = do
     let title = keyword "Type Calls Map:"
-        elems :: [(TypeAppIden, TypeCall)]
+        elems :: [(TypeCallIden, TypeCall)]
         elems =  [ (caller, t) | (caller, l) <- HashMap.toList (m ^. typeCallsMap),
                    t <- toList l]
     elems' <- mapM ppCodeElem (sortOn fst elems)

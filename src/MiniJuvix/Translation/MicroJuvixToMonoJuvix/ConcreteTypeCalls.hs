@@ -24,7 +24,7 @@ collectTypeCalls res = run (execState emptyCalls (runReader typesTable (runReade
       calls <- fmap (fmap mkConcreteType') <$> lookupTypeCalls funIden
       mapM_ go calls
       where
-      funIden :: TypeAppIden
+      funIden :: TypeCallIden
       funIden = FunctionIden (fun ^. funDefName)
   main :: Module
   main = res ^. mainModule
@@ -39,7 +39,7 @@ isRegistered c = gets (HashSet.member c . (^. typeCallSet))
 register :: Members '[State TypeCalls] r => ConcreteTypeCall -> Sem r ()
 register c = modify (over typeCallSet (HashSet.insert c))
 
-lookupTypeCalls :: Members '[Reader TypeCallsMap] r => TypeAppIden -> Sem r [TypeCall]
+lookupTypeCalls :: Members '[Reader TypeCallsMap] r => TypeCallIden -> Sem r [TypeCall]
 lookupTypeCalls t = fromMaybe [] . fmap toList <$> asks (^. typeCallsMap . at t)
 
 toConcreteCall :: HashMap VarName ConcreteType -> TypeCall -> ConcreteTypeCall

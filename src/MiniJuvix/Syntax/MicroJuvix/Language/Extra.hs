@@ -7,20 +7,20 @@ import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Language
 import Data.HashMap.Strict qualified as HashMap
 
-data TypeAppIden =
+data TypeCallIden =
   InductiveIden InductiveName
   | FunctionIden FunctionName
   deriving stock (Eq, Ord, Generic)
 
 data TypeCall' a = TypeCall'  {
-  _typeCallIden :: TypeAppIden,
+  _typeCallIden :: TypeCallIden,
   _typeCallArguments :: NonEmpty a
   }
   deriving stock (Eq, Generic)
 
 -- | Indexed by the caller
 newtype TypeCallsMap = TypeCallsMap {
-  _typeCallsMap :: HashMap TypeAppIden (HashSet TypeCall)
+  _typeCallsMap :: HashMap TypeCallIden (HashSet TypeCall)
  }
 
 instance Functor TypeCall' where
@@ -39,7 +39,7 @@ newtype TypeCalls = TypeCalls {
 emptyCalls :: TypeCalls
 emptyCalls = TypeCalls mempty
 
-instance Hashable TypeAppIden
+instance Hashable TypeCallIden
 instance Hashable TypeCall
 instance Hashable ConcreteTypeCall
 instance Hashable ConcreteType

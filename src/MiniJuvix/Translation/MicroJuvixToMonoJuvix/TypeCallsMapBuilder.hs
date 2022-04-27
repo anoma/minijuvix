@@ -40,7 +40,7 @@ goFunctionDef d = runReader (FunctionIden (d ^. funDefName)) $ do
   goType (d ^. funDefType)
   mapM_ goFunctionClause (d ^. funDefClauses)
 
-goFunctionClause :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => FunctionClause -> Sem r ()
+goFunctionClause :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => FunctionClause -> Sem r ()
 goFunctionClause c = goExpression (c ^. clauseBody)
 
 goInductiveDef :: Members '[State TypeCallsMap, Reader InfoTable] r => InductiveDef -> Sem r ()
@@ -51,18 +51,18 @@ goInductiveDef d = runReader (InductiveIden (d ^. inductiveName)) $ do
 goInductiveParameter :: InductiveParameter -> Sem r ()
 goInductiveParameter _ = return ()
 
-goInductiveConstructorDef :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => InductiveConstructorDef -> Sem r ()
+goInductiveConstructorDef :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => InductiveConstructorDef -> Sem r ()
 goInductiveConstructorDef c = mapM_ goType (c ^. constructorParameters)
 
-goFunction :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => Function -> Sem r ()
+goFunction :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => Function -> Sem r ()
 goFunction (Function l r) = do
   goType l
   goType r
 
-registerTypeCall :: Members '[State TypeCallsMap] r => TypeAppIden -> TypeCall -> Sem r ()
+registerTypeCall :: Members '[State TypeCallsMap] r => TypeCallIden -> TypeCall -> Sem r ()
 registerTypeCall caller t = modify (over typeCallsMap addElem)
   where
-  addElem :: HashMap TypeAppIden (HashSet TypeCall) -> HashMap TypeAppIden (HashSet TypeCall)
+  addElem :: HashMap TypeCallIden (HashSet TypeCall) -> HashMap TypeCallIden (HashSet TypeCall)
   addElem = HashMap.alter (Just . aux) caller
     where
     aux = \case
@@ -70,7 +70,7 @@ registerTypeCall caller t = modify (over typeCallsMap addElem)
       Just l -> HashSet.insert t l
 
 
-goTypeApplication :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => TypeApplication -> Sem r ()
+goTypeApplication :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => TypeApplication -> Sem r ()
 goTypeApplication a = do
   let (t, args) = unfoldTypeApplication a
   mapM_ goType args
@@ -83,10 +83,10 @@ goTypeApplication a = do
     }
     _ -> return ()
 
-goTypeAbstraction :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => TypeAbstraction -> Sem r ()
+goTypeAbstraction :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => TypeAbstraction -> Sem r ()
 goTypeAbstraction t = goType (t ^. typeAbsBody)
 
-goType :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => Type -> Sem r ()
+goType :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => Type -> Sem r ()
 goType = \case
   TypeIden {} -> return ()
   TypeApp a -> goTypeApplication a
@@ -95,7 +95,7 @@ goType = \case
   TypeFunction f -> goFunction f
   TypeAbs a -> goTypeAbstraction a
 
-goExpression :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => Expression -> Sem r ()
+goExpression :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => Expression -> Sem r ()
 goExpression = \case
   ExpressionIden {} -> return ()
   ExpressionApplication a -> goApplication a
@@ -107,7 +107,7 @@ goExpression = \case
 expressionAsType' :: Expression -> Type
 expressionAsType' = fromMaybe impossible . expressionAsType
 
-goApplication :: Members '[State TypeCallsMap, Reader TypeAppIden, Reader InfoTable] r => Application -> Sem r ()
+goApplication :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => Application -> Sem r ()
 goApplication a = do
   let (f, args) = unfoldApplication a
   mapM_ goExpression args
