@@ -818,7 +818,7 @@ checkBackendItems sym (b : bs) bset =
   let cBackend = b ^. backendItemBackend
    in if
           | not (isBackendSupported cBackend) ->
-              throw (ErrBackendNotSupported (BackendNotSupported cBackend))
+              throw (ErrUnsupportedBackend (UnsupportedBackend cBackend sym))
           | HashSet.member cBackend bset ->
               throw
                 ( ErrMultipleCompileRuleSameBackend

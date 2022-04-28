@@ -177,26 +177,27 @@ instance PrettyError MultipleCompileBlockSameName where
   ppError MultipleCompileBlockSameName {..} =
     let name = _multipleCompileBlockSym
      in "Multiple compile blocks for the symbol" <+> highlight (ppCode name)
-          <+> "defined at"
+          <+> "at"
           <+> pretty (getLoc name)
 
 instance PrettyError MultipleCompileRuleSameBackend where
   ppError MultipleCompileRuleSameBackend {..} =
-    "Multiple compilation rules for the backend" <+> ppCode backend
-      <+> "of the symbol"
-      <+> highlight (ppCode name)
-    where
-      backend = _multipleCompileRuleSameBackendBackendItem
-      name = _multipleCompileRuleSameBackendSym
+    let backend = _backendItemBackend _multipleCompileRuleSameBackendBackendItem
+        name = _multipleCompileRuleSameBackendSym
+     in "Multiple" <+> highlight (ppCode backend) <+> "compilation rules for the symbol"
+          <+> highlight (ppCode name)
+          <+> "at"
+          <+> pretty (getLoc name)
 
 instance PrettyError WrongKindExpressionCompileBlock where
   ppError WrongKindExpressionCompileBlock {..} =
-    "The kind of expression for the symbol" <+> ppCode _wrongKindExpressionCompileBlock
-      <+> "is not supported in a compile block."
+    "Unsupported expression kind for the symbol" <> ppCode _wrongKindExpressionCompileBlock
 
-instance PrettyError BackendNotSupported where
-  ppError BackendNotSupported {..} =
-    "There is no support for" <+> ppCode _backendNotSupported <+> "in compile blocks yet."
+instance PrettyError UnsupportedBackend where
+  ppError UnsupportedBackend {..} =
+    "Unsupported" <+> ppCode _unsupportedBackend <+> "backend"
+      <+> "used at"
+      <+> pretty (getLoc _unsupportedBackendSym)
 
 ambiguousMessage :: Name -> [SymbolEntry] -> Doc Eann
 ambiguousMessage n es =
