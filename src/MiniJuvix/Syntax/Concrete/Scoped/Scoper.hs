@@ -775,74 +775,66 @@ localScope = runReader (LocalVars mempty)
 
 checkAxiomDef ::
   Members '[InfoTableBuilder, Error ScopeError, State Scope, State ScoperState, NameIdGen] r =>
-  AxiomDef 'Parsed ->
-  Sem r (AxiomDef 'Scoped)
+  AxiomDef 'Parsed -> Sem r (AxiomDef 'Scoped)
 checkAxiomDef AxiomDef {..} = do
-  axiomType' <- localScope $ checkParseExpressionAtoms _axiomType
+  axiomType' <- localScope (checkParseExpressionAtoms _axiomType)
   axiomName' <- bindAxiomSymbol _axiomName
   registerAxiom' AxiomDef {_axiomName = axiomName', _axiomType = axiomType', ..}
 
 checkCompile ::
   Members '[InfoTableBuilder, Error ScopeError, State Scope, Reader LocalVars, State ScoperState] r =>
-  Compile 'Parsed ->
-  Sem r (Compile 'Scoped)
+  Compile 'Parsed -> Sem r (Compile 'Scoped)
 checkCompile c@Compile {..} = do
-  -- 1. Check if the name refers to an actual name that can be conpiled.
   scopedSym :: S.Symbol <- checkCompileName c
   let sym :: Symbol = c ^. compileName
   rules <- gets _scopeCompilationRules
-  -- 2. Check if there is no other compile block for the same symbol.
   if
       | HashMap.member sym rules ->
           throw
-            ( ErrMultipleCompileRule
-                (MultipleCompileRule sym)
+            ( ErrMultipleCompileBlockSameName
+                (MultipleCompileBlockSameName  sym)
             )
-      -- throw (ErrAmbiguousCompileRule (AmbiguousCompileRule sym))
       | otherwise -> do
-          backends <- checkBackendItems sym (c ^. compileBackendItems) []
+          _ <- checkBackendItems sym _compileBackendItems mempty
+          -- Maybe we can warn that certain backends are not supported yet.
           registerName (S.unqualifiedSymbol scopedSym)
           modify
             ( over
                 scopeCompilationRules
-                (HashMap.insert _compileName (CompileInfo backends))
+                (HashMap.insert _compileName (CompileInfo _compileBackendItems))
             )
           registerCompile' $ Compile {_compileName = scopedSym, ..}
 
 checkBackendItems ::
   Members '[Error ScopeError] r =>
-  Symbol ->
-  [BackendItem] ->
-  [BackendItem] ->
-  Sem r [BackendItem]
+  Symbol -> [BackendItem] -> HashSet Backend -> Sem r (HashSet Backend)
 checkBackendItems _ [] bset = return bset
-checkBackendItems sym (b : bs) bset
-  | b `elem` bset =
+checkBackendItems sym (b : bs) bset =
+  let cBackend = b ^. backendItemBackend
+  in if
+  | not (isBackendSupported cBackend) ->
+      throw (ErrBackendNotSupported (BackendNotSupported cBackend))
+  | HashSet.member cBackend bset ->
       throw
-        ( ErrAmbiguousCompileRule
-            (AmbiguousCompileRule b sym)
+        ( ErrMultipleCompileRuleSameBackend
+            (MultipleCompileRuleSameBackend b sym)
         )
-  | otherwise = checkBackendItems sym bs (b : bset)
+  | otherwise -> checkBackendItems sym bs (HashSet.insert cBackend bset)
 
 checkCompileName ::
-  Members
-    '[ Error ScopeError,
-       State Scope,
-       Reader LocalVars,
-       State ScoperState,
-       InfoTableBuilder
-     ]
-    r =>
-  Compile 'Parsed ->
-  Sem r S.Symbol
+  Members '[ Error ScopeError, State Scope, Reader LocalVars, State ScoperState, InfoTableBuilder ] r =>
+  Compile 'Parsed -> Sem r S.Symbol
 checkCompileName Compile {..} = do
   let sym :: Symbol = _compileName
   let name :: Name = NameUnqualified sym
   scope <- get
   locals <- ask
-  entries <- filter S.canBeCompiled <$> lookupQualifiedSymbol ([], sym)
-  case entries of
-    [] -> throw (ErrSymNotInScope (NotInScope sym locals scope))
+  entries <- lookupQualifiedSymbol ([], sym)
+  case filter S.canBeCompiled entries of
+    [] -> case entries of
+          [] -> throw (ErrSymNotInScope (NotInScope sym locals scope))
+          (e : _) -> throw (ErrWrongKindExpressionCompileBlock
+                      (WrongKindExpressionCompileBlock e))
     [x] -> do
       actualPath <- gets _scopePath
       let scoped = entryToSymbol x sym
@@ -851,8 +843,8 @@ checkCompileName Compile {..} = do
           | actualPath == expectedPath -> return scoped
           | otherwise ->
               throw
-                ( ErrWrongLocationCompileRule
-                    (WrongLocationCompileRule expectedPath name)
+                ( ErrWrongLocationCompileBlock
+                    (WrongLocationCompileBlock expectedPath name)
                 )
     xs -> throw (ErrAmbiguousSym (AmbiguousSym name xs))
 

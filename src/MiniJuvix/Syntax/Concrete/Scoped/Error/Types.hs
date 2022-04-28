@@ -106,19 +106,28 @@ data AmbiguousModuleSym = AmbiguousModuleSym
   }
   deriving stock (Show)
 
-data WrongLocationCompileRule = WrongLocationCompileRule
-  { _wrongLocationCompileRuleExpectedModPath :: S.AbsModulePath,
-    _wrongLocationCompileRuleName :: Name
+data WrongLocationCompileBlock = WrongLocationCompileBlock
+  { _wrongLocationCompileBlockExpectedModPath :: S.AbsModulePath,
+    _wrongLocationCompileBlockName :: Name
   }
   deriving stock (Show)
 
-newtype MultipleCompileRule = MultipleCompileRule
-  { _multipleCompileRuleName :: Symbol
+newtype MultipleCompileBlockSameName = MultipleCompileBlockSameName
+  { _multipleCompileBlockSym :: Symbol
   }
   deriving stock (Show)
 
-data AmbiguousCompileRule = AmbiguousCompileRule
-  { _ambiguousCompileRuleBackend :: BackendItem,
-    _ambiguousCompileRuleName :: Symbol
+data MultipleCompileRuleSameBackend = MultipleCompileRuleSameBackend
+  { _multipleCompileRuleSameBackendBackendItem :: BackendItem,
+    _multipleCompileRuleSameBackendSym :: Symbol
   }
   deriving stock (Show)
+
+newtype WrongKindExpressionCompileBlock = WrongKindExpressionCompileBlock
+  { _wrongKindExpressionCompileBlock :: SymbolEntry
+  }
+  deriving stock (Show)
+
+newtype BackendNotSupported = BackendNotSupported {
+  _backendNotSupported  :: Backend
+} deriving stock (Show)

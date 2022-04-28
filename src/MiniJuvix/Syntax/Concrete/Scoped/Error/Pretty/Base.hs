@@ -161,33 +161,41 @@ instance PrettyError AmbiguousSym where
 instance PrettyError AmbiguousModuleSym where
   ppError AmbiguousModuleSym {..} = ambiguousMessage _ambiguousModName _ambiguousModSymEntires
 
-instance PrettyError WrongLocationCompileRule where
-  ppError WrongLocationCompileRule {..} =
-    let name = _wrongLocationCompileRuleName
+instance PrettyError WrongLocationCompileBlock where
+  ppError WrongLocationCompileBlock {..} =
+    let name = _wrongLocationCompileBlockName
      in "The set of compilation rules for the symbol" <+> highlight (ppCode name)
           <+> "at"
           <+> pretty (getLoc name)
           <> line
           <> "need to be defined in the module:"
           <> line
-          <> highlight (ppCode _wrongLocationCompileRuleExpectedModPath)
+          <> highlight (ppCode _wrongLocationCompileBlockExpectedModPath)
           <> line
 
-instance PrettyError MultipleCompileRule where
-  ppError MultipleCompileRule {..} =
-    let name = _multipleCompileRuleName
-     in "A set of compilation rules for the symbol" <+> highlight (ppCode name)
-          <+> "is already defined at"
-          <+> pretty (getLoc name)
+instance PrettyError MultipleCompileBlockSameName  where
+  ppError MultipleCompileBlockSameName  {..} =
+    let name = _multipleCompileBlockSym
+     in "Multiple compile blocks for the symbol" <+> highlight (ppCode name)
+          <+> "defined at" <+> pretty (getLoc name)
 
-instance PrettyError AmbiguousCompileRule where
-  ppError AmbiguousCompileRule {..} =
+instance PrettyError MultipleCompileRuleSameBackend where
+  ppError MultipleCompileRuleSameBackend {..} =
     "Multiple compilation rules for the backend" <+> ppCode backend
       <+> "of the symbol"
       <+> highlight (ppCode name)
     where
-      backend = _ambiguousCompileRuleBackend
-      name = _ambiguousCompileRuleName
+      backend = _multipleCompileRuleSameBackendBackendItem
+      name = _multipleCompileRuleSameBackendSym
+
+instance PrettyError WrongKindExpressionCompileBlock where
+  ppError WrongKindExpressionCompileBlock {..} =
+    "The kind of expression for the symbol" <+> ppCode _wrongKindExpressionCompileBlock
+    <+> "is not supported in a compile block."
+
+instance PrettyError BackendNotSupported where
+  ppError BackendNotSupported {..} =
+    "There is no support for" <+> ppCode _backendNotSupported <+> "in compile blocks yet."
 
 ambiguousMessage :: Name -> [SymbolEntry] -> Doc Eann
 ambiguousMessage n es =
