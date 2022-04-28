@@ -1,9 +1,0 @@
-module UnsupportedBackend;
-
-axiom A : Type;
-compile A {
-  ghc -> "Bool";
-  agda -> "Bool";
-};
-
-end;

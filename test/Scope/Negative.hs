@@ -190,12 +190,5 @@ tests =
       "WrongKindExpressionCompileBlock.mjuvix"
       $ \case
         ErrWrongKindExpressionCompileBlock {} -> Nothing
-        _ -> wrongError,
-    NegTest
-      "Unsupported backend used in a compile block"
-      "CompileBlocks"
-      "UnsupportedBackend.mjuvix"
-      $ \case
-        ErrUnsupportedBackend {} -> Nothing
         _ -> wrongError
   ]

@@ -798,7 +798,6 @@ checkCompile c@Compile {..} = do
             )
       | otherwise -> do
           _ <- checkBackendItems sym _compileBackendItems mempty
-          -- Maybe we can warn that certain backends are not supported yet.
           registerName (S.unqualifiedSymbol scopedSym)
           modify
             ( over
@@ -817,8 +816,6 @@ checkBackendItems _ [] bset = return bset
 checkBackendItems sym (b : bs) bset =
   let cBackend = b ^. backendItemBackend
    in if
-          | not (isBackendSupported cBackend) ->
-              throw (ErrUnsupportedBackend (UnsupportedBackend cBackend sym))
           | HashSet.member cBackend bset ->
               throw
                 ( ErrMultipleCompileRuleSameBackend

@@ -193,12 +193,6 @@ instance PrettyError WrongKindExpressionCompileBlock where
   ppError WrongKindExpressionCompileBlock {..} =
     "Unsupported expression kind for the symbol" <> ppCode _wrongKindExpressionCompileBlock
 
-instance PrettyError UnsupportedBackend where
-  ppError UnsupportedBackend {..} =
-    "Unsupported" <+> ppCode _unsupportedBackend <+> "backend"
-      <+> "used at"
-      <+> pretty (getLoc _unsupportedBackendSym)
-
 ambiguousMessage :: Name -> [SymbolEntry] -> Doc Eann
 ambiguousMessage n es =
   "The symbol" <+> ppCode n <+> "at" <+> pretty (getLoc n) <+> "is ambiguous." <> line
