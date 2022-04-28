@@ -167,4 +167,5 @@ list of concrete type applications involving =f=: =f â₁, …, f âₙ=.
  view of the application: =f a₁ … aₘ=. Then, if =f= is either a constructor, or
  a function, let =A₁, …, Aₖ= with =k≤m= be the list of type parameters of =f=.
  Then if =f a₁ … aₖ ∉ ℒ= then recurse normally, otherwise, wlog assume =f= is a
- function. Replace the original expression =f a₁ … aₘ=, by =id(f â) aₖ₊₁ … ₘ=.
+ function. Replace the original expression =f a₁ … aₘ=, by =id(f â) aₖ₊₁' … aₘ'=,
+ where =aₖ₊₁' … aₘ'= are the monomorphization of =aₖ₊₁ … aₘ= respectively.
