@@ -31,6 +31,11 @@ data ScopeError
   | ErrAmbiguousModuleSym AmbiguousModuleSym
   | ErrUnusedOperatorDef UnusedOperatorDef
   | ErrWrongTopModuleName WrongTopModuleName
+  | ErrWrongLocationCompileBlock WrongLocationCompileBlock
+  | ErrMultipleCompileBlockSameName MultipleCompileBlockSameName
+  | ErrMultipleCompileRuleSameBackend MultipleCompileRuleSameBackend
+  | ErrWrongKindExpressionCompileBlock WrongKindExpressionCompileBlock
+  | ErrUnsupportedBackend UnsupportedBackend
   deriving stock (Show)
 
 ppScopeError :: ScopeError -> Doc Eann
@@ -52,6 +57,11 @@ ppScopeError s = case s of
   ErrAmbiguousModuleSym e -> ppError e
   ErrUnusedOperatorDef e -> ppError e
   ErrLacksFunctionClause e -> ppError e
+  ErrWrongLocationCompileBlock e -> ppError e
+  ErrMultipleCompileBlockSameName e -> ppError e
+  ErrMultipleCompileRuleSameBackend e -> ppError e
+  ErrWrongKindExpressionCompileBlock e -> ppError e
+  ErrUnsupportedBackend e -> ppError e
 
 docStream :: ScopeError -> SimpleDocStream Eann
 docStream = layoutPretty defaultLayoutOptions . ppScopeError
