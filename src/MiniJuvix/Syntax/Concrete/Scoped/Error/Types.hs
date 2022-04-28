@@ -128,6 +128,7 @@ newtype WrongKindExpressionCompileBlock = WrongKindExpressionCompileBlock
   }
   deriving stock (Show)
 
-newtype BackendNotSupported = BackendNotSupported {
-  _backendNotSupported  :: Backend
-} deriving stock (Show)
+newtype BackendNotSupported = BackendNotSupported
+  { _backendNotSupported :: Backend
+  }
+  deriving stock (Show)

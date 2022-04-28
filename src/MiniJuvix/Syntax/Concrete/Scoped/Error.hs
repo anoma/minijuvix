@@ -32,7 +32,7 @@ data ScopeError
   | ErrUnusedOperatorDef UnusedOperatorDef
   | ErrWrongTopModuleName WrongTopModuleName
   | ErrWrongLocationCompileBlock WrongLocationCompileBlock
-  | ErrMultipleCompileBlockSameName  MultipleCompileBlockSameName
+  | ErrMultipleCompileBlockSameName MultipleCompileBlockSameName
   | ErrMultipleCompileRuleSameBackend MultipleCompileRuleSameBackend
   | ErrWrongKindExpressionCompileBlock WrongKindExpressionCompileBlock
   | ErrBackendNotSupported BackendNotSupported
@@ -58,7 +58,7 @@ ppScopeError s = case s of
   ErrUnusedOperatorDef e -> ppError e
   ErrLacksFunctionClause e -> ppError e
   ErrWrongLocationCompileBlock e -> ppError e
-  ErrMultipleCompileBlockSameName  e -> ppError e
+  ErrMultipleCompileBlockSameName e -> ppError e
   ErrMultipleCompileRuleSameBackend e -> ppError e
   ErrWrongKindExpressionCompileBlock e -> ppError e
   ErrBackendNotSupported e -> ppError e

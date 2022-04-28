@@ -173,11 +173,12 @@ instance PrettyError WrongLocationCompileBlock where
           <> highlight (ppCode _wrongLocationCompileBlockExpectedModPath)
           <> line
 
-instance PrettyError MultipleCompileBlockSameName  where
-  ppError MultipleCompileBlockSameName  {..} =
+instance PrettyError MultipleCompileBlockSameName where
+  ppError MultipleCompileBlockSameName {..} =
     let name = _multipleCompileBlockSym
      in "Multiple compile blocks for the symbol" <+> highlight (ppCode name)
-          <+> "defined at" <+> pretty (getLoc name)
+          <+> "defined at"
+          <+> pretty (getLoc name)
 
 instance PrettyError MultipleCompileRuleSameBackend where
   ppError MultipleCompileRuleSameBackend {..} =
@@ -191,7 +192,7 @@ instance PrettyError MultipleCompileRuleSameBackend where
 instance PrettyError WrongKindExpressionCompileBlock where
   ppError WrongKindExpressionCompileBlock {..} =
     "The kind of expression for the symbol" <+> ppCode _wrongKindExpressionCompileBlock
-    <+> "is not supported in a compile block."
+      <+> "is not supported in a compile block."
 
 instance PrettyError BackendNotSupported where
   ppError BackendNotSupported {..} =

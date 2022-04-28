@@ -775,7 +775,8 @@ localScope = runReader (LocalVars mempty)
 
 checkAxiomDef ::
   Members '[InfoTableBuilder, Error ScopeError, State Scope, State ScoperState, NameIdGen] r =>
-  AxiomDef 'Parsed -> Sem r (AxiomDef 'Scoped)
+  AxiomDef 'Parsed ->
+  Sem r (AxiomDef 'Scoped)
 checkAxiomDef AxiomDef {..} = do
   axiomType' <- localScope (checkParseExpressionAtoms _axiomType)
   axiomName' <- bindAxiomSymbol _axiomName
@@ -783,7 +784,8 @@ checkAxiomDef AxiomDef {..} = do
 
 checkCompile ::
   Members '[InfoTableBuilder, Error ScopeError, State Scope, Reader LocalVars, State ScoperState] r =>
-  Compile 'Parsed -> Sem r (Compile 'Scoped)
+  Compile 'Parsed ->
+  Sem r (Compile 'Scoped)
 checkCompile c@Compile {..} = do
   scopedSym :: S.Symbol <- checkCompileName c
   let sym :: Symbol = c ^. compileName
@@ -792,7 +794,7 @@ checkCompile c@Compile {..} = do
       | HashMap.member sym rules ->
           throw
             ( ErrMultipleCompileBlockSameName
-                (MultipleCompileBlockSameName  sym)
+                (MultipleCompileBlockSameName sym)
             )
       | otherwise -> do
           _ <- checkBackendItems sym _compileBackendItems mempty
@@ -807,23 +809,27 @@ checkCompile c@Compile {..} = do
 
 checkBackendItems ::
   Members '[Error ScopeError] r =>
-  Symbol -> [BackendItem] -> HashSet Backend -> Sem r (HashSet Backend)
+  Symbol ->
+  [BackendItem] ->
+  HashSet Backend ->
+  Sem r (HashSet Backend)
 checkBackendItems _ [] bset = return bset
 checkBackendItems sym (b : bs) bset =
   let cBackend = b ^. backendItemBackend
-  in if
-  | not (isBackendSupported cBackend) ->
-      throw (ErrBackendNotSupported (BackendNotSupported cBackend))
-  | HashSet.member cBackend bset ->
-      throw
-        ( ErrMultipleCompileRuleSameBackend
-            (MultipleCompileRuleSameBackend b sym)
-        )
-  | otherwise -> checkBackendItems sym bs (HashSet.insert cBackend bset)
+   in if
+          | not (isBackendSupported cBackend) ->
+              throw (ErrBackendNotSupported (BackendNotSupported cBackend))
+          | HashSet.member cBackend bset ->
+              throw
+                ( ErrMultipleCompileRuleSameBackend
+                    (MultipleCompileRuleSameBackend b sym)
+                )
+          | otherwise -> checkBackendItems sym bs (HashSet.insert cBackend bset)
 
 checkCompileName ::
-  Members '[ Error ScopeError, State Scope, Reader LocalVars, State ScoperState, InfoTableBuilder ] r =>
-  Compile 'Parsed -> Sem r S.Symbol
+  Members '[Error ScopeError, State Scope, Reader LocalVars, State ScoperState, InfoTableBuilder] r =>
+  Compile 'Parsed ->
+  Sem r S.Symbol
 checkCompileName Compile {..} = do
   let sym :: Symbol = _compileName
   let name :: Name = NameUnqualified sym
@@ -832,9 +838,12 @@ checkCompileName Compile {..} = do
   entries <- lookupQualifiedSymbol ([], sym)
   case filter S.canBeCompiled entries of
     [] -> case entries of
-          [] -> throw (ErrSymNotInScope (NotInScope sym locals scope))
-          (e : _) -> throw (ErrWrongKindExpressionCompileBlock
-                      (WrongKindExpressionCompileBlock e))
+      [] -> throw (ErrSymNotInScope (NotInScope sym locals scope))
+      (e : _) ->
+        throw
+          ( ErrWrongKindExpressionCompileBlock
+              (WrongKindExpressionCompileBlock e)
+          )
     [x] -> do
       actualPath <- gets _scopePath
       let scoped = entryToSymbol x sym
