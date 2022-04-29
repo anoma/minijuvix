@@ -38,10 +38,10 @@ isRegistered c = do
   t <- gets (^. typeCallSet)
   return (isJust (HashMap.lookup (c ^. typeCallIden) t >>= HashMap.lookup c))
 
-register :: Members '[State TypeCalls] r => ConcreteTypeCall -> HashMap VarName ConcreteType -> Sem r ()
+register :: Members '[State TypeCalls] r => ConcreteTypeCall -> ConcreteSubs -> Sem r ()
 register c t = modify (over typeCallSet (HashMap.alter (Just . addElem) (c ^. typeCallIden)))
   where
-  addElem :: Maybe (HashMap ConcreteTypeCall (HashMap VarName ConcreteType)) -> HashMap ConcreteTypeCall (HashMap VarName ConcreteType)
+  addElem :: Maybe (HashMap ConcreteTypeCall ConcreteSubs) -> HashMap ConcreteTypeCall (ConcreteSubs)
   addElem = \case
     Nothing -> HashMap.singleton c t
     Just m -> HashMap.insert c t m
@@ -49,14 +49,14 @@ register c t = modify (over typeCallSet (HashMap.alter (Just . addElem) (c ^. ty
 lookupTypeCalls :: Members '[Reader TypeCallsMap] r => TypeCallIden -> Sem r [TypeCall]
 lookupTypeCalls t = fromMaybe [] . fmap toList <$> asks (^. typeCallsMap . at t)
 
-toConcreteCall :: HashMap VarName ConcreteType -> TypeCall -> ConcreteTypeCall
+toConcreteCall :: ConcreteSubs -> TypeCall -> ConcreteTypeCall
 toConcreteCall m = fmap (substitutionConcrete m)
 
 go :: Members '[State TypeCalls, Reader TypeCallsMap, Reader InfoTable] r
   => ConcreteTypeCall -> Sem r ()
 go c = unlessM (isRegistered c) $ do
   calls :: [TypeCall] <- lookupTypeCalls (c ^. typeCallIden)
-  assocs :: HashMap VarName ConcreteType <- case c ^. typeCallIden of
+  assocs :: ConcreteSubs <- case c ^. typeCallIden of
     InductiveIden i -> do
       def <- (^. inductiveInfoDef) <$> lookupInductive i
       return (inductiveTypeVarsAssoc def (c ^. typeCallArguments))

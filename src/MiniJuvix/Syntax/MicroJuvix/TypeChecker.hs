@@ -193,10 +193,9 @@ checkFunctionClause info clause@FunctionClause {..} = do
       (patTys, restTys) = splitAt (length _clausePatterns) argTys
       bodyTy = foldFunType restTys rty
   if
-      -- TODO consider zip exact
       | length patTys /= length _clausePatterns -> throw (tyErr patTys)
       | otherwise -> do
-          locals <- checkPatterns _clauseName (zip patTys _clausePatterns)
+          locals <- checkPatterns _clauseName (zipExact patTys _clausePatterns)
           let bodyTy' =
                 substitution
                   ( fmap
@@ -361,7 +360,7 @@ inferExpression' e = case e of
                       { _appLeft = ExpressionTyped l,
                         _appRight = r
                       },
-                _typedType = substitution1 (ta ^. typeAbsVar, tr) (ta ^. typeAbsBody)
+                _typedType = substituteType1 (ta ^. typeAbsVar, tr) (ta ^. typeAbsBody)
               }
         Right f -> do
           r <- checkExpression (f ^. funLeft) (a ^. appRight)

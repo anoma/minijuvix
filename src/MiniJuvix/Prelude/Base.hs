@@ -10,6 +10,8 @@ module MiniJuvix.Prelude.Base
     module Data.Foldable,
     module Data.Function,
     module Data.Functor,
+    module Safe.Exact,
+    module Safe.Foldable,
     module Data.Hashable,
     module Data.Int,
     module Data.List.Extra,
@@ -77,6 +79,7 @@ import Data.Foldable hiding (minimum, minimumBy)
 import Data.Function
 import Data.Functor
 import Data.HashMap.Strict (HashMap)
+import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.Hashable
@@ -88,6 +91,8 @@ import Data.List.NonEmpty.Extra (NonEmpty (..), (|:), head, last, maximum1, maxi
 import Data.Maybe
 import Data.Monoid
 import Data.Ord
+import Safe.Exact
+import Safe.Foldable
 import Data.Semigroup (Semigroup, (<>))
 import Data.Singletons
 import Data.Singletons.Sigma
@@ -197,6 +202,21 @@ mconcatMap :: (Monoid c, Foldable t) => (a -> c) -> t a -> c
 mconcatMap f = List.mconcatMap f . toList
 
 --------------------------------------------------------------------------------
+-- HashMap
+--------------------------------------------------------------------------------
+
+tableInsert :: Hashable k => (a -> v) -> (a -> v -> v) -> k -> a -> HashMap k v -> HashMap k v
+tableInsert s f k a m = over (at k) (Just . aux) m
+ where
+   aux = \case
+     Just v -> f a v
+     Nothing -> s a
+
+tableNestedInsert :: (Hashable k1, Hashable k2) => k1 -> k2 -> a -> HashMap k1 (HashMap k2 a)
+   -> HashMap k1 (HashMap k2 a)
+tableNestedInsert k1 k2 a = tableInsert (HashMap.singleton k2) (HashMap.insert k2) k1 a
+
+--------------------------------------------------------------------------------
 -- NonEmpty
 --------------------------------------------------------------------------------
 
@@ -248,9 +268,6 @@ instance Functor Indexed where
   fmap f (Indexed i a) = Indexed i (f a)
 
 makeLenses ''Indexed
-
-minimumMaybe :: (Foldable t, Ord a) => t a -> Maybe a
-minimumMaybe l = if null l then Nothing else Just (minimum l)
 
 fromText :: IsString a => Text -> a
 fromText = fromString . unpack

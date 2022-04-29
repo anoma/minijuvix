@@ -16,6 +16,8 @@ import Prettyprinter
 
 type FunctionName = Name
 
+type ConstructorName = Name
+
 type AxiomName = Name
 
 type VarName = Name
@@ -103,9 +105,16 @@ data TypedExpression = TypedExpression
   }
   deriving stock (Show)
 
+-- data FunctionExpression = FunctionExpression {
+--   _funExprLeft :: Expression,
+--   _funExprRight :: Expression
+--   }
+--   deriving stock (Show)
+
 data Expression
   = ExpressionIden Iden
   | ExpressionApplication Application
+  -- | ExpressionFunction FunctionExpression
   | ExpressionLiteral C.LiteralLoc
   | ExpressionTyped TypedExpression
   deriving stock (Show)

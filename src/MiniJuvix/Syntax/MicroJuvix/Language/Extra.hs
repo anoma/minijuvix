@@ -32,10 +32,17 @@ newtype ConcreteType = ConcreteType {_unconcreteType :: Type}
 type ConcreteTypeCall = TypeCall' ConcreteType
 type TypeCall = TypeCall' Type
 
+type SubsE = HashMap VarName Expression
+type Rename = HashMap VarName VarName
+type Subs = HashMap VarName Type
+type ConcreteSubs = HashMap VarName ConcreteType
+
 -- | Indexed by _typeCallIden
 newtype TypeCalls = TypeCalls {
-  _typeCallSet :: HashMap TypeCallIden (HashMap ConcreteTypeCall (HashMap VarName ConcreteType))
+  _typeCallSet :: HashMap TypeCallIden (HashMap ConcreteTypeCall ConcreteSubs)
    }
+
+type VarMap = HashMap VarName VarName
 
 emptyCalls :: TypeCalls
 emptyCalls = TypeCalls mempty
@@ -104,10 +111,34 @@ substitutionArg from v a = case a of
   FunctionArgTypeAbstraction {} -> a
   FunctionArgTypeType ty ->
     FunctionArgTypeType
-      (substitution1 (from, TypeIden (TypeIdenVariable v)) ty)
+      (substituteType1 (from, TypeIden (TypeIdenVariable v)) ty)
 
-substitution1 :: (VarName, Type) -> Type -> Type
-substitution1 = substitution . uncurry HashMap.singleton
+renameToSubsE :: Rename -> SubsE
+renameToSubsE = fmap (ExpressionIden . IdenVar)
+
+renameExpression :: Rename -> Expression -> Expression
+renameExpression r = substitutionE (renameToSubsE r)
+
+substituteType1 :: (VarName, Type) -> Type -> Type
+substituteType1 = substitution . uncurry HashMap.singleton
+
+patternVariables :: Pattern -> [VarName]
+patternVariables = \case
+  PatternVariable v -> [v]
+  PatternConstructorApp a -> goApp a
+  PatternWildcard -> []
+  where
+  goApp :: ConstructorApp -> [VarName]
+  goApp (ConstructorApp _ ps) = concatMap patternVariables ps
+
+renamePattern :: Rename -> Pattern -> Pattern
+renamePattern m = go
+ where
+ go :: Pattern -> Pattern
+ go p = case p of
+  PatternVariable v
+   | Just v' <- m ^. at v -> PatternVariable v'
+  _ -> p
 
 inductiveTypeVarsAssoc :: Foldable f => InductiveDef -> f a -> HashMap VarName a
 inductiveTypeVarsAssoc def l
@@ -144,10 +175,47 @@ functionTypeVarsAssoc def l = sig <> mconcatMap clause (def ^. funDefClauses)
         PatternVariable v -> Just v
         _ -> Nothing
 
-substitutionConcrete :: HashMap VarName ConcreteType -> Type -> ConcreteType
+substitutionConcrete :: ConcreteSubs -> Type -> ConcreteType
 substitutionConcrete m = mkConcreteType' . substitution ((^. unconcreteType) <$> m)
 
-substitution :: HashMap VarName Type -> Type -> Type
+concreteTypeToExpr :: ConcreteType -> Expression
+concreteTypeToExpr = go . (^. unconcreteType)
+ where
+   go :: Type -> Expression
+   go = \case
+     TypeAbs {} -> impossible
+     TypeIden i -> ExpressionIden (goIden i)
+     TypeApp (TypeApplication l r) -> ExpressionApplication (Application (go l) (go r))
+     TypeFunction {} -> error "TODO"
+     TypeUniverse {} -> impossible
+     TypeAny {} -> impossible
+   goIden :: TypeIden -> Iden
+   goIden = \case
+     TypeIdenInductive n -> IdenInductive n
+     TypeIdenAxiom n -> IdenAxiom n
+     TypeIdenVariable v -> IdenVar v
+
+concreteSubsToSubsE :: ConcreteSubs -> SubsE
+concreteSubsToSubsE = fmap concreteTypeToExpr
+
+substitutionE :: SubsE -> Expression -> Expression
+substitutionE m = go
+  where
+  go :: Expression -> Expression
+  go x = case x of
+    ExpressionIden i -> goIden i
+    ExpressionApplication a -> ExpressionApplication (goApp a)
+    ExpressionLiteral {} -> x
+    ExpressionTyped t -> ExpressionTyped (over typedExpression go t)
+  goApp :: Application -> Application
+  goApp (Application l r) = Application (go l) (go r)
+  goIden :: Iden -> Expression
+  goIden i = case i of
+    IdenVar v
+      | Just e <- HashMap.lookup v m -> e
+    _ -> ExpressionIden i
+
+substitution :: Subs -> Type -> Type
 substitution m = go
   where
     go :: Type -> Type
@@ -193,6 +261,11 @@ unfoldTypeAbsType :: Type -> ([VarName], Type)
 unfoldTypeAbsType t = case t of
   TypeAbs (TypeAbstraction var r) -> first (var :) (unfoldTypeAbsType r)
   _ -> ([], t)
+
+foldApplication :: Expression -> [Expression] -> Expression
+foldApplication f args = case args of
+  [] -> f
+  (a : as) -> foldApplication (ExpressionApplication (Application f a)) as
 
 unfoldApplication :: Application -> (Expression, NonEmpty Expression)
 unfoldApplication (Application l' r') = second (|: r') (unfoldExpression l')
