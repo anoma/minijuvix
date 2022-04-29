@@ -3,18 +3,12 @@ module MiniJuvix.Translation.MonoJuvixToC where
 import Data.HashMap.Strict qualified as HashMap
 import Data.Text qualified as T
 import MiniJuvix.Prelude
-import MiniJuvix.Syntax.Abstract.AbstractResult qualified as A
 import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.CJuvix.Language
 import MiniJuvix.Syntax.CJuvix.Serialization
 import MiniJuvix.Syntax.Concrete.Language qualified as C
 import MiniJuvix.Syntax.Concrete.Scoped.InfoTable qualified as S
-import MiniJuvix.Syntax.Concrete.Scoped.InfoTable qualified as Scoper
-import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
-import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
 import MiniJuvix.Syntax.ForeignBlock
-import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult qualified as Micro
-import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Syntax.NameId
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as MonoTrans
@@ -25,23 +19,13 @@ newtype MiniCResult = MiniCResult
 
 makeLenses ''MiniCResult
 
-type CompileInfoTable = HashMap S.NameId Scoper.CompileInfo
-
 entryMiniC ::
   MonoTrans.MonoJuvixResult ->
   Sem r MiniCResult
 entryMiniC i = return (MiniCResult (serialize cunitResult))
   where
-    compileInfo :: CompileInfoTable
-    compileInfo =
-      HashMap.mapKeys (^. S.nameId) $
-        i
-          ^. MonoTrans.resultMicroTyped
-            . Micro.resultMicroJuvixResult
-            . Micro.resultAbstract
-            . A.resultScoper
-            . Scoper.resultScoperTable
-            . Scoper.infoCompilationRules
+    compileInfo :: MonoTrans.CompileInfoTable
+    compileInfo = MonoTrans.compileInfoTable i
     cunitResult :: CCodeUnit
     cunitResult =
       CCodeUnit
@@ -63,20 +47,20 @@ unsupported :: Err -> a
 unsupported msg = error (msg <> " Mono to C: not yet supported")
 
 goModule ::
-  Member (Reader CompileInfoTable) r =>
+  Member (Reader MonoTrans.CompileInfoTable) r =>
   Mono.Module ->
   Sem r [CCode]
 goModule Mono.Module {..} = goModuleBody _moduleBody
 
 goModuleBody ::
-  Member (Reader CompileInfoTable) r =>
+  Member (Reader MonoTrans.CompileInfoTable) r =>
   Mono.ModuleBody ->
   Sem r [CCode]
 goModuleBody Mono.ModuleBody {..} =
   traverseM goStatement _moduleStatements
 
 goStatement ::
-  Member (Reader CompileInfoTable) r =>
+  Member (Reader MonoTrans.CompileInfoTable) r =>
   Mono.Statement ->
   Sem r [CCode]
 goStatement = \case
@@ -239,7 +223,7 @@ goLiteral C.LiteralLoc {..} = case _literalLocLiteral of
   C.LitInteger i -> ExpressionLiteral (LiteralInt i)
 
 goAxiom ::
-  Member (Reader CompileInfoTable) r =>
+  Member (Reader MonoTrans.CompileInfoTable) r =>
   Mono.AxiomDef ->
   Sem r [CCode]
 goAxiom a = do
@@ -267,7 +251,7 @@ goAxiom a = do
       guard (BackendC == b ^. backendItemBackend)
         $> b ^. backendItemCode
     lookupBackends ::
-      Member (Reader CompileInfoTable) r =>
+      Member (Reader MonoTrans.CompileInfoTable) r =>
       NameId ->
       Sem r [BackendItem]
     lookupBackends f = (^. S.compileInfoBackendItems) . HashMap.lookupDefault impossible f <$> ask
