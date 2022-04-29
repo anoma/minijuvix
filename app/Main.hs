@@ -7,6 +7,7 @@ module Main (main) where
 import Commands.Extra
 import Commands.MicroJuvix
 import Commands.MiniHaskell
+import Commands.MonoJuvix
 import Commands.Termination as T
 import Control.Exception qualified as IO
 import Control.Monad.Extra
@@ -29,6 +30,7 @@ import MiniJuvix.Termination.CallGraph qualified as A
 import MiniJuvix.Translation.AbstractToMicroJuvix qualified as Micro
 import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as Mono
+import MiniJuvix.Syntax.MonoJuvix.Pretty qualified as Mono
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 import MiniJuvix.Utils.Version (runDisplayVersion)
 import Options.Applicative
@@ -49,6 +51,7 @@ data Command
   | Termination TerminationCommand
   | MiniHaskell MiniHaskellOptions
   | MicroJuvix MicroJuvixCommand
+  | MonoJuvix MonoJuvixOptions
   | DisplayVersion
   | DisplayRoot
   | Highlight HighlightOptions
@@ -201,6 +204,7 @@ parseCommand =
             commandScope,
             commandHtml,
             commandTermination,
+            commandMonoJuvix,
             commandMicroJuvix,
             commandMiniHaskell,
             commandHighlight
@@ -215,6 +219,15 @@ parseCommand =
           info
             (MicroJuvix <$> parseMicroJuvixCommand)
             (progDesc "Subcommands related to MicroJuvix")
+
+    commandMonoJuvix :: Mod CommandFields Command
+    commandMonoJuvix = command "monojuvix" minfo
+      where
+        minfo :: ParserInfo Command
+        minfo =
+          info
+            (MonoJuvix <$> parseMonoJuvix)
+            (progDesc "Translate a MiniJuvix file to MonoJuvix")
 
     commandMiniHaskell :: Mod CommandFields Command
     commandMiniHaskell = command "minihaskell" minfo
@@ -328,6 +341,9 @@ instance HasEntryPoint MicroJuvixTypeOptions where
 instance HasEntryPoint MicroJuvixPrettyOptions where
   getEntryPoint root = EntryPoint root . pure . _mjuvixPrettyInputFile
 
+instance HasEntryPoint MonoJuvixOptions where
+  getEntryPoint root = EntryPoint root . pure . _monojuvixInputFile
+
 instance HasEntryPoint MiniHaskellOptions where
   getEntryPoint root = EntryPoint root . pure . _mhaskellInputFile
 
@@ -354,6 +370,8 @@ runCLI cli = do
       renderStdOutMini = renderStdOut
       renderStdOutMicro :: Micro.PPOutput -> IO ()
       renderStdOutMicro = renderStdOut
+      renderStdOutMono :: Mono.PPOutput -> IO ()
+      renderStdOutMono = renderStdOut
   root <- findRoot
   case cli ^. cliCommand of
     DisplayVersion -> runDisplayVersion
@@ -403,6 +421,9 @@ runCLI cli = do
             let concreteTypeCalls = Mono.collectTypeCalls res
             renderStdOutMicro (Micro.ppOut ppOpts concreteTypeCalls)
         Left err -> printErrorAnsiSafe err >> exitFailure
+    MonoJuvix o -> do
+      monojuvix <- head . (^. Mono.resultModules) <$> runIO (upToMonoJuvix (getEntryPoint root o))
+      renderStdOutMono (Mono.ppOutDefault monojuvix)
     MiniHaskell o -> do
       minihaskell <- head . (^. MiniHaskell.resultModules) <$> runIO (upToMiniHaskell (getEntryPoint root o))
       renderStdOutMini (MiniHaskell.ppOutDefault minihaskell)
