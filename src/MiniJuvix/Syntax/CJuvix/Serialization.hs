@@ -15,7 +15,7 @@ instance P.Pretty Cpp where
   pretty = \case
     CppIncludeFile i -> "#include" HP.<+> HP.doubleQuotes (P.pretty i)
     CppIncludeSystem i -> "#include" HP.<+> encAngles (P.pretty i)
-    CppDefine (Define {..}) -> "#define" HP.<+> (P.pretty _defineName HP.<+> P.pretty _defineBody)
+    CppDefine Define {..} -> "#define" HP.<+> (P.pretty _defineName HP.<+> P.pretty _defineBody)
 
 instance P.Pretty Text where
   pretty = HP.text . unpack
@@ -53,10 +53,10 @@ mkCInit = \case
   DesignatorInitializer ds -> CInitList (f <$> ds) C.undefNode
   where
     f :: DesigInit -> ([CDesignator], CInit)
-    f (DesigInit {..}) = ([CMemberDesig (mkIdent _desigDesignator) C.undefNode], mkCInit _desigInitializer)
+    f DesigInit {..} = ([CMemberDesig (mkIdent _desigDesignator) C.undefNode], mkCInit _desigInitializer)
 
 mkCFunDef :: Function -> CFunDef
-mkCFunDef (Function {..}) =
+mkCFunDef Function {..} =
   CFunDef declSpec declr [] statement C.undefNode
   where
     declr :: CDeclr
@@ -85,25 +85,25 @@ mkBlockItem = \case
 
 mkCExpr :: Expression -> CExpr
 mkCExpr = \case
-  ExpressionAssign (Assign {..}) -> CAssign CAssignOp (mkCExpr _assignLeft) (mkCExpr _assignRight) C.undefNode
-  ExpressionCast (Cast {..}) -> CCast (mkCDecl _castDecl) (mkCExpr _castExpression) C.undefNode
-  ExpressionCall (Call {..}) -> CCall (mkCExpr _callCallee) (mkCExpr <$> _callArgs) C.undefNode
+  ExpressionAssign Assign {..} -> CAssign CAssignOp (mkCExpr _assignLeft) (mkCExpr _assignRight) C.undefNode
+  ExpressionCast Cast {..} -> CCast (mkCDecl _castDecl) (mkCExpr _castExpression) C.undefNode
+  ExpressionCall Call {..} -> CCall (mkCExpr _callCallee) (mkCExpr <$> _callArgs) C.undefNode
   ExpressionLiteral l -> case l of
     LiteralInt i -> CConst (CIntConst (cInteger i) C.undefNode)
     LiteralChar c -> CConst (CCharConst (cChar c) C.undefNode)
     LiteralString s -> CConst (CStrConst (cString (unpack s)) C.undefNode)
   ExpressionVar n -> CVar (mkIdent n) C.undefNode
-  ExpressionBinary (Binary {..}) ->
+  ExpressionBinary Binary {..} ->
     CBinary (mkBinaryOp _binaryOp) (mkCExpr _binaryLeft) (mkCExpr _binaryRight) C.undefNode
-  ExpressionUnary (Unary {..}) ->
+  ExpressionUnary Unary {..} ->
     CUnary (mkUnaryOp _unaryOp) (mkCExpr _unarySubject) C.undefNode
-  ExpressionMember (MemberAccess {..}) ->
+  ExpressionMember MemberAccess {..} ->
     CMember (mkCExpr _memberSubject) (mkIdent _memberField) (_memberOp == Pointer) C.undefNode
 
 mkCStat :: Statement -> CStat
 mkCStat = \case
   StatementReturn me -> CReturn (mkCExpr <$> me) C.undefNode
-  StatementIf (If {..}) ->
+  StatementIf If {..} ->
     CIf (mkCExpr _ifCondition) (mkCStat _ifThen) (mkCStat <$> _ifElse) C.undefNode
   StatementExpr e -> CExpr (Just (mkCExpr e)) C.undefNode
   StatementCompound ss -> CCompound [] (CBlockStmt . mkCStat <$> ss) C.undefNode
@@ -125,7 +125,7 @@ mkDeclSpecifier :: DeclType -> [CDeclSpec]
 mkDeclSpecifier = \case
   DeclTypeDefType typeDefName -> mkTypeDefTypeSpec typeDefName
   DeclTypeDef declType -> CStorageSpec (CTypedef C.undefNode) : mkDeclSpecifier declType
-  DeclStructUnion (StructUnion {..}) -> mkStructUnionTypeSpec _structUnionTag _structUnionName _structMembers
+  DeclStructUnion StructUnion {..} -> mkStructUnionTypeSpec _structUnionTag _structUnionName _structMembers
   DeclEnum (Enum {..}) -> mkEnumSpec _enumName _enumMembers
   BoolType -> [CTypeSpec (CBoolType C.undefNode)]
 

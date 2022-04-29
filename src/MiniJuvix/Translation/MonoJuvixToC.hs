@@ -156,7 +156,7 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
       let arg = ExpressionVar ("fa" <> show n)
       case p of
         Mono.PatternVariable v -> [(v ^. Mono.nameText, arg)]
-        Mono.PatternConstructorApp (Mono.ConstructorApp {..}) ->
+        Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
           goConstructorApp arg _constrAppConstructor _constrAppParameters
         Mono.PatternWildcard {} -> []
     returnStmt :: Statement
@@ -563,7 +563,7 @@ goType = \case
           }
 
 goTypeDecl :: Text -> CDeclType -> Declaration
-goTypeDecl n (CDeclType {..}) =
+goTypeDecl n CDeclType {..} =
   Declaration
     { _declType = _typeDeclType,
       _declIsPtr = _typeIsPtr,
