@@ -106,6 +106,7 @@ mkCStat = \case
   StatementIf (If {..}) ->
     CIf (mkCExpr _ifCondition) (mkCStat _ifThen) (mkCStat <$> _ifElse) C.undefNode
   StatementExpr e -> CExpr (Just (mkCExpr e)) C.undefNode
+  StatementCompound ss -> CCompound [] (CBlockStmt . mkCStat <$> ss) C.undefNode
 
 mkBinaryOp :: BinaryOp -> CBinaryOp
 mkBinaryOp = \case

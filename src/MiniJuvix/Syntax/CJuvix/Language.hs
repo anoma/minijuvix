@@ -169,6 +169,7 @@ data Statement
   = StatementReturn (Maybe Expression)
   | StatementIf If
   | StatementExpr Expression
+  | StatementCompound [Statement]
 
 data If = If
   { _ifCondition :: Expression,
