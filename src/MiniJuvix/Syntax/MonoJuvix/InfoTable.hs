@@ -2,7 +2,6 @@ module MiniJuvix.Syntax.MonoJuvix.InfoTable where
 
 import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Prelude
-import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.MonoJuvix.Language
 
 data ConstructorInfo = ConstructorInfo
