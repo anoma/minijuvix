@@ -53,7 +53,6 @@ goStatement = \case
   Mono.StatementInductive d -> goInductiveDef d
   Mono.StatementFunction d -> goFunctionDef d
   Mono.StatementForeign d -> goForeign d
-  Mono.StatementCompile d -> goCompile d
   Mono.StatementAxiom {} -> []
 
 type CTypeName = Text
@@ -209,21 +208,21 @@ goLiteral C.LiteralLoc {..} = case _literalLocLiteral of
   C.LitString s -> ExpressionLiteral (LiteralString s)
   C.LitInteger i -> ExpressionLiteral (LiteralInt i)
 
-goCompile :: Mono.Compile -> [CCode]
-goCompile c =
-  case firstJust getCode backends of
-    Nothing -> error ("C backend does not support this axiom:" <> show (c ^. Mono.compileName . Mono.nameText))
-    Just _defineBody ->
-      [ExternalMacro (CppDefine (Define {..}))]
-  where
-    _defineName :: Text
-    _defineName = mkName (c ^. Mono.compileName)
-    backends :: [BackendItem]
-    backends = c ^. Mono.compileBackendItems
-    getCode :: BackendItem -> Maybe Text
-    getCode b =
-      guard (BackendC == b ^. backendItemBackend)
-        $> b ^. backendItemCode
+goAxiom :: Mono.AxiomDef -> [CCode]
+goAxiom c = undefined
+  -- case firstJust getCode backends of
+  --   Nothing -> error ("C backend does not support this axiom:" <> show (c ^. Mono.compileName . Mono.nameText))
+  --   Just _defineBody ->
+  --     [ExternalMacro (CppDefine (Define {..}))]
+  -- where
+  --   _defineName :: Text
+  --   _defineName = mkName (c ^. Mono.compileName)
+  --   backends :: [BackendItem]
+  --   backends = c ^. Mono.compileBackendItems
+  --   getCode :: BackendItem -> Maybe Text
+  --   getCode b =
+  --     guard (BackendC == b ^. backendItemBackend)
+  --       $> b ^. backendItemCode
 
 goForeign :: ForeignBlock -> [CCode]
 goForeign b = case b ^. foreignBackend of

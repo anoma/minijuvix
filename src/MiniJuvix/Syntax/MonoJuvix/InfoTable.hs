@@ -18,15 +18,10 @@ newtype AxiomInfo = AxiomInfo
   { _axiomInfoType :: Type
   }
 
-newtype CompileInfo = CompileInfo
-  { _compileInfoBackendItems :: [BackendItem]
-  }
-
 data InfoTable = InfoTable
   { _infoConstructors :: HashMap Name ConstructorInfo,
     _infoAxioms :: HashMap Name AxiomInfo,
-    _infoFunctions :: HashMap Name FunctionInfo,
-    _infoCompilationRules :: HashMap Name CompileInfo
+    _infoFunctions :: HashMap Name FunctionInfo
   }
 
 -- TODO temporary function.
@@ -54,16 +49,9 @@ buildTable m = InfoTable {..}
         [ (d ^. axiomName, AxiomInfo (d ^. axiomType))
           | StatementAxiom d <- ss
         ]
-    _infoCompilationRules :: HashMap Name CompileInfo
-    _infoCompilationRules =
-      HashMap.fromList
-        [ (d ^. compileName, CompileInfo (d ^. compileBackendItems))
-          | StatementCompile d <- ss
-        ]
     ss = m ^. (moduleBody . moduleStatements)
 
 makeLenses ''InfoTable
 makeLenses ''FunctionInfo
 makeLenses ''ConstructorInfo
 makeLenses ''AxiomInfo
-makeLenses ''CompileInfo

@@ -68,13 +68,6 @@ goForeign b = case b ^. foreignBackend of
   BackendGhc -> Just (StatementVerbatim (b ^. foreignCode))
   _ -> Nothing
 
-lookupCompile ::
-  Members '[Error Err, Reader Mono.InfoTable] r =>
-  Mono.Name ->
-  Sem r Mono.CompileInfo
-lookupCompile name =
-  fromMaybe impossible . (^. Mono.infoCompilationRules . at name) <$> ask
-
 lookupAxiom ::
   Members '[Error Err, Reader Mono.InfoTable] r =>
   Mono.Name ->
@@ -96,16 +89,16 @@ goCompile ::
   Members '[Error Err, Reader Mono.InfoTable] r =>
   Mono.Name ->
   Sem r Text
-goCompile name = do
-  backends <- (^. Mono.compileInfoBackendItems) <$> lookupCompile name
-  case firstJust getCode backends of
-    Nothing -> throwErr ("ghc does not support this primitive:" <> show (pretty name))
-    Just t -> return t
-  where
-    getCode :: BackendItem -> Maybe Text
-    getCode b =
-      guard (BackendGhc == b ^. backendItemBackend)
-        $> b ^. backendItemCode
+goCompile name = undefined
+  -- backends <- (^. Mono.compileInfoBackendItems) <$> lookupCompile name
+  -- case firstJust getCode backends of
+  --   Nothing -> throwErr ("ghc does not support this primitive:" <> show (pretty name))
+  --   Just t -> return t
+  -- where
+  --   getCode :: BackendItem -> Maybe Text
+  --   getCode b =
+  --     guard (BackendGhc == b ^. backendItemBackend)
+  --       $> b ^. backendItemCode
 
 goName' :: Mono.Name -> Expression
 goName' = ExpressionIden . goName
