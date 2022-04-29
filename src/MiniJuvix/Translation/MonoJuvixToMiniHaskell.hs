@@ -90,15 +90,16 @@ goCompile ::
   Mono.Name ->
   Sem r Text
 goCompile name = undefined
-  -- backends <- (^. Mono.compileInfoBackendItems) <$> lookupCompile name
-  -- case firstJust getCode backends of
-  --   Nothing -> throwErr ("ghc does not support this primitive:" <> show (pretty name))
-  --   Just t -> return t
-  -- where
-  --   getCode :: BackendItem -> Maybe Text
-  --   getCode b =
-  --     guard (BackendGhc == b ^. backendItemBackend)
-  --       $> b ^. backendItemCode
+
+-- backends <- (^. Mono.compileInfoBackendItems) <$> lookupCompile name
+-- case firstJust getCode backends of
+--   Nothing -> throwErr ("ghc does not support this primitive:" <> show (pretty name))
+--   Just t -> return t
+-- where
+--   getCode :: BackendItem -> Maybe Text
+--   getCode b =
+--     guard (BackendGhc == b ^. backendItemBackend)
+--       $> b ^. backendItemCode
 
 goName' :: Mono.Name -> Expression
 goName' = ExpressionIden . goName

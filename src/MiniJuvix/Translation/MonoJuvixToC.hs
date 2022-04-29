@@ -3,14 +3,21 @@ module MiniJuvix.Translation.MonoJuvixToC where
 import Data.HashMap.Strict qualified as HashMap
 import Data.Text qualified as T
 import MiniJuvix.Prelude
+import MiniJuvix.Syntax.Abstract.AbstractResult qualified as A
 import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.CJuvix.Language
 import MiniJuvix.Syntax.CJuvix.Serialization
 import MiniJuvix.Syntax.Concrete.Language qualified as C
+import MiniJuvix.Syntax.Concrete.Scoped.InfoTable qualified as S
+import MiniJuvix.Syntax.Concrete.Scoped.InfoTable qualified as Scoper
+import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
+import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
 import MiniJuvix.Syntax.ForeignBlock
-import MiniJuvix.Syntax.MonoJuvix.Language qualified as Micro
+import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult qualified as Micro
+import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as Micro
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
-import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult qualified as Mono
+import MiniJuvix.Syntax.NameId
+import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as MonoTrans
 
 newtype MiniCResult = MiniCResult
   { _resultCCode :: Text
@@ -18,42 +25,65 @@ newtype MiniCResult = MiniCResult
 
 makeLenses ''MiniCResult
 
+type CompileInfoTable = HashMap S.NameId Scoper.CompileInfo
+
 entryMiniC ::
-  Mono.MonoJuvixResult ->
+  MonoTrans.MonoJuvixResult ->
   Sem r MiniCResult
 entryMiniC i = return (MiniCResult (serialize cunitResult))
   where
+    compileInfo :: CompileInfoTable
+    compileInfo =
+      HashMap.mapKeys (^. S.nameId) $
+        i
+          ^. MonoTrans.resultMicroTyped
+            . Micro.resultMicroJuvixResult
+            . Micro.resultAbstract
+            . A.resultScoper
+            . Scoper.resultScoperTable
+            . Scoper.infoCompilationRules
     cunitResult :: CCodeUnit
     cunitResult =
       CCodeUnit
-        { _ccodeCode = cheader <> (toList (i ^. Mono.resultModules) >>= goModule)
+        { _ccodeCode = cheader <> cmodules
         }
+    cheader :: [CCode]
     cheader =
       map
         ExternalMacro
         [ CppIncludeSystem "stdlib.h",
           CppIncludeSystem "stdbool.h"
         ]
+    cmodules :: [CCode]
+    cmodules = toList (i ^. MonoTrans.resultModules) >>= (run . runReader compileInfo . goModule)
 
 type Err = Text
 
 unsupported :: Err -> a
 unsupported msg = error (msg <> " Mono to C: not yet supported")
 
-goModule :: Mono.Module -> [CCode]
+goModule ::
+  Member (Reader CompileInfoTable) r =>
+  Mono.Module ->
+  Sem r [CCode]
 goModule Mono.Module {..} = goModuleBody _moduleBody
 
 goModuleBody ::
+  Member (Reader CompileInfoTable) r =>
   Mono.ModuleBody ->
-  [CCode]
-goModuleBody Mono.ModuleBody {..} = _moduleStatements >>= goStatement
+  Sem r [CCode]
+goModuleBody Mono.ModuleBody {..} =
+  traverseM goStatement _moduleStatements
 
-goStatement :: Mono.Statement -> [CCode]
+goStatement ::
+  Member (Reader CompileInfoTable) r =>
+  Mono.Statement ->
+  Sem r [CCode]
 goStatement = \case
-  Mono.StatementInductive d -> goInductiveDef d
-  Mono.StatementFunction d -> goFunctionDef d
-  Mono.StatementForeign d -> goForeign d
-  Mono.StatementAxiom {} -> []
+  Mono.StatementInductive d -> return (goInductiveDef d)
+  Mono.StatementFunction d -> return (goFunctionDef d)
+  Mono.StatementForeign d -> return (goForeign d)
+  Mono.StatementAxiom d -> goAxiom d
 
 type CTypeName = Text
 
@@ -208,21 +238,39 @@ goLiteral C.LiteralLoc {..} = case _literalLocLiteral of
   C.LitString s -> ExpressionLiteral (LiteralString s)
   C.LitInteger i -> ExpressionLiteral (LiteralInt i)
 
-goAxiom :: Mono.AxiomDef -> [CCode]
-goAxiom c = undefined
-  -- case firstJust getCode backends of
-  --   Nothing -> error ("C backend does not support this axiom:" <> show (c ^. Mono.compileName . Mono.nameText))
-  --   Just _defineBody ->
-  --     [ExternalMacro (CppDefine (Define {..}))]
-  -- where
-  --   _defineName :: Text
-  --   _defineName = mkName (c ^. Mono.compileName)
-  --   backends :: [BackendItem]
-  --   backends = c ^. Mono.compileBackendItems
-  --   getCode :: BackendItem -> Maybe Text
-  --   getCode b =
-  --     guard (BackendC == b ^. backendItemBackend)
-  --       $> b ^. backendItemCode
+goAxiom ::
+  Member (Reader CompileInfoTable) r =>
+  Mono.AxiomDef ->
+  Sem r [CCode]
+goAxiom a = do
+  backends <- lookupBackends (axiomName ^. Mono.nameId)
+  case firstJust getCode backends of
+    Nothing -> error ("C backend does not support this axiom:" <> show (axiomName ^. Mono.nameText))
+    Just defineBody ->
+      return
+        [ ExternalMacro
+            ( CppDefine
+                ( Define
+                    { _defineName = defineName,
+                      _defineBody = defineBody
+                    }
+                )
+            )
+        ]
+  where
+    axiomName :: Mono.Name
+    axiomName = a ^. Mono.axiomName
+    defineName :: Text
+    defineName = mkName axiomName
+    getCode :: BackendItem -> Maybe Text
+    getCode b =
+      guard (BackendC == b ^. backendItemBackend)
+        $> b ^. backendItemCode
+    lookupBackends ::
+      Member (Reader CompileInfoTable) r =>
+      NameId ->
+      Sem r [BackendItem]
+    lookupBackends f = (^. S.compileInfoBackendItems) . HashMap.lookupDefault impossible f <$> ask
 
 goForeign :: ForeignBlock -> [CCode]
 goForeign b = case b ^. foreignBackend of
@@ -369,7 +417,7 @@ goInductiveConstructorNew i ctor =
     inductiveName = mkInductiveName i
 
     ctorParams :: [Mono.Type]
-    ctorParams = ctor ^. Micro.constructorParameters
+    ctorParams = ctor ^. Mono.constructorParameters
 
     ctorNewNullary :: Function
     ctorNewNullary =
@@ -503,7 +551,7 @@ inductiveCtorArgs :: Mono.InductiveConstructorDef -> [Declaration]
 inductiveCtorArgs ctor = namedArgs "ca" (goType <$> ctorParams)
   where
     ctorParams :: [Mono.Type]
-    ctorParams = ctor ^. Micro.constructorParameters
+    ctorParams = ctor ^. Mono.constructorParameters
 
 goInductiveConstructorDef ::
   Mono.InductiveConstructorDef ->
@@ -518,7 +566,7 @@ goInductiveConstructorDef ctor =
     baseName = mkName (ctor ^. Mono.constructorName)
 
     ctorParams :: [Mono.Type]
-    ctorParams = ctor ^. Micro.constructorParameters
+    ctorParams = ctor ^. Mono.constructorParameters
 
     ctorBool :: Declaration
     ctorBool = typeDefWrap (asTypeDef baseName) BoolType
