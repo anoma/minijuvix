@@ -16,7 +16,3 @@ data BackendItem = BackendItem
 instance Hashable BackendItem
 
 makeLenses ''BackendItem
-
-isBackendSupported :: Backend -> Bool
-isBackendSupported BackendGhc = True
-isBackendSupported BackendAgda = False
