@@ -2,8 +2,6 @@
 
 module Main (main) where
 
---------------------------------------------------------------------------------
-
 import Commands.Extra
 import Commands.MicroJuvix
 import Commands.MiniHaskell
@@ -35,8 +33,6 @@ import Options.Applicative.Help.Pretty
 import System.Console.ANSI qualified as Ansi
 import System.IO qualified as IO
 import Text.Show.Pretty hiding (Html)
-
---------------------------------------------------------------------------------
 
 data GlobalOptions = GlobalOptions
   { _globalNoColors :: Bool,
@@ -420,7 +416,7 @@ runCLI cli = do
         renderStdOutAbs (Abstract.ppOut opts' r)
         putStrLn ""
         case T.findOrder r of
-          Nothing -> putStrLn (n <> " Fails the termination checking")
+          Nothing -> putStrLn (n <> " Fails the termination checking") >> exitFailure
           Just (T.LexOrder k) -> putStrLn (n <> " Terminates with order " <> show (toList k))
         putStrLn ""
 

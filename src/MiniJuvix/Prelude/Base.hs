@@ -61,8 +61,6 @@ module MiniJuvix.Prelude.Base
   )
 where
 
---------------------------------------------------------------------------------
-
 import Control.Applicative
 import Control.Monad.Extra
 import Control.Monad.Fix
@@ -83,7 +81,17 @@ import Data.Hashable
 import Data.Int
 import Data.List.Extra hiding (head, last)
 import Data.List.NonEmpty qualified as NonEmpty
-import Data.List.NonEmpty.Extra (NonEmpty (..), head, last, maximum1, maximumOn1, minimum1, minimumOn1, nonEmpty, some1)
+import Data.List.NonEmpty.Extra
+  ( NonEmpty (..),
+    head,
+    last,
+    maximum1,
+    maximumOn1,
+    minimum1,
+    minimumOn1,
+    nonEmpty,
+    some1,
+  )
 import Data.Maybe
 import Data.Monoid
 import Data.Ord
@@ -119,26 +127,23 @@ import Prettyprinter (Doc, (<+>))
 import System.Directory
 import System.Exit
 import System.FilePath
-import System.IO hiding (appendFile, getContents, getLine, hGetContents, hGetLine, hPutStr, hPutStrLn, interact, putStr, putStrLn, readFile, readFile', writeFile)
+import System.IO hiding
+  ( appendFile,
+    getContents,
+    getLine,
+    hGetContents,
+    hGetLine,
+    hPutStr,
+    hPutStrLn,
+    interact,
+    putStr,
+    putStrLn,
+    readFile,
+    readFile',
+    writeFile,
+  )
 import Text.Show (Show)
 import Text.Show qualified as Show
-
---------------------------------------------------------------------------------
--- Logical connectives
---------------------------------------------------------------------------------
-
-(∨) :: Bool -> Bool -> Bool
-(∨) = (||)
-
-infixr 2 ∨
-
-(∧) :: Bool -> Bool -> Bool
-(∧) = (&&)
-
-infixr 3 ∧
-
-(.||.) :: (a -> Bool) -> (a -> Bool) -> a -> Bool
-(f .||. g) x = f x || g x
 
 --------------------------------------------------------------------------------
 -- High-level syntax sugar.
@@ -211,8 +216,6 @@ impossible :: HasCallStack => a
 impossible = Err.error "impossible"
 
 --------------------------------------------------------------------------------
--- Errors
---------------------------------------------------------------------------------
 
 infixl 7 <+?>
 
@@ -224,6 +227,8 @@ infixl 7 <?>
 (<?>) :: Semigroup m => m -> Maybe m -> m
 (<?>) a = maybe a (a <>)
 
+--------------------------------------------------------------------------------
+
 data Indexed a = Indexed
   { _indexedIx :: Int,
     _indexedThing :: a
@@ -234,6 +239,8 @@ instance Functor Indexed where
   fmap f (Indexed i a) = Indexed i (f a)
 
 makeLenses ''Indexed
+
+--------------------------------------------------------------------------------
 
 minimumMaybe :: (Foldable t, Ord a) => t a -> Maybe a
 minimumMaybe l = if null l then Nothing else Just (minimum l)
