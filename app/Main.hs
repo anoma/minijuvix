@@ -422,8 +422,10 @@ runCLI cli = do
             renderStdOutMicro (Micro.ppOut ppOpts concreteTypeCalls)
         Left err -> printErrorAnsiSafe err >> exitFailure
     MonoJuvix o -> do
+      let ppOpts = Mono.defaultOptions {
+            Mono._optShowNameIds = globalOptions ^. globalShowNameIds }
       monojuvix <- head . (^. Mono.resultModules) <$> runIO (upToMonoJuvix (getEntryPoint root o))
-      renderStdOutMono (Mono.ppOutDefault monojuvix)
+      renderStdOutMono (Mono.ppOut ppOpts monojuvix)
     MiniHaskell o -> do
       minihaskell <- head . (^. MiniHaskell.resultModules) <$> runIO (upToMiniHaskell (getEntryPoint root o))
       renderStdOutMini (MiniHaskell.ppOutDefault minihaskell)

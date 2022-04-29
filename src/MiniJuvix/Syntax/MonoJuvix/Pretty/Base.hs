@@ -27,11 +27,19 @@ class PrettyCode c where
 runPrettyCode :: PrettyCode c => Options -> c -> Doc Ann
 runPrettyCode opts = run . runReader opts . ppCode
 
+instance PrettyCode NameId where
+  ppCode (NameId k) = return (pretty k)
+
 instance PrettyCode Name where
-  ppCode n =
+  ppCode n = do
+    showNameId <- asks _optShowNameIds
+    uid <-
+      if
+          | showNameId -> Just . ("@" <>) <$> ppCode (n ^. nameId)
+          | otherwise -> return Nothing
     return $
       annotate (AnnKind (n ^. nameKind)) $
-        pretty (n ^. nameText) <> "_" <> pretty (n ^. nameId)
+        pretty (n ^. nameText) <?> uid
 
 instance PrettyCode Iden where
   ppCode :: Member (Reader Options) r => Iden -> Sem r (Doc Ann)
