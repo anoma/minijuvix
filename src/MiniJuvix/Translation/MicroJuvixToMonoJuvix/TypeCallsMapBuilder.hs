@@ -104,9 +104,6 @@ goExpression = \case
     goType (t ^. typedType)
     goExpression (t ^. typedExpression)
 
-expressionAsType' :: Expression -> Type
-expressionAsType' = fromMaybe impossible . expressionAsType
-
 goApplication :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => Application -> Sem r ()
 goApplication a = do
   let (f, args) = unfoldApplication a

@@ -6,7 +6,6 @@ module MiniJuvix.Translation.MicroJuvixToMonoJuvix
   )
 where
 
-import Data.Text qualified as Text
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.InfoTable qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra qualified as Micro
@@ -17,8 +16,6 @@ import MiniJuvix.Syntax.MonoJuvix.Language.Extra
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
 import MiniJuvix.Internal.NameIdGen
 import Data.HashMap.Strict qualified as HashMap
-import MiniJuvix.Syntax.MicroJuvix.Language.Extra (mkConcreteType')
-import MiniJuvix.Syntax.MicroJuvix.TypeChecker (expressionAsType')
 
 data PolyIden =
   PolyFunctionIden Micro.FunctionName
@@ -188,22 +185,6 @@ goName n =
       _nameKind = n ^. Micro.nameKind
     }
 
-goInductive :: Members '[Error Err, Reader ConcreteTable] r =>
-  Micro.InductiveDef -> Sem r [InductiveDef]
-goInductive = undefined
-  where
-  goConstructorDef ::
-    Members '[Error Err] r =>
-    Micro.InductiveConstructorDef ->
-    Sem r InductiveConstructorDef
-  goConstructorDef Micro.InductiveConstructorDef {..} = do
-    -- _constructorParameters' <- mapM goType _constructorParameters
-    _constructorParameters' <- undefined
-    return
-      InductiveConstructorDef
-        { _constructorName = goName _constructorName,
-          _constructorParameters = _constructorParameters'
-        }
 
 lookupPolyConstructor :: Members '[Reader ConcreteTable] r =>
   Micro.ConstructorName -> Sem r (Maybe PolyIdenInfo)
@@ -217,16 +198,31 @@ lookupPolyFunction :: Members '[Reader ConcreteTable] r =>
   Micro.InductiveName -> Sem r (Maybe PolyIdenInfo)
 lookupPolyFunction i = asks (^. concreteTable . at (PolyFunctionIden i))
 
-goFunctionDef :: Members '[Error Err, Reader ConcreteTable, NameIdGen] r =>
+goFunctionDef :: Members '[Reader ConcreteTable, NameIdGen] r =>
   Micro.FunctionDef -> Sem r [FunctionDef]
 goFunctionDef def = do
   m <- lookupPolyFunction (def ^. Micro.funDefName)
   case m of
-    -- the function is either never called or has a concrete type
     Just polyInfo -> goFunctionDefPoly def polyInfo
-    Nothing -> undefined
+    Nothing -> case Micro.mkConcreteType (def ^. Micro.funDefType) of
+      -- The function is either never called and has a polymrphic type. We can ignore it.
+      Nothing -> return []
+      -- the function has a concrete type
+      Just {} -> pure <$> goFunctionDefConcrete def
 
-goExpression :: forall r. Members '[Error Err, Reader ConcreteTable] r =>
+goInductive :: forall r. Members '[Reader ConcreteTable, NameIdGen] r =>
+  Micro.InductiveDef -> Sem r [InductiveDef]
+goInductive def = do
+  m <- lookupPolyInductive (def ^. Micro.inductiveName)
+  case m of
+    Just polyInfo -> goInductiveDefPoly def polyInfo
+    Nothing -> pure <$> goInductiveDefConcrete def
+
+goInductiveDefConcrete :: forall r. Members '[Reader ConcreteTable, NameIdGen] r =>
+  Micro.InductiveDef -> Sem r InductiveDef
+goInductiveDefConcrete def = undefined
+
+goExpression :: forall r. Members '[Reader ConcreteTable] r =>
   Micro.Expression -> Sem r Expression
 goExpression = go
   where
@@ -255,7 +251,7 @@ goExpression = go
       Just (poly, mkIden) -> do
         let (headArgs, tailArgs) = splitAtExact (poly ^. polyTypeArity) (toList args)
             headArgs' :: NonEmpty Micro.ConcreteType
-            headArgs' = fromJust (nonEmpty (map (Micro.mkConcreteType' . expressionAsType') headArgs))
+            headArgs' = fromJust (nonEmpty (map (Micro.mkConcreteType' . Micro.expressionAsType') headArgs))
             conc :: ConcreteIdenInfo
             conc = fromJust (poly ^. polyConcretes . at headArgs')
             fun' :: Expression
@@ -270,7 +266,40 @@ goExpression = go
     Micro.IdenConstructor c -> IdenConstructor (goName c)
     Micro.IdenInductive {} -> impossible
 
-goFunctionDefPoly :: forall r. Members '[Error Err, Reader ConcreteTable, NameIdGen] r =>
+goFunctionDefConcrete :: forall r. Members '[Reader ConcreteTable, NameIdGen] r =>
+  Micro.FunctionDef -> Sem r FunctionDef
+goFunctionDefConcrete = undefined
+
+goInductiveDefPoly :: forall r. Members '[Reader ConcreteTable, NameIdGen] r =>
+  Micro.InductiveDef -> PolyIdenInfo -> Sem r [InductiveDef]
+goInductiveDefPoly def poly
+  | length (def ^. Micro.inductiveParameters) /= poly ^. polyTypeArity = impossible
+  | otherwise = mapM (uncurry go) (HashMap.toList (poly ^. polyConcretes))
+  where
+  go :: NonEmpty Micro.ConcreteType -> ConcreteIdenInfo -> Sem r InductiveDef
+  go k i = do
+    _inductiveConstructors <- mapM goConstructorDef (def ^. Micro.inductiveConstructors)
+    return InductiveDef {
+      _inductiveName = i ^. concreteName,
+      ..
+      }
+    where
+    goConstructorDef :: Micro.InductiveConstructorDef -> Sem r InductiveConstructorDef
+    goConstructorDef cdef = do
+      cpolyInfo <- fromJust <$> lookupPolyConstructor (cdef ^. Micro.constructorName)
+      let concrete :: ConcreteIdenInfo
+          concrete = fromJust (cpolyInfo ^. polyConcretes . at k)
+          params :: [Micro.ConcreteType]
+          params = map (Micro.substitutionConcrete (concrete ^. concreteTypeSubs))
+            (cdef ^. Micro.constructorParameters)
+      _constructorParameters <- mapM goType params
+      return
+        InductiveConstructorDef
+          { _constructorName = concrete ^. concreteName,
+            ..
+          }
+
+goFunctionDefPoly :: forall r. Members '[Reader ConcreteTable, NameIdGen] r =>
   Micro.FunctionDef -> PolyIdenInfo -> Sem r [FunctionDef]
 goFunctionDefPoly def poly
     | length tyVars /= poly ^. polyTypeArity = impossible
@@ -319,7 +348,7 @@ goPattern = \case
   goApp (Micro.ConstructorApp n ps) = ConstructorApp (goName n) (map goPattern ps)
 
 goType :: forall r.
-  Members '[Error Err, Reader ConcreteTable] r =>
+  Members '[Reader ConcreteTable] r =>
   Micro.ConcreteType -> Sem r Type
 goType = go . (^. Micro.unconcreteType)
   where
@@ -337,7 +366,7 @@ goType = go . (^. Micro.unconcreteType)
       info <- fromJust <$> lookupPolyInductive i
       let (headArgs, tailArgs) = splitAtExact (info ^. polyTypeArity) (toList args)
           headArgs' :: NonEmpty Micro.ConcreteType
-          headArgs' = fromJust (nonEmpty (map mkConcreteType' headArgs))
+          headArgs' = fromJust (nonEmpty (map Micro.mkConcreteType' headArgs))
           concrete :: ConcreteIdenInfo
           concrete = fromJust (info ^. polyConcretes . at headArgs')
       when (not (null tailArgs)) impossible
@@ -355,16 +384,3 @@ goType = go . (^. Micro.unconcreteType)
     Micro.TypeIdenAxiom a -> TypeIdenAxiom (goName a)
     Micro.TypeIdenInductive i -> TypeIdenInductive (goName i)
     Micro.TypeIdenVariable {} -> impossible
-
-goInductive' ::
-  Members '[Error Err, Reader Micro.ConcreteSubs] r =>
-  Micro.InductiveDef ->
-  Sem r InductiveDef
-goInductive' Micro.InductiveDef {..} = do
-  -- _inductiveConstructors' <- mapM goConstructorDef _inductiveConstructors
-  _inductiveConstructors' <- undefined
-  return
-    InductiveDef
-      { _inductiveName = goName _inductiveName,
-        _inductiveConstructors = _inductiveConstructors'
-      }

@@ -81,6 +81,10 @@ mkConcreteType = fmap ConcreteType . go
       TypeIdenAxiom {} -> return t
       TypeIdenVariable {} -> Nothing
 
+-- | unsafe version
+expressionAsType' :: Expression -> Type
+expressionAsType' = fromMaybe impossible . expressionAsType
+
 -- | If the expression is of type TypeUniverse it should return Just.
 expressionAsType :: Expression -> Maybe Type
 expressionAsType = go

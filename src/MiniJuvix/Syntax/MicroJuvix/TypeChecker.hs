@@ -301,12 +301,6 @@ checkPattern funName type_ pat = go type_ pat
       when (numArgs > numParams) (error "too many arguments to inductive type")
       return (ind, zip params args)
 
--- | The expression should be of type TypeUniverse
-expressionAsType' :: Expression -> Type
-expressionAsType' e = case expressionAsType e of
-  Just t -> t
-  Nothing -> impossible
-
 inferExpression' ::
   forall r.
   Members '[Reader InfoTable, Reader LocalVars, Error TypeCheckerError] r =>
