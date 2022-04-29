@@ -4,6 +4,7 @@ module MiniJuvix.Prelude.Error where
 
 import MiniJuvix.Prelude.Base
 import System.Console.ANSI qualified as Ansi
+
 -- import System.IO qualified as IO
 
 -- | Wrapper for any instance of JuvixError.
@@ -36,9 +37,10 @@ throwJuvixError = throw . toAJuvixError
 
 printErrorAnsiSafe :: JuvixError e => e -> IO ()
 printErrorAnsiSafe e =
-  ifM (Ansi.hSupportsANSI stderr)
-  (printErrorAnsi e)
-  (printErrorText e)
+  ifM
+    (Ansi.hSupportsANSI stderr)
+    (printErrorAnsi e)
+    (printErrorText e)
 
 runErrorIO ::
   (JuvixError a, Member (Embed IO) r) =>
