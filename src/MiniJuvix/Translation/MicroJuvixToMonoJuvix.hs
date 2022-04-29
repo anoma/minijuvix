@@ -218,9 +218,24 @@ goInductive def = do
     Just polyInfo -> goInductiveDefPoly def polyInfo
     Nothing -> pure <$> goInductiveDefConcrete def
 
-goInductiveDefConcrete :: forall r. Members '[Reader ConcreteTable, NameIdGen] r =>
+-- | TODO: This function can be made non-monadic
+goInductiveDefConcrete :: forall r. Members '[Reader ConcreteTable] r =>
   Micro.InductiveDef -> Sem r InductiveDef
-goInductiveDefConcrete def = undefined
+goInductiveDefConcrete def = do
+  constructors' <- mapM goConstructor (def ^. Micro.inductiveConstructors)
+  return InductiveDef {
+    _inductiveName = goName (def ^. Micro.inductiveName),
+    _inductiveConstructors = constructors'
+     }
+    where
+    goConstructor :: Micro.InductiveConstructorDef -> Sem r InductiveConstructorDef
+    goConstructor c = do
+      params' <- mapM (goType . Micro.mkConcreteType') (c ^. Micro.constructorParameters)
+      return InductiveConstructorDef {
+        _constructorName = goName (c ^. Micro.constructorName),
+        _constructorParameters = params'
+        }
+
 
 goExpression :: forall r. Members '[Reader ConcreteTable] r =>
   Micro.Expression -> Sem r Expression
@@ -266,9 +281,26 @@ goExpression = go
     Micro.IdenConstructor c -> IdenConstructor (goName c)
     Micro.IdenInductive {} -> impossible
 
-goFunctionDefConcrete :: forall r. Members '[Reader ConcreteTable, NameIdGen] r =>
+goFunctionDefConcrete :: forall r. Members '[Reader ConcreteTable] r =>
   Micro.FunctionDef -> Sem r FunctionDef
-goFunctionDefConcrete = undefined
+goFunctionDefConcrete d = do
+  type' <- goType (Micro.mkConcreteType' (d ^. Micro.funDefType))
+  clauses' <- mapM goClause (d ^. Micro.funDefClauses)
+  return FunctionDef {
+    _funDefName = goName (d ^. Micro.funDefName),
+    _funDefClauses = clauses',
+    _funDefType = type'
+     }
+  where
+  goClause :: Micro.FunctionClause -> Sem r FunctionClause
+  goClause c = do
+    body' <- goExpression (c ^. Micro.clauseBody)
+    return FunctionClause {
+    _clauseName = goName (d ^. Micro.funDefName),
+    _clausePatterns = map goPattern (c ^. Micro.clausePatterns),
+    _clauseBody = body'
+   }
+
 
 goInductiveDefPoly :: forall r. Members '[Reader ConcreteTable, NameIdGen] r =>
   Micro.InductiveDef -> PolyIdenInfo -> Sem r [InductiveDef]
