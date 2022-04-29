@@ -126,7 +126,7 @@ mkDeclSpecifier = \case
   DeclTypeDefType typeDefName -> mkTypeDefTypeSpec typeDefName
   DeclTypeDef declType -> CStorageSpec (CTypedef C.undefNode) : mkDeclSpecifier declType
   DeclStructUnion StructUnion {..} -> mkStructUnionTypeSpec _structUnionTag _structUnionName _structMembers
-  DeclEnum (Enum {..}) -> mkEnumSpec _enumName _enumMembers
+  DeclEnum Enum {..} -> mkEnumSpec _enumName _enumMembers
   BoolType -> [CTypeSpec (CBoolType C.undefNode)]
 
 mkEnumSpec :: Maybe Text -> Maybe [Text] -> [CDeclSpec]

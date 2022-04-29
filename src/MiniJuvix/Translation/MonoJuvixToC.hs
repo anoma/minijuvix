@@ -132,7 +132,7 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
       (p, n) <- zip _clausePatterns [0 :: Integer ..]
       let arg = ExpressionVar ("fa" <> show n)
       case p of
-        Mono.PatternConstructorApp (Mono.ConstructorApp {..}) ->
+        Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
           [functionCall (ExpressionVar (asIs (mkName _constrAppConstructor))) [arg]]
         Mono.PatternVariable {} -> []
         Mono.PatternWildcard {} -> []
