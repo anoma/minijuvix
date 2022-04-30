@@ -135,11 +135,11 @@ goFunctionDef Mono.FunctionDef {..} =
       Mono.TypeFunction (Mono.Function l r) -> first (goType l :) (unfoldFunType r)
       t -> ([], goType t)
 
+type PatternBindings = HashMap Text Expression
+
 goFunctionClause :: Mono.FunctionClause -> (Maybe Expression, Statement)
 goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
   where
-    varToArg :: HashMap Text Expression
-    varToArg = HashMap.fromList patternVars
     conditions :: [Expression]
     conditions = do
       (p, n) <- zip _clausePatterns [0 :: Integer ..]
@@ -162,7 +162,8 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
                   _binaryRight = e2
                 }
             )
-
+    patternBindings :: PatternBindings
+    patternBindings = HashMap.fromList patternVars
     patternVars :: [(Text, Expression)]
     patternVars = do
       (p, n) <- zip _clausePatterns [0 :: Integer ..]
@@ -173,7 +174,7 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
           goConstructorApp arg _constrAppConstructor _constrAppParameters
         Mono.PatternWildcard {} -> []
     returnStmt :: Statement
-    returnStmt = StatementReturn (Just (goExpression False varToArg _clauseBody))
+    returnStmt = StatementReturn (Just (run (runReader patternBindings (goExpression False _clauseBody))))
 
 goConstructorApp :: Expression -> Mono.Name -> [Mono.Pattern] -> [(Text, Expression)]
 goConstructorApp arg n ps = do
@@ -187,35 +188,43 @@ goConstructorApp arg n ps = do
     asConstructor :: Expression
     asConstructor = functionCall (ExpressionVar (asCast (mkName n))) [arg]
 
-goExpression :: Bool -> HashMap Text Expression -> Mono.Expression -> Expression
-goExpression fromApplication varToArg = \case
-  Mono.ExpressionIden i -> goIden fromApplication varToArg i
-  Mono.ExpressionApplication a -> goApplication varToArg a
-  Mono.ExpressionLiteral l -> goLiteral l
-  Mono.ExpressionTyped Mono.TypedExpression {..} -> goExpression fromApplication varToArg _typedExpression
+goExpression :: Member (Reader PatternBindings) r => Bool -> Mono.Expression -> Sem r Expression
+goExpression fromApplication = \case
+  Mono.ExpressionIden i -> goIden fromApplication i
+  Mono.ExpressionApplication a -> goApplication a
+  Mono.ExpressionLiteral l -> return (goLiteral l)
+  Mono.ExpressionTyped Mono.TypedExpression {..} -> goExpression fromApplication _typedExpression
 
-goIden :: Bool -> HashMap Text Expression -> Mono.Iden -> Expression
-goIden fromApplication varToArg = \case
-  Mono.IdenFunction n -> if fromApplication then e else functionCall e []
+goIden :: Member (Reader PatternBindings) r => Bool -> Mono.Iden -> Sem r Expression
+goIden fromApplication = \case
+  Mono.IdenFunction n -> return $ if fromApplication then e else functionCall e []
     where
       e :: Expression
       e = ExpressionVar (mkName n)
-  Mono.IdenConstructor n -> if fromApplication then newCtor else functionCall newCtor []
+  Mono.IdenConstructor n -> return $ if fromApplication then newCtor else functionCall newCtor []
     where
       newCtor :: Expression
       newCtor = ExpressionVar (asNew (mkName n))
-  Mono.IdenVar n -> HashMap.lookupDefault impossible (n ^. Mono.nameText) varToArg
-  Mono.IdenAxiom n -> ExpressionVar (mkName n)
+  Mono.IdenVar n -> HashMap.lookupDefault impossible (n ^. Mono.nameText) <$> ask
+  Mono.IdenAxiom n -> return (ExpressionVar (mkName n))
 
-goApplication :: HashMap Text Expression -> Mono.Application -> Expression
-goApplication varToArg a = functionCall (fst f) (reverse (snd f))
+goApplication :: forall r. Member (Reader PatternBindings) r => Mono.Application -> Sem r Expression
+goApplication a = do
+  (fName, fArgs) <- f
+  return (functionCall fName (reverse fArgs))
   where
-    f :: (Expression, [Expression])
+    f :: Sem r (Expression, [Expression])
     f = unfoldApp a
-    unfoldApp :: Mono.Application -> (Expression, [Expression])
+    unfoldApp :: Mono.Application -> Sem r (Expression, [Expression])
     unfoldApp Mono.Application {..} = case _appLeft of
-      Mono.ExpressionApplication x -> second (goExpression False varToArg _appRight :) (unfoldApp x)
-      _ -> (goExpression True varToArg _appLeft, [goExpression False varToArg _appRight])
+      Mono.ExpressionApplication x -> do
+        fName <- goExpression False _appRight
+        uf <- unfoldApp x
+        return (second (fName :) uf)
+      _ -> do
+        fName <- goExpression True _appLeft
+        fArg <- goExpression False _appRight
+        return (fName, [fArg])
 
 goLiteral :: C.LiteralLoc -> Expression
 goLiteral C.LiteralLoc {..} = case _literalLocLiteral of
