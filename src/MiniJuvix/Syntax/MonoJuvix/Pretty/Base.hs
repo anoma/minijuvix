@@ -12,7 +12,7 @@ import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.MonoJuvix.Language
 import MiniJuvix.Syntax.MonoJuvix.Pretty.Ann
 import MiniJuvix.Syntax.MonoJuvix.Pretty.Options
-import Prettyprinter
+import MiniJuvix.Prelude.Pretty
 
 docStream :: PrettyCode c => Options -> c -> SimpleDocStream Ann
 docStream opts =
@@ -33,10 +33,9 @@ instance PrettyCode NameId where
 instance PrettyCode Name where
   ppCode n = do
     showNameId <- asks _optShowNameIds
-    uid <-
-      if
-          | showNameId -> Just . ("@" <>) <$> ppCode (n ^. nameId)
-          | otherwise -> return Nothing
+    uid <- if
+      | showNameId -> Just . ("@" <>) <$> ppCode (n ^. nameId)
+      | otherwise -> return Nothing
     return $
       annotate (AnnKind (n ^. nameKind)) $
         pretty (n ^. nameText) <?> uid
@@ -193,9 +192,9 @@ instance PrettyCode FunctionDef where
 instance PrettyCode FunctionClause where
   ppCode c = do
     funName <- ppCode (c ^. clauseName)
-    clausePatterns' <- mapM ppCodeAtom (c ^. clausePatterns)
+    clausePatterns' <- hsepMaybe <$> mapM ppCodeAtom (c ^. clausePatterns)
     clauseBody' <- ppCode (c ^. clauseBody)
-    return $ funName <+> hsep clausePatterns' <+> kwEquals <+> clauseBody'
+    return $ funName <+?> clausePatterns' <+> kwEquals <+> clauseBody'
 
 instance PrettyCode Backend where
   ppCode = \case
