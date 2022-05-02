@@ -36,7 +36,8 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
       map
         ExternalMacro
         [ CppIncludeSystem "stdlib.h",
-          CppIncludeSystem "stdbool.h"
+          CppIncludeSystem "stdbool.h",
+          CppIncludeSystem "stdio.h"
         ]
     cmodules :: [CCode]
     cmodules = toList (i ^. MonoTrans.resultModules) >>= (run . runReader compileInfo . goModule)
@@ -125,7 +126,9 @@ goFunctionDef Mono.FunctionDef {..} =
   ]
   where
     mkBody :: [(Maybe Expression, Statement)] -> Maybe Statement
-    mkBody = foldr mkIf Nothing
+    mkBody cs = do
+      let lastBranch = const fallback . head <$> nonEmpty cs
+      foldr mkIf lastBranch cs
     mkIf :: (Maybe Expression, Statement) -> Maybe Statement -> Maybe Statement
     mkIf (mcondition, thenBranch) elseBranch = case mcondition of
       Nothing -> Just thenBranch
@@ -150,6 +153,24 @@ goFunctionDef Mono.FunctionDef {..} =
       Mono.TypeFunction (Mono.Function l r) ->
         first (goType l :) (unfoldFunType r)
       t -> ([], goType t)
+    fallback :: Statement
+    fallback =
+      StatementCompound
+        [ StatementExpr
+            ( functionCall
+                (ExpressionVar "fprintf")
+                [ ExpressionVar "stderr",
+                  ExpressionLiteral (LiteralString "Error: Pattern match(es) are non-exhaustive in %s\n"),
+                  ExpressionLiteral (LiteralString (_funDefName ^. Mono.nameText))
+                ]
+            ),
+          StatementExpr
+            ( functionCall
+                (ExpressionVar "exit")
+                [ ExpressionVar "EXIT_FAILURE"
+                ]
+            )
+        ]
 
 type PatternBindings = HashMap Text Expression
 
