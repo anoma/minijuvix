@@ -11,27 +11,27 @@ import Text.PrettyPrint.HughesPJ qualified as HP
 encAngles :: HP.Doc -> HP.Doc
 encAngles p = HP.char '<' HP.<> p HP.<> HP.char '>'
 
-instance P.Pretty Cpp where
-  pretty = \case
-    CppIncludeFile i -> "#include" HP.<+> HP.doubleQuotes (P.pretty i)
-    CppIncludeSystem i -> "#include" HP.<+> encAngles (P.pretty i)
-    CppDefine Define {..} -> "#define" HP.<+> (P.pretty _defineName HP.<+> P.pretty _defineBody)
+prettyText :: Text -> HP.Doc
+prettyText = HP.text . unpack
 
-instance P.Pretty Text where
-  pretty = HP.text . unpack
+prettyCpp :: Cpp -> HP.Doc
+prettyCpp = \case
+  CppIncludeFile i -> "#include" HP.<+> HP.doubleQuotes (prettyText i)
+  CppIncludeSystem i -> "#include" HP.<+> encAngles (prettyText i)
+  CppDefine Define {..} -> "#define" HP.<+> (prettyText _defineName HP.<+> prettyText _defineBody)
 
-instance P.Pretty CCodeUnit where
-  pretty c = HP.vcat (map P.pretty (c ^. ccodeCode))
-
-instance P.Pretty CCode where
-  pretty = \case
-    ExternalDecl decl -> P.pretty (CDeclExt (mkCDecl decl))
-    ExternalFunc fun -> P.pretty (CFDefExt (mkCFunDef fun))
-    ExternalMacro m -> P.pretty m
-    Verbatim t -> P.pretty t
+prettyCCode :: CCode -> HP.Doc
+prettyCCode = \case
+  ExternalDecl decl -> P.pretty (CDeclExt (mkCDecl decl))
+  ExternalFunc fun -> P.pretty (CFDefExt (mkCFunDef fun))
+  ExternalMacro m -> prettyCpp m
+  Verbatim t -> prettyText t
 
 serialize :: CCodeUnit -> Text
-serialize = show . P.pretty
+serialize = show . codeUnitDoc
+  where
+    codeUnitDoc :: CCodeUnit -> HP.Doc
+    codeUnitDoc c = HP.vcat (map prettyCCode (c ^. ccodeCode))
 
 mkCDecl :: Declaration -> CDecl
 mkCDecl Declaration {..} =
@@ -124,7 +124,7 @@ mkUnaryOp = \case
 mkDeclSpecifier :: DeclType -> [CDeclSpec]
 mkDeclSpecifier = \case
   DeclTypeDefType typeDefName -> mkTypeDefTypeSpec typeDefName
-  DeclTypeDef declType -> CStorageSpec (CTypedef C.undefNode) : mkDeclSpecifier declType
+  DeclTypeDef typ -> CStorageSpec (CTypedef C.undefNode) : mkDeclSpecifier typ
   DeclStructUnion StructUnion {..} -> mkStructUnionTypeSpec _structUnionTag _structUnionName _structMembers
   DeclEnum Enum {..} -> mkEnumSpec _enumName _enumMembers
   BoolType -> [CTypeSpec (CBoolType C.undefNode)]
