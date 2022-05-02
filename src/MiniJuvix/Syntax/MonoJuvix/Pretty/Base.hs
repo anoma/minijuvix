@@ -6,13 +6,13 @@ where
 
 import MiniJuvix.Internal.Strings qualified as Str
 import MiniJuvix.Prelude
+import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.MonoJuvix.Language
 import MiniJuvix.Syntax.MonoJuvix.Pretty.Ann
 import MiniJuvix.Syntax.MonoJuvix.Pretty.Options
-import MiniJuvix.Prelude.Pretty
 
 docStream :: PrettyCode c => Options -> c -> SimpleDocStream Ann
 docStream opts =
@@ -33,9 +33,10 @@ instance PrettyCode NameId where
 instance PrettyCode Name where
   ppCode n = do
     showNameId <- asks _optShowNameIds
-    uid <- if
-      | showNameId -> Just . ("@" <>) <$> ppCode (n ^. nameId)
-      | otherwise -> return Nothing
+    uid <-
+      if
+          | showNameId -> Just . ("@" <>) <$> ppCode (n ^. nameId)
+          | otherwise -> return Nothing
     return $
       annotate (AnnKind (n ^. nameKind)) $
         pretty (n ^. nameText) <?> uid

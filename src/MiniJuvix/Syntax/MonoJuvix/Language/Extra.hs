@@ -1,9 +1,9 @@
-module MiniJuvix.Syntax.MonoJuvix.Language.Extra (
-module MiniJuvix.Syntax.MonoJuvix.Language.Extra,
-module MiniJuvix.Syntax.MonoJuvix.Language,
-) where
+module MiniJuvix.Syntax.MonoJuvix.Language.Extra
+  ( module MiniJuvix.Syntax.MonoJuvix.Language.Extra,
+    module MiniJuvix.Syntax.MonoJuvix.Language,
+  )
+where
 
-import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MonoJuvix.Language
 
 foldApplication :: Expression -> [Expression] -> Expression

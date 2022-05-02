@@ -37,20 +37,22 @@ makeLenses ''AxiomInfo
 makeLenses ''InductiveInfo
 
 instance Semigroup InfoTable where
-  a <> b = InfoTable {
-    _infoConstructors = a ^. infoConstructors <> b ^. infoConstructors,
-    _infoAxioms = a ^. infoAxioms <> b ^. infoAxioms,
-    _infoFunctions = a ^. infoFunctions <> b ^. infoFunctions,
-    _infoInductives = a ^. infoInductives <> b ^. infoInductives
-   }
+  a <> b =
+    InfoTable
+      { _infoConstructors = a ^. infoConstructors <> b ^. infoConstructors,
+        _infoAxioms = a ^. infoAxioms <> b ^. infoAxioms,
+        _infoFunctions = a ^. infoFunctions <> b ^. infoFunctions,
+        _infoInductives = a ^. infoInductives <> b ^. infoInductives
+      }
 
 instance Monoid InfoTable where
-  mempty = InfoTable {
-    _infoConstructors = mempty,
-    _infoAxioms = mempty,
-    _infoFunctions = mempty,
-    _infoInductives = mempty
-   }
+  mempty =
+    InfoTable
+      { _infoConstructors = mempty,
+        _infoAxioms = mempty,
+        _infoFunctions = mempty,
+        _infoInductives = mempty
+      }
 
 buildTable :: Foldable f => f Module -> InfoTable
 buildTable = mconcatMap buildTable1

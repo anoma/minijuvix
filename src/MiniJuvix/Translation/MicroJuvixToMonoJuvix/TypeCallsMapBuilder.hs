@@ -1,20 +1,19 @@
 module MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder (buildTypeCallMap) where
 
+import Data.HashMap.Strict qualified as HashMap
+import Data.HashSet qualified as HashSet
+import Data.List.NonEmpty qualified as NonEmpty
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
-import Data.List.NonEmpty qualified as NonEmpty
-import Data.HashMap.Strict qualified as HashMap
-import Data.HashSet qualified as HashSet
-
 
 buildTypeCallMap :: MicroJuvixTypedResult -> TypeCallsMap
 buildTypeCallMap r =
   run
-  . runReader (buildTable modules)
-  . execState (TypeCallsMap mempty)
-  . mapM_ goModule
-  $ modules
+    . runReader (buildTable modules)
+    . execState (TypeCallsMap mempty)
+    . mapM_ goModule
+    $ modules
   where
     modules = r ^. resultModules
 
@@ -62,13 +61,12 @@ goFunction (Function l r) = do
 registerTypeCall :: Members '[State TypeCallsMap] r => TypeCallIden -> TypeCall -> Sem r ()
 registerTypeCall caller t = modify (over typeCallsMap addElem)
   where
-  addElem :: HashMap TypeCallIden (HashSet TypeCall) -> HashMap TypeCallIden (HashSet TypeCall)
-  addElem = HashMap.alter (Just . aux) caller
-    where
-    aux = \case
-      Nothing -> HashSet.singleton t
-      Just l -> HashSet.insert t l
-
+    addElem :: HashMap TypeCallIden (HashSet TypeCall) -> HashMap TypeCallIden (HashSet TypeCall)
+    addElem = HashMap.alter (Just . aux) caller
+      where
+        aux = \case
+          Nothing -> HashSet.singleton t
+          Just l -> HashSet.insert t l
 
 goTypeApplication :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => TypeApplication -> Sem r ()
 goTypeApplication a = do
@@ -77,10 +75,12 @@ goTypeApplication a = do
   case t of
     TypeIden (TypeIdenInductive n) -> do
       caller <- ask
-      registerTypeCall caller TypeCall' {
-        _typeCallIden = InductiveIden n,
-        _typeCallArguments = args
-    }
+      registerTypeCall
+        caller
+        TypeCall'
+          { _typeCallIden = InductiveIden n,
+            _typeCallArguments = args
+          }
     _ -> return ()
 
 goTypeAbstraction :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => TypeAbstraction -> Sem r ()
@@ -95,10 +95,19 @@ goType = \case
   TypeFunction f -> goFunction f
   TypeAbs a -> goTypeAbstraction a
 
+goFunctionExpression ::
+  Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r =>
+  FunctionExpression ->
+  Sem r ()
+goFunctionExpression (FunctionExpression l r) = do
+  goExpression l
+  goExpression r
+
 goExpression :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => Expression -> Sem r ()
 goExpression = \case
   ExpressionIden {} -> return ()
   ExpressionApplication a -> goApplication a
+  ExpressionFunction a -> goFunctionExpression a
   ExpressionLiteral {} -> return ()
   ExpressionTyped t -> do
     goType (t ^. typedType)
@@ -113,15 +122,17 @@ goApplication a = do
       funTy <- (^. functionInfoDef . funDefType) <$> lookupFunction fun
       let numTyArgs = length (fst (unfoldTypeAbsType funTy))
       when (numTyArgs > 0) $ do
-          let tyArgs = fmap expressionAsType' (take' numTyArgs args)
-          caller <- ask
-          registerTypeCall caller TypeCall' {
-            _typeCallIden = FunctionIden fun,
-            _typeCallArguments = tyArgs
+        let tyArgs = fmap expressionAsType' (take' numTyArgs args)
+        caller <- ask
+        registerTypeCall
+          caller
+          TypeCall'
+            { _typeCallIden = FunctionIden fun,
+              _typeCallArguments = tyArgs
             }
     _ -> return ()
   where
-  take' :: Int -> NonEmpty a -> NonEmpty a
-  take' n l
-    | 0 < n = fromMaybe impossible . nonEmpty . NonEmpty.take n $ l
-    | otherwise = error ("take' non-positive: " <> show n)
+    take' :: Int -> NonEmpty a -> NonEmpty a
+    take' n l
+      | 0 < n = fromMaybe impossible . nonEmpty . NonEmpty.take n $ l
+      | otherwise = error ("take' non-positive: " <> show n)

@@ -101,7 +101,7 @@ matchTypes ::
   Type ->
   Bool
 matchTypes a b =
-    isAny a || isAny b || alphaEq a b
+  isAny a || isAny b || alphaEq a b
   where
     isAny = \case
       TypeAny -> True
@@ -311,7 +311,13 @@ inferExpression' e = case e of
   ExpressionApplication a -> inferApplication a
   ExpressionTyped t -> return t
   ExpressionLiteral l -> goLiteral l
+  ExpressionFunction f -> goExpressionFunction f
   where
+    goExpressionFunction :: FunctionExpression -> Sem r TypedExpression
+    goExpressionFunction (FunctionExpression l r) = do
+      l' <- checkExpression TypeUniverse l
+      r' <- checkExpression TypeUniverse r
+      return (TypedExpression TypeUniverse (ExpressionFunction (FunctionExpression l' r')))
     goLiteral :: LiteralLoc -> Sem r TypedExpression
     goLiteral l = return (TypedExpression TypeAny (ExpressionLiteral l))
     inferIden :: Iden -> Sem r TypedExpression

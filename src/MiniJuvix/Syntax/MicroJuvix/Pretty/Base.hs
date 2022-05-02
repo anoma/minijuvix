@@ -5,6 +5,7 @@ module MiniJuvix.Syntax.MicroJuvix.Pretty.Base
   )
 where
 
+import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Internal.Strings qualified as Str
 import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty
@@ -14,7 +15,6 @@ import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Ann
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Options
-import Data.HashMap.Strict qualified as HashMap
 
 docStream :: PrettyCode c => Options -> c -> SimpleDocStream Ann
 docStream opts =
@@ -67,11 +67,18 @@ instance PrettyCode Application where
 instance PrettyCode TypedExpression where
   ppCode e = ppCode (e ^. typedExpression)
 
+instance PrettyCode FunctionExpression where
+  ppCode f = do
+    l' <- ppLeftExpression funFixity (f ^. funExprLeft)
+    r' <- ppLeftExpression funFixity (f ^. funExprRight)
+    return (l' <+> kwArrow <+> r')
+
 instance PrettyCode Expression where
   ppCode = \case
     ExpressionIden i -> ppCode i
     ExpressionApplication a -> ppCode a
     ExpressionTyped a -> ppCode a
+    ExpressionFunction f -> ppCode f
     ExpressionLiteral l -> return (pretty l)
 
 keyword :: Text -> Doc Ann
@@ -297,15 +304,16 @@ instance PrettyCode TypeCallsMap where
   ppCode m = do
     let title = keyword "Type Calls Map:"
         elems :: [(TypeCallIden, TypeCall)]
-        elems =  [ (caller, t) | (caller, l) <- HashMap.toList (m ^. typeCallsMap),
-                   t <- toList l]
+        elems =
+          [ (caller, t) | (caller, l) <- HashMap.toList (m ^. typeCallsMap), t <- toList l
+          ]
     elems' <- mapM ppCodeElem (sortOn fst elems)
     return $ title <> line <> vsep elems' <> line
     where
-    ppCodeElem (caller, t) = do
-      caller' <- ppCode caller
-      t' <- ppCode t
-      return $ caller' <+> kwMapsto <+> t'
+      ppCodeElem (caller, t) = do
+        caller' <- ppCode caller
+        t' <- ppCode t
+        return $ caller' <+> kwMapsto <+> t'
 
 instance PrettyCode TypeCalls where
   ppCode m = do

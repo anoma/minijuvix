@@ -84,15 +84,13 @@ import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.Hashable
 import Data.Int
-import Data.List.Extra hiding (head, last, groupSortOn, mconcatMap)
+import Data.List.Extra hiding (groupSortOn, head, last, mconcatMap)
 import Data.List.Extra qualified as List
 import Data.List.NonEmpty qualified as NonEmpty
-import Data.List.NonEmpty.Extra (NonEmpty (..), (|:), head, last, maximum1, maximumOn1, minimum1, minimumOn1, nonEmpty, some1)
+import Data.List.NonEmpty.Extra (NonEmpty (..), head, last, maximum1, maximumOn1, minimum1, minimumOn1, nonEmpty, some1, (|:))
 import Data.Maybe
 import Data.Monoid
 import Data.Ord
-import Safe.Exact
-import Safe.Foldable
 import Data.Semigroup (Semigroup, (<>))
 import Data.Singletons
 import Data.Singletons.Sigma
@@ -122,6 +120,8 @@ import Polysemy.Output
 import Polysemy.Reader
 import Polysemy.State
 import Prettyprinter (Doc, (<+>))
+import Safe.Exact
+import Safe.Foldable
 import System.Directory
 import System.Exit
 import System.FilePath
@@ -207,13 +207,18 @@ mconcatMap f = List.mconcatMap f . toList
 
 tableInsert :: Hashable k => (a -> v) -> (a -> v -> v) -> k -> a -> HashMap k v -> HashMap k v
 tableInsert s f k a m = over (at k) (Just . aux) m
- where
-   aux = \case
-     Just v -> f a v
-     Nothing -> s a
+  where
+    aux = \case
+      Just v -> f a v
+      Nothing -> s a
 
-tableNestedInsert :: (Hashable k1, Hashable k2) => k1 -> k2 -> a -> HashMap k1 (HashMap k2 a)
-   -> HashMap k1 (HashMap k2 a)
+tableNestedInsert ::
+  (Hashable k1, Hashable k2) =>
+  k1 ->
+  k2 ->
+  a ->
+  HashMap k1 (HashMap k2 a) ->
+  HashMap k1 (HashMap k2 a)
 tableNestedInsert k1 k2 a = tableInsert (HashMap.singleton k2) (HashMap.insert k2) k1 a
 
 --------------------------------------------------------------------------------

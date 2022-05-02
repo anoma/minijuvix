@@ -25,12 +25,12 @@ import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
 import MiniJuvix.Syntax.MicroJuvix.Pretty qualified as Micro
 import MiniJuvix.Syntax.MicroJuvix.TypeChecker qualified as MicroTyped
 import MiniJuvix.Syntax.MiniHaskell.Pretty qualified as MiniHaskell
+import MiniJuvix.Syntax.MonoJuvix.Pretty qualified as Mono
 import MiniJuvix.Termination qualified as T
 import MiniJuvix.Termination.CallGraph qualified as A
 import MiniJuvix.Translation.AbstractToMicroJuvix qualified as Micro
-import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as Mono
-import MiniJuvix.Syntax.MonoJuvix.Pretty qualified as Mono
+import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 import MiniJuvix.Utils.Version (runDisplayVersion)
 import Options.Applicative
@@ -422,8 +422,10 @@ runCLI cli = do
             renderStdOutMicro (Micro.ppOut ppOpts concreteTypeCalls)
         Left err -> printErrorAnsiSafe err >> exitFailure
     MonoJuvix o -> do
-      let ppOpts = Mono.defaultOptions {
-            Mono._optShowNameIds = globalOptions ^. globalShowNameIds }
+      let ppOpts =
+            Mono.defaultOptions
+              { Mono._optShowNameIds = globalOptions ^. globalShowNameIds
+              }
       monojuvix <- head . (^. Mono.resultModules) <$> runIO (upToMonoJuvix (getEntryPoint root o))
       renderStdOutMono (Mono.ppOut ppOpts monojuvix)
     MiniHaskell o -> do

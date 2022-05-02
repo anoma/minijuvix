@@ -140,7 +140,7 @@ list of concrete type applications involving =f=: =f â₁, …, f âₙ=.
  Type) → … → (Aₘ : Type) → Π=, where =Π= is a type with no type abstractions.
  Now consider the substitution =σ = {A₁ ↦ âᵢ[1], …, Aₘ ↦ âᵢ[m]}=. Since =âᵢ= is
  a list of concrete types, it is clear that =σ(Π)= is a concrete type.
- Then proceed as described in [[Types]]
+ Then proceed as described in [[Types]].
 
 *** Function clause
  Let =𝒞= be a function clause of =f=. Let =p₁ … pₖ= with =k ≥ m= be the list of
