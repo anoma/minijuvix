@@ -144,11 +144,26 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
     conditions = do
       (p, n) <- zip _clausePatterns [0 :: Integer ..]
       let arg = ExpressionVar ("fa" <> show n)
-      case p of
-        Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
-          [functionCall (ExpressionVar (asIs (mkName _constrAppConstructor))) [arg]]
-        Mono.PatternVariable {} -> []
-        Mono.PatternWildcard {} -> []
+      patternCondition arg p
+
+    patternCondition :: Expression -> Mono.Pattern -> [Expression]
+    patternCondition arg = \case
+      Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
+        [isCtor] <> subConditions
+        where
+          ctorName :: Text
+          ctorName = mkName _constrAppConstructor
+          isCtor :: Expression
+          isCtor = functionCall (ExpressionVar (asIs ctorName)) [arg]
+          asCtor :: Expression
+          asCtor = functionCall (ExpressionVar (asCast ctorName)) [arg]
+          subConditions :: [Expression]
+          subConditions = do
+            (p, n) <- zip _constrAppParameters [0 :: Integer ..]
+            let subArg = memberAccess Object asCtor ("ca" <> show n)
+            patternCondition subArg p
+      Mono.PatternVariable {} -> []
+      Mono.PatternWildcard {} -> []
 
     clauseCondition :: Maybe Expression
     clauseCondition = fmap (foldr1 f) (nonEmpty conditions)
@@ -180,9 +195,11 @@ goConstructorApp :: Expression -> Mono.Name -> [Mono.Pattern] -> [(Text, Express
 goConstructorApp arg n ps = do
   (p, idx) <- zip ps [0 :: Integer ..]
   let field = "ca" <> show idx
+  let ctorField = memberAccess Object asConstructor field
   case p of
-    Mono.PatternVariable v -> [(v ^. Mono.nameText, memberAccess Object asConstructor field)]
-    Mono.PatternConstructorApp {} -> unsupported "PatternConstructorApp in pattern"
+    Mono.PatternVariable v -> [(v ^. Mono.nameText, ctorField)]
+    Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
+      goConstructorApp ctorField _constrAppConstructor _constrAppParameters
     Mono.PatternWildcard {} -> []
   where
     asConstructor :: Expression
