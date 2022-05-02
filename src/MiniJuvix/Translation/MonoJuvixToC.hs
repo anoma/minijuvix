@@ -89,6 +89,21 @@ asCast n = "as_" <> n
 asIs :: Text -> Text
 asIs n = "is_" <> n
 
+asFunArg :: Text -> Text
+asFunArg n = "fa" <> n
+
+asCtorArg :: Text -> Text
+asCtorArg n = "ca" <> n
+
+mkArgs :: (Text -> Text) -> [Text]
+mkArgs f = map (f . show) [0 :: Integer ..]
+
+funArgs :: [Text]
+funArgs = mkArgs asFunArg
+
+ctorArgs :: [Text]
+ctorArgs = mkArgs asCtorArg
+
 mkName :: Mono.Name -> Text
 mkName name = nameText
   where
@@ -103,7 +118,7 @@ goFunctionDef Mono.FunctionDef {..} =
             _funcIsPtr = _typeIsPtr funReturnType,
             _funcQualifier = None,
             _funcName = mkName _funDefName,
-            _funcArgs = namedArgs "fa" funArgTypes,
+            _funcArgs = namedArgs asFunArg funArgTypes,
             _funcBody = maybeToList (fmap BodyStatement (mkBody (goFunctionClause <$> toList _funDefClauses)))
           }
       )
@@ -132,7 +147,8 @@ goFunctionDef Mono.FunctionDef {..} =
     funType = unfoldFunType _funDefType
     unfoldFunType :: Mono.Type -> ([CDeclType], CDeclType)
     unfoldFunType = \case
-      Mono.TypeFunction (Mono.Function l r) -> first (goType l :) (unfoldFunType r)
+      Mono.TypeFunction (Mono.Function l r) ->
+        first (goType l :) (unfoldFunType r)
       t -> ([], goType t)
 
 type PatternBindings = HashMap Text Expression
@@ -142,9 +158,8 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
   where
     conditions :: [Expression]
     conditions = do
-      (p, n) <- zip _clausePatterns [0 :: Integer ..]
-      let arg = ExpressionVar ("fa" <> show n)
-      patternCondition arg p
+      (p, arg) <- zip _clausePatterns funArgs
+      patternCondition (ExpressionVar arg) p
 
     patternCondition :: Expression -> Mono.Pattern -> [Expression]
     patternCondition arg = \case
@@ -159,8 +174,8 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
           asCtor = functionCall (ExpressionVar (asCast ctorName)) [arg]
           subConditions :: [Expression]
           subConditions = do
-            (p, n) <- zip _constrAppParameters [0 :: Integer ..]
-            let subArg = memberAccess Object asCtor ("ca" <> show n)
+            let subArgs = map (memberAccess Object asCtor) ctorArgs
+            (p, subArg) <- zip _constrAppParameters subArgs
             patternCondition subArg p
       Mono.PatternVariable {} -> []
       Mono.PatternWildcard {} -> []
@@ -181,8 +196,7 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
     patternBindings = HashMap.fromList patternVars
     patternVars :: [(Text, Expression)]
     patternVars = do
-      (p, n) <- zip _clausePatterns [0 :: Integer ..]
-      let arg = ExpressionVar ("fa" <> show n)
+      (p, arg) <- zipWith (curry (second ExpressionVar)) _clausePatterns funArgs
       case p of
         Mono.PatternVariable v -> [(v ^. Mono.nameText, arg)]
         Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
@@ -193,8 +207,7 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
 
 goConstructorApp :: Expression -> Mono.Name -> [Mono.Pattern] -> [(Text, Expression)]
 goConstructorApp arg n ps = do
-  (p, idx) <- zip ps [0 :: Integer ..]
-  let field = "ca" <> show idx
+  (p, field) <- zip ps ctorArgs
   let ctorField = memberAccess Object asConstructor field
   case p of
     Mono.PatternVariable v -> [(v ^. Mono.nameText, ctorField)]
@@ -214,11 +227,13 @@ goExpression fromApplication = \case
 
 goIden :: Member (Reader PatternBindings) r => Bool -> Mono.Iden -> Sem r Expression
 goIden fromApplication = \case
-  Mono.IdenFunction n -> return $ if fromApplication then e else functionCall e []
+  Mono.IdenFunction n ->
+    return (if fromApplication then e else functionCall e [])
     where
       e :: Expression
       e = ExpressionVar (mkName n)
-  Mono.IdenConstructor n -> return $ if fromApplication then newCtor else functionCall newCtor []
+  Mono.IdenConstructor n ->
+    return (if fromApplication then newCtor else functionCall newCtor [])
     where
       newCtor :: Expression
       newCtor = ExpressionVar (asNew (mkName n))
@@ -442,7 +457,7 @@ goInductiveConstructorNew i ctor =
     ctorNewNary :: Function
     ctorNewNary =
       commonFunctionDeclr
-        ctorArgs
+        ctorDecls
         [ BodyDecl allocInductive,
           BodyDecl ctorStructInit,
           BodyDecl (commonInitDecl (dataInit tmpCtorStructName)),
@@ -450,12 +465,12 @@ goInductiveConstructorNew i ctor =
           returnStatement (ExpressionVar tmpPtrName)
         ]
       where
-        ctorArgs :: [Declaration]
-        ctorArgs = inductiveCtorArgs ctor
+        ctorDecls :: [Declaration]
+        ctorDecls = inductiveCtorArgs ctor
 
         ctorInit :: [DesigInit]
         -- TODO: _declName is never Nothing by construction, fix the types
-        ctorInit = map (f . fromJust . _declName) ctorArgs
+        ctorInit = map (f . fromJust . _declName) ctorDecls
 
         f :: Text -> DesigInit
         f fieldName =
@@ -551,14 +566,14 @@ goInductiveConstructorNew i ctor =
             )
         )
 
-namedArgs :: Text -> [CDeclType] -> [Declaration]
+namedArgs :: (Text -> Text) -> [CDeclType] -> [Declaration]
 namedArgs prefix = zipWith goTypeDecl argLabels
   where
     argLabels :: [Text]
-    argLabels = (\l -> prefix <> show l) <$> [0 :: Integer ..]
+    argLabels = prefix . show <$> [0 :: Integer ..]
 
 inductiveCtorArgs :: Mono.InductiveConstructorDef -> [Declaration]
-inductiveCtorArgs ctor = namedArgs "ca" (goType <$> ctorParams)
+inductiveCtorArgs ctor = namedArgs asCtorArg (goType <$> ctorParams)
   where
     ctorParams :: [Mono.Type]
     ctorParams = ctor ^. Mono.constructorParameters
