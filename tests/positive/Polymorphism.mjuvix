@@ -94,7 +94,11 @@ trankn ≔ rankn id false zero;
 l1 : List Nat;
 l1 ≔ cons Nat zero (nil Nat);
 
+pairEval : (A : Type) → (B : Type) → Pair (A → B) A → B;
+pairEval _ _ (mkPair f x) ≔ f x;
+
 main : Nat;
-main ≔ headDef Nat zero (zipWith Nat Nat Nat add l1 l1);
+main ≔ headDef Nat (pairEval Nat Nat (mkPair (Nat → Nat) Nat (add zero) zero))
+   (zipWith Nat Nat Nat add l1 l1);
 
 end;
