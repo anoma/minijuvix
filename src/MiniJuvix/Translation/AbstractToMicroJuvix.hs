@@ -188,13 +188,12 @@ goExpressionFunction f = do
   l' <- goParam (f ^. A.funParameter)
   r' <- goExpression (f ^. A.funReturn)
   return (FunctionExpression l' r')
- where
- goParam :: A.FunctionParameter -> Sem r Expression
- goParam p
-   | isJust (p ^. A.paramName) = unsupported "named type parameters"
-   | isOmegaUsage (p ^. A.paramUsage) = goExpression (p ^. A.paramType)
-   | otherwise = unsupported "usages"
-
+  where
+    goParam :: A.FunctionParameter -> Sem r Expression
+    goParam p
+      | isJust (p ^. A.paramName) = unsupported "named type parameters"
+      | isOmegaUsage (p ^. A.paramUsage) = goExpression (p ^. A.paramType)
+      | otherwise = unsupported "usages"
 
 goExpression :: A.Expression -> Sem r Expression
 goExpression e = case e of
