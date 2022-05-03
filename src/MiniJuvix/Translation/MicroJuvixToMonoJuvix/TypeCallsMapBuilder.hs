@@ -42,7 +42,7 @@ goFunctionDef d = runReader (FunctionIden (d ^. funDefName)) $ do
 goFunctionClause :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => FunctionClause -> Sem r ()
 goFunctionClause c = goExpression (c ^. clauseBody)
 
-goInductiveDef :: Members '[State TypeCallsMap, Reader InfoTable] r => InductiveDef -> Sem r ()
+goInductiveDef :: Members '[State TypeCallsMap] r => InductiveDef -> Sem r ()
 goInductiveDef d = runReader (InductiveIden (d ^. inductiveName)) $ do
   mapM_ goInductiveParameter (d ^. inductiveParameters)
   mapM_ goInductiveConstructorDef (d ^. inductiveConstructors)
@@ -50,10 +50,10 @@ goInductiveDef d = runReader (InductiveIden (d ^. inductiveName)) $ do
 goInductiveParameter :: InductiveParameter -> Sem r ()
 goInductiveParameter _ = return ()
 
-goInductiveConstructorDef :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => InductiveConstructorDef -> Sem r ()
+goInductiveConstructorDef :: Members '[State TypeCallsMap, Reader TypeCallIden] r => InductiveConstructorDef -> Sem r ()
 goInductiveConstructorDef c = mapM_ goType (c ^. constructorParameters)
 
-goFunction :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => Function -> Sem r ()
+goFunction :: Members '[State TypeCallsMap, Reader TypeCallIden] r => Function -> Sem r ()
 goFunction (Function l r) = do
   goType l
   goType r
@@ -68,7 +68,7 @@ registerTypeCall caller t = modify (over typeCallsMap addElem)
           Nothing -> HashSet.singleton t
           Just l -> HashSet.insert t l
 
-goTypeApplication :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => TypeApplication -> Sem r ()
+goTypeApplication :: Members '[State TypeCallsMap, Reader TypeCallIden] r => TypeApplication -> Sem r ()
 goTypeApplication a = do
   let (t, args) = unfoldTypeApplication a
   mapM_ goType args
@@ -83,10 +83,10 @@ goTypeApplication a = do
           }
     _ -> return ()
 
-goTypeAbstraction :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => TypeAbstraction -> Sem r ()
+goTypeAbstraction :: Members '[State TypeCallsMap, Reader TypeCallIden] r => TypeAbstraction -> Sem r ()
 goTypeAbstraction t = goType (t ^. typeAbsBody)
 
-goType :: Members '[State TypeCallsMap, Reader TypeCallIden, Reader InfoTable] r => Type -> Sem r ()
+goType :: Members '[State TypeCallsMap, Reader TypeCallIden] r => Type -> Sem r ()
 goType = \case
   TypeIden {} -> return ()
   TypeApp a -> goTypeApplication a
