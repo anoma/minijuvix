@@ -270,8 +270,11 @@ universe = do
 -- Type signature declaration
 -------------------------------------------------------------------------------
 
-typeSignature :: Member InfoTableBuilder r =>
-  Bool -> Symbol -> ParsecS r (TypeSignature 'Parsed)
+typeSignature ::
+  Member InfoTableBuilder r =>
+  Bool ->
+  Symbol ->
+  ParsecS r (TypeSignature 'Parsed)
 typeSignature _sigTerminating _sigName = do
   kwColon
   _sigType <- expressionAtoms

@@ -77,6 +77,9 @@ any = "Any"
 type_ :: IsString s => s
 type_ = "Type"
 
+questionMark :: IsString s => s
+questionMark = "?"
+
 keyword :: IsString s => s
 keyword = "keyword"
 
@@ -157,3 +160,6 @@ agda = "agda"
 
 terminating :: IsString s => s
 terminating = "terminating"
+
+waveArrow :: IsString s => s
+waveArrow = "↝"
