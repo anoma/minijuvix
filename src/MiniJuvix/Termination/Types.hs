@@ -98,7 +98,7 @@ instance PrettyCode CallMap where
       ppEntry (fun, mcalls) = do
         fun' <- annotate AnnImportant <$> ppCode fun
         calls' <- vsep <$> mapM ppCode calls
-        return $ fun' <+> "↝" <+> align calls'
+        return $ fun' <+> kwWaveArrow <+> align calls'
         where
           calls = concat (HashMap.elems mcalls)
 
