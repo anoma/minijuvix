@@ -100,3 +100,8 @@ update-submodules :
 .PHONY : minijuvix-stdlib
 minijuvix-stdlib:
 	git submodule update --init minijuvix-stdlib
+
+.PHONY : update-changelog
+update-changelog :
+	github_changelog_generator
+	pandoc CHANGELOG.md --from markdown --to org -o CHANGELOG.org
