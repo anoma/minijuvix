@@ -8,6 +8,12 @@ import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Language
 
+data Caller
+  = CallerInductive InductiveName
+  | CallerFunction FunctionName
+  | CallerAxiom AxiomName
+  deriving stock (Eq, Ord, Generic)
+
 data TypeCallIden
   = InductiveIden InductiveName
   | FunctionIden FunctionName
@@ -19,9 +25,8 @@ data TypeCall' a = TypeCall'
   }
   deriving stock (Eq, Generic)
 
--- | Indexed by the caller
 newtype TypeCallsMap = TypeCallsMap
-  { _typeCallsMap :: HashMap TypeCallIden (HashSet TypeCall)
+  { _typeCallsMap :: HashMap Caller (HashSet TypeCall)
   }
 
 instance Functor TypeCall' where
@@ -56,6 +61,8 @@ instance Hashable TypeCallIden
 
 instance Hashable TypeCall
 
+instance Hashable Caller
+
 instance Hashable ConcreteTypeCall
 
 instance Hashable ConcreteType
@@ -64,6 +71,11 @@ makeLenses ''TypeCalls
 makeLenses ''TypeCall'
 makeLenses ''TypeCallsMap
 makeLenses ''ConcreteType
+
+typeCallIdenToCaller :: TypeCallIden -> Caller
+typeCallIdenToCaller = \case
+  InductiveIden i -> CallerInductive i
+  FunctionIden i -> CallerFunction i
 
 mkConcreteType' :: Type -> ConcreteType
 mkConcreteType' =

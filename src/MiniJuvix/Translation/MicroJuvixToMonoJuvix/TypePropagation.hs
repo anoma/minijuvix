@@ -22,11 +22,11 @@ collectTypeCalls res = run (execState emptyCalls (runReader typesTable (runReade
             hasConcreteType = isJust . mkConcreteType . (^. funDefType)
         goConcreteFun :: Members '[State TypeCalls, Reader TypeCallsMap, Reader InfoTable] r => FunctionDef -> Sem r ()
         goConcreteFun fun = do
-          calls <- fmap (fmap mkConcreteType') <$> lookupTypeCalls funIden
+          calls <- fmap (fmap mkConcreteType') <$> lookupTypeCalls callerFun
           mapM_ go calls
           where
-            funIden :: TypeCallIden
-            funIden = FunctionIden (fun ^. funDefName)
+            callerFun :: Caller
+            callerFun = CallerFunction (fun ^. funDefName)
     main :: Module
     main = res ^. mainModule
     typesTable :: TypeCallsMap
@@ -47,7 +47,7 @@ register c t = modify (over typeCallSet (HashMap.alter (Just . addElem) (c ^. ty
       Nothing -> HashMap.singleton c t
       Just m -> HashMap.insert c t m
 
-lookupTypeCalls :: Members '[Reader TypeCallsMap] r => TypeCallIden -> Sem r [TypeCall]
+lookupTypeCalls :: Members '[Reader TypeCallsMap] r => Caller -> Sem r [TypeCall]
 lookupTypeCalls t = maybe [] toList <$> asks (^. typeCallsMap . at t)
 
 toConcreteCall :: ConcreteSubs -> TypeCall -> ConcreteTypeCall
@@ -58,7 +58,7 @@ go ::
   ConcreteTypeCall ->
   Sem r ()
 go c = unlessM (isRegistered c) $ do
-  calls :: [TypeCall] <- lookupTypeCalls (c ^. typeCallIden)
+  calls :: [TypeCall] <- lookupTypeCalls caller
   assocs :: ConcreteSubs <- case c ^. typeCallIden of
     InductiveIden i -> do
       def <- (^. inductiveInfoDef) <$> lookupInductive i
@@ -70,3 +70,6 @@ go c = unlessM (isRegistered c) $ do
       ccalls = fmap (toConcreteCall assocs) calls
   register c assocs
   mapM_ go ccalls
+  where
+    caller :: Caller
+    caller = typeCallIdenToCaller (c ^. typeCallIden)

@@ -291,6 +291,12 @@ instance PrettyCode TypeCallIden where
     InductiveIden n -> ppCode n
     FunctionIden n -> ppCode n
 
+instance PrettyCode Caller where
+  ppCode = \case
+    CallerInductive n -> ppCode n
+    CallerAxiom n -> ppCode n
+    CallerFunction n -> ppCode n
+
 instance PrettyCode ConcreteTypeCall where
   ppCode = ppCode . fmap (^. unconcreteType)
 
@@ -303,10 +309,9 @@ instance PrettyCode TypeCall where
 instance PrettyCode TypeCallsMap where
   ppCode m = do
     let title = keyword "Type Calls Map:"
-        elems :: [(TypeCallIden, TypeCall)]
+        elems :: [(Caller, TypeCall)]
         elems =
-          [ (caller, t) | (caller, l) <- HashMap.toList (m ^. typeCallsMap), t <- toList l
-          ]
+          [(caller, t) | (caller, l) <- HashMap.toList (m ^. typeCallsMap), t <- toList l]
     elems' <- mapM ppCodeElem (sortOn fst elems)
     return $ title <> line <> vsep elems' <> line
     where
