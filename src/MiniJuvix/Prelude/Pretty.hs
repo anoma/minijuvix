@@ -30,3 +30,6 @@ toAnsiText useColors
 
 prettyText :: Pretty a => a -> Text
 prettyText = Text.renderStrict . layoutPretty defaultLayoutOptions . pretty
+
+vsep2 :: [Doc ann] -> Doc ann
+vsep2 = concatWith (\a b -> a <> line <> line <> b)
