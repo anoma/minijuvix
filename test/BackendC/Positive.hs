@@ -59,4 +59,7 @@ allTests =
     (map (mkTest . testDescr) tests)
 
 tests :: [PosTest]
-tests = [PosTest "HelloWorld" "HelloWorld"]
+tests =
+  [ PosTest "HelloWorld" "HelloWorld",
+    PosTest "Inductive types and pattern matching" "Nat"
+  ]
