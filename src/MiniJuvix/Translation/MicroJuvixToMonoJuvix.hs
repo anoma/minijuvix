@@ -251,7 +251,9 @@ goInductive def = do
   m <- lookupPolyInductive (def ^. Micro.inductiveName)
   case m of
     Just polyInfo -> goInductiveDefPoly def polyInfo
-    Nothing -> pure <$> goInductiveDefConcrete def
+    Nothing
+      | null (def ^. Micro.inductiveParameters) -> pure <$> goInductiveDefConcrete def
+      | otherwise -> return []
 
 -- | TODO: This function can be made non-monadic
 goInductiveDefConcrete ::
