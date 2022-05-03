@@ -11,12 +11,12 @@ data MicroJuvixCommand
   | TypeCheck MicroJuvixTypeOptions
 
 newtype MicroJuvixPrettyOptions = MicroJuvixPrettyOptions
-  { _mjuvixPrettyInputFile :: FilePath
+  { _microJuvixPrettyInputFile :: FilePath
   }
 
 data MicroJuvixTypeOptions = MicroJuvixTypeOptions
-  { _mjuvixTypeInputFile :: FilePath,
-    _mjuvixTypePrint :: Bool
+  { _microJuvixTypeInputFile :: FilePath,
+    _microJuvixTypePrint :: Bool
   }
 
 makeLenses ''MicroJuvixPrettyOptions
@@ -50,13 +50,13 @@ parseMicroJuvixCommand =
 
 parseMicroJuvixPretty :: Parser MicroJuvixPrettyOptions
 parseMicroJuvixPretty = do
-  _mjuvixPrettyInputFile <- parseInputFile
+  _microJuvixPrettyInputFile <- parseInputFile
   pure MicroJuvixPrettyOptions {..}
 
 parseMicroJuvixType :: Parser MicroJuvixTypeOptions
 parseMicroJuvixType = do
-  _mjuvixTypeInputFile <- parseInputFile
-  _mjuvixTypePrint <-
+  _microJuvixTypeInputFile <- parseInputFile
+  _microJuvixTypePrint <-
     switch
       ( long "print-result"
           <> help "Print the type checked module if successful"

@@ -69,8 +69,8 @@ instance PrettyCode TypedExpression where
 
 instance PrettyCode FunctionExpression where
   ppCode f = do
-    l' <- ppLeftExpression funFixity (f ^. funExprLeft)
-    r' <- ppLeftExpression funFixity (f ^. funExprRight)
+    l' <- ppLeftExpression funFixity (f ^. functionExpressionLeft)
+    r' <- ppLeftExpression funFixity (f ^. functionExpressionRight)
     return (l' <+> kwArrow <+> r')
 
 instance PrettyCode Expression where

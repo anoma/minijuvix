@@ -336,13 +336,13 @@ instance HasEntryPoint HtmlOptions where
   getEntryPoint root = EntryPoint root . pure . _htmlInputFile
 
 instance HasEntryPoint MicroJuvixTypeOptions where
-  getEntryPoint root = EntryPoint root . pure . _mjuvixTypeInputFile
+  getEntryPoint root = EntryPoint root . pure . _microJuvixTypeInputFile
 
 instance HasEntryPoint MicroJuvixPrettyOptions where
-  getEntryPoint root = EntryPoint root . pure . _mjuvixPrettyInputFile
+  getEntryPoint root = EntryPoint root . pure . _microJuvixPrettyInputFile
 
 instance HasEntryPoint MonoJuvixOptions where
-  getEntryPoint root = EntryPoint root . pure . _monojuvixInputFile
+  getEntryPoint root = EntryPoint root . pure . _monoJuvixInputFile
 
 instance HasEntryPoint MiniHaskellOptions where
   getEntryPoint root = EntryPoint root . pure . _mhaskellInputFile
@@ -407,7 +407,7 @@ runCLI cli = do
       case micro of
         Right res -> do
           putStrLn "Well done! It type checks"
-          when (opts ^. mjuvixTypePrint) $ do
+          when (opts ^. microJuvixTypePrint) $ do
             let ppOpts =
                   Micro.defaultOptions
                     { Micro._optShowNameId = globalOptions ^. globalShowNameIds

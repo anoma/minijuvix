@@ -7,7 +7,6 @@ module MiniJuvix.Syntax.MicroJuvix.Language
 where
 
 import MiniJuvix.Prelude
-import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.Concrete.Language (LiteralLoc)
 import MiniJuvix.Syntax.Concrete.Loc
 import MiniJuvix.Syntax.Concrete.Scoped.Name (NameId (..))
@@ -108,8 +107,8 @@ data TypedExpression = TypedExpression
   deriving stock (Show)
 
 data FunctionExpression = FunctionExpression
-  { _funExprLeft :: Expression,
-    _funExprRight :: Expression
+  { _functionExpressionLeft :: Expression,
+    _functionExpressionRight :: Expression
   }
   deriving stock (Show)
 

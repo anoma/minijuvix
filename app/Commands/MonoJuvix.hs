@@ -7,10 +7,10 @@ import MiniJuvix.Prelude hiding (Doc)
 import Options.Applicative
 
 newtype MonoJuvixOptions = MonoJuvixOptions
-  { _monojuvixInputFile :: FilePath
+  { _monoJuvixInputFile :: FilePath
   }
 
 parseMonoJuvix :: Parser MonoJuvixOptions
 parseMonoJuvix = do
-  _monojuvixInputFile <- parseInputFile
+  _monoJuvixInputFile <- parseInputFile
   pure MonoJuvixOptions {..}

@@ -43,7 +43,7 @@ odd A (cons _ xs) ≔ not (even A xs) ;
 #+end_src
 
 * Collection algorithm
- This sections describes to algorithm to collect the list of all concrete
+ This section describes the algorithm to collect the list of all concrete
  functions and inductive definitions that need to be generated.
 
 ** Assumptions:
