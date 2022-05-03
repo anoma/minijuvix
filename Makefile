@@ -101,7 +101,7 @@ update-submodules :
 minijuvix-stdlib:
 	git submodule update --init minijuvix-stdlib
 
-.PHONY : update-changelog
-update-changelog :
-	github_changelog_generator
-	pandoc CHANGELOG.md --from markdown --to org -o CHANGELOG.org
+.PHONY : get-changelog-updates
+get-changelog-updates :
+	@github_changelog_generator --since-tag $(shell git describe --tags $(shell git rev-list --tags --max-count=1)) 1> /dev/null
+	pandoc CHANGELOG.md --from markdown --to org -o UPDATES-FOR-CHANGELOG.org
