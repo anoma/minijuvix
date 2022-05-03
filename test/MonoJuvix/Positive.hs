@@ -34,5 +34,9 @@ tests =
   [ PosTest
       "General example"
       "."
-      "Polymorphism.mjuvix"
+      "Polymorphism.mjuvix",
+    PosTest
+      "Polymorphic Simple Fungible Token"
+      "VP"
+      "PolySimpleFungibleToken.mjuvix"
   ]
