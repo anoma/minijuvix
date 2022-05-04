@@ -30,7 +30,6 @@ import MiniJuvix.Syntax.MicroJuvix.TypeChecker qualified as MicroTyped
 import MiniJuvix.Syntax.MiniHaskell.Pretty qualified as MiniHaskell
 import MiniJuvix.Syntax.MonoJuvix.Pretty qualified as Mono
 import MiniJuvix.Termination qualified as Termination
-import MiniJuvix.Termination.CallGraph qualified as Termination
 import MiniJuvix.Translation.AbstractToMicroJuvix qualified as Micro
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as Mono
 import MiniJuvix.Translation.MonoJuvixToC qualified as MiniC
