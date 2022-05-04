@@ -106,10 +106,41 @@ ctorArgs :: [Text]
 ctorArgs = mkArgs asCtorArg
 
 mkName :: Mono.Name -> Text
-mkName name = nameText
+mkName n =
+  adaptFirstLetter lexeme <> nameTextSuffix
   where
-    nameText :: Text
-    nameText = T.toLower (name ^. Mono.nameText)
+    lexeme
+      | T.null lexeme' = "v"
+      | otherwise = lexeme'
+      where
+        lexeme' = T.filter isValidChar (n ^. Mono.nameText)
+    isValidChar :: Char -> Bool
+    isValidChar c = isLetter c && isAscii c
+    adaptFirstLetter :: Text -> Text
+    adaptFirstLetter t = case T.uncons t of
+      Nothing -> impossible
+      Just (h, r) -> T.cons (capitalize h) r
+      where
+        capitalize :: Char -> Char
+        capitalize
+          | capital = toUpper
+          | otherwise = toLower
+        capital = case n ^. Mono.nameKind of
+          Mono.KNameConstructor -> True
+          Mono.KNameInductive -> True
+          Mono.KNameTopModule -> True
+          Mono.KNameLocalModule -> True
+          _ -> False
+    nameTextSuffix :: Text
+    nameTextSuffix = case n ^. Mono.nameKind of
+      Mono.KNameTopModule -> mempty
+      Mono.KNameFunction ->
+        if n ^. Mono.nameText == mainName then mempty else idSuffix
+      _ -> idSuffix
+    idSuffix :: Text
+    idSuffix = "_" <> show (n ^. Mono.nameId . unNameId)
+    mainName :: Text
+    mainName = "main"
 
 goFunctionDef :: Mono.FunctionDef -> [CCode]
 goFunctionDef Mono.FunctionDef {..} =
