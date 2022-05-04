@@ -48,7 +48,7 @@ integer = do
 
 bracedString :: forall e m. MonadParsec e Text m => m Text
 bracedString =
-  Text.strip . unIndent . pack <$> (char '{' >> manyTill (escaped <|> anySingle) (char '}'))
+  Text.strip . unIndent . pack <$> (char '{' >> manyTill (P.try escaped <|> anySingle) (char '}'))
   where
     unIndent :: Text -> Text
     unIndent t = Text.unlines (Text.drop (fromMaybe 0 (indentIdx t)) <$> Text.lines t)
@@ -58,7 +58,7 @@ bracedString =
     firstNonBlankChar = Text.findIndex (not . isSpace)
     escaped :: m Char
     escaped = do
-      _ <- char '\\'
+      void (char '\\')
       char '}'
 
 string :: MonadParsec e Text m => m Text
