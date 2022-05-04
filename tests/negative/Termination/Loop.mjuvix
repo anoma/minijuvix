@@ -1,4 +1,4 @@
-module TerminatingKeyword;
+module NoLexOrde;
 
 axiom A : Type;
 
