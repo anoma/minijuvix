@@ -275,7 +275,6 @@ goExpression fromApplication = \case
   Mono.ExpressionIden i -> goIden fromApplication i
   Mono.ExpressionApplication a -> goApplication a
   Mono.ExpressionLiteral l -> return (goLiteral l)
-  Mono.ExpressionTyped Mono.TypedExpression {..} -> goExpression fromApplication _typedExpression
 
 goIden :: Member (Reader PatternBindings) r => Bool -> Mono.Iden -> Sem r Expression
 goIden fromApplication = \case
