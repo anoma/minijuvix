@@ -10,6 +10,8 @@ module MiniJuvix.Prelude.Base
     module Data.Foldable,
     module Data.Function,
     module Data.Functor,
+    module Safe.Exact,
+    module Safe.Foldable,
     module Data.Hashable,
     module Data.Int,
     module Data.List.Extra,
@@ -75,11 +77,13 @@ import Data.Foldable hiding (minimum, minimumBy)
 import Data.Function
 import Data.Functor
 import Data.HashMap.Strict (HashMap)
+import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.Hashable
 import Data.Int
-import Data.List.Extra hiding (head, last)
+import Data.List.Extra hiding (groupSortOn, head, last, mconcatMap)
+import Data.List.Extra qualified as List
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.List.NonEmpty.Extra
   ( NonEmpty (..),
@@ -91,6 +95,7 @@ import Data.List.NonEmpty.Extra
     minimumOn1,
     nonEmpty,
     some1,
+    (|:),
   )
 import Data.Maybe
 import Data.Monoid
@@ -115,7 +120,7 @@ import GHC.Generics (Generic)
 import GHC.Num
 import GHC.Real
 import GHC.Stack.Types
-import Lens.Micro.Platform hiding (both)
+import Lens.Micro.Platform hiding (both, _head)
 import Polysemy
 import Polysemy.Embed
 import Polysemy.Error hiding (fromEither)
@@ -124,6 +129,8 @@ import Polysemy.Output
 import Polysemy.Reader
 import Polysemy.State
 import Prettyprinter (Doc, (<+>))
+import Safe.Exact
+import Safe.Foldable
 import System.Directory
 import System.Exit
 import System.FilePath
@@ -194,11 +201,44 @@ toUpperFirst [] = []
 toUpperFirst (x : xs) = Char.toUpper x : xs
 
 --------------------------------------------------------------------------------
+-- Foldable
+--------------------------------------------------------------------------------
+
+mconcatMap :: (Monoid c, Foldable t) => (a -> c) -> t a -> c
+mconcatMap f = List.mconcatMap f . toList
+
+--------------------------------------------------------------------------------
+-- HashMap
+--------------------------------------------------------------------------------
+
+tableInsert :: Hashable k => (a -> v) -> (a -> v -> v) -> k -> a -> HashMap k v -> HashMap k v
+tableInsert s f k a m = over (at k) (Just . aux) m
+  where
+    aux = \case
+      Just v -> f a v
+      Nothing -> s a
+
+tableNestedInsert ::
+  (Hashable k1, Hashable k2) =>
+  k1 ->
+  k2 ->
+  a ->
+  HashMap k1 (HashMap k2 a) ->
+  HashMap k1 (HashMap k2 a)
+tableNestedInsert k1 k2 a = tableInsert (HashMap.singleton k2) (HashMap.insert k2) k1 a
+
+--------------------------------------------------------------------------------
 -- NonEmpty
 --------------------------------------------------------------------------------
 
 nonEmptyUnsnoc :: NonEmpty a -> (Maybe (NonEmpty a), a)
 nonEmptyUnsnoc e = (NonEmpty.nonEmpty (NonEmpty.init e), NonEmpty.last e)
+
+groupSortOn :: Ord b => (a -> b) -> [a] -> [NonEmpty a]
+groupSortOn f = map (fromJust . nonEmpty) . List.groupSortOn f
+
+groupSortOn' :: Ord b => (a -> b) -> [a] -> [[a]]
+groupSortOn' = List.groupSortOn
 
 --------------------------------------------------------------------------------
 -- Errors
@@ -239,11 +279,6 @@ instance Functor Indexed where
   fmap f (Indexed i a) = Indexed i (f a)
 
 makeLenses ''Indexed
-
---------------------------------------------------------------------------------
-
-minimumMaybe :: (Foldable t, Ord a) => t a -> Maybe a
-minimumMaybe l = if null l then Nothing else Just (minimum l)
 
 fromText :: IsString a => Text -> a
 fromText = fromString . unpack

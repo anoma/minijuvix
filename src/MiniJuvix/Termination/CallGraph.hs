@@ -234,7 +234,7 @@ instance PrettyCode RecursiveBehaviour where
   ppCode :: Members '[Reader Options] r => RecursiveBehaviour -> Sem r (Doc Ann)
   ppCode (RecursiveBehaviour f m0) = do
     f' <- ppSCode f
-    let m' = vsep (map (PP.list . map pretty) m)
+    let m' = PP.vsep (map (PP.list . map pretty) m)
     return $
       pretty ("Recursive behaviour of" :: Text) <+> f' <> colon <> line
         <> indent 2 (align m')
