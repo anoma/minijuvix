@@ -11,7 +11,7 @@ import MiniJuvix.Syntax.Concrete.Scoped.InfoTable qualified as S
 import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Syntax.NameId
-import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as MonoTrans
+import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as Mono
 
 newtype MiniCResult = MiniCResult
   { _resultCCode :: Text
@@ -20,12 +20,12 @@ newtype MiniCResult = MiniCResult
 makeLenses ''MiniCResult
 
 entryMiniC ::
-  MonoTrans.MonoJuvixResult ->
+  Mono.MonoJuvixResult ->
   Sem r MiniCResult
 entryMiniC i = return (MiniCResult (serialize cunitResult))
   where
-    compileInfo :: MonoTrans.CompileInfoTable
-    compileInfo = MonoTrans.compileInfoTable i
+    compileInfo :: Mono.CompileInfoTable
+    compileInfo = Mono.compileInfoTable i
     cunitResult :: CCodeUnit
     cunitResult =
       CCodeUnit
@@ -40,7 +40,7 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
           CppIncludeSystem "stdio.h"
         ]
     cmodules :: [CCode]
-    cmodules = toList (i ^. MonoTrans.resultModules) >>= (run . runReader compileInfo . goModule)
+    cmodules = toList (i ^. Mono.resultModules) >>= (run . runReader compileInfo . goModule)
 
 type Err = Text
 
@@ -48,20 +48,20 @@ unsupported :: Err -> a
 unsupported msg = error (msg <> " Mono to C: not yet supported")
 
 goModule ::
-  Member (Reader MonoTrans.CompileInfoTable) r =>
+  Member (Reader Mono.CompileInfoTable) r =>
   Mono.Module ->
   Sem r [CCode]
 goModule Mono.Module {..} = goModuleBody _moduleBody
 
 goModuleBody ::
-  Member (Reader MonoTrans.CompileInfoTable) r =>
+  Member (Reader Mono.CompileInfoTable) r =>
   Mono.ModuleBody ->
   Sem r [CCode]
 goModuleBody Mono.ModuleBody {..} =
-  traverseM goStatement _moduleStatements
+  concatMapM goStatement _moduleStatements
 
 goStatement ::
-  Member (Reader MonoTrans.CompileInfoTable) r =>
+  Member (Reader Mono.CompileInfoTable) r =>
   Mono.Statement ->
   Sem r [CCode]
 goStatement = \case
@@ -146,12 +146,12 @@ goFunctionDef :: Mono.FunctionDef -> [CCode]
 goFunctionDef Mono.FunctionDef {..} =
   [ ExternalFunc
       ( Function
-          { _funcReturnType = _typeDeclType funReturnType,
-            _funcIsPtr = _typeIsPtr funReturnType,
+          { _funcReturnType = funReturnType ^. typeDeclType,
+            _funcIsPtr = funReturnType ^. typeIsPtr,
             _funcQualifier = None,
             _funcName = mkName _funDefName,
             _funcArgs = namedArgs asFunArg funArgTypes,
-            _funcBody = maybeToList (fmap BodyStatement (mkBody (goFunctionClause <$> toList _funDefClauses)))
+            _funcBody = maybeToList (BodyStatement <$> mkBody (goFunctionClause <$> toList _funDefClauses))
           }
       )
   ]
@@ -216,7 +216,7 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
     patternCondition :: Expression -> Mono.Pattern -> [Expression]
     patternCondition arg = \case
       Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
-        [isCtor] <> subConditions
+        isCtor : subConditions
         where
           ctorName :: Text
           ctorName = mkName _constrAppConstructor
@@ -274,17 +274,19 @@ goExpression :: Member (Reader PatternBindings) r => Bool -> Mono.Expression -> 
 goExpression fromApplication = \case
   Mono.ExpressionIden i -> goIden fromApplication i
   Mono.ExpressionApplication a -> goApplication a
-  Mono.ExpressionLiteral l -> return (goLiteral l)
+  Mono.ExpressionLiteral l -> return (ExpressionLiteral (goLiteral l))
 
 goIden :: Member (Reader PatternBindings) r => Bool -> Mono.Iden -> Sem r Expression
 goIden fromApplication = \case
-  Mono.IdenFunction n ->
-    return (if fromApplication then e else functionCall e [])
+  Mono.IdenFunction n
+    | fromApplication -> return e
+    | otherwise -> return (functionCall e [])
     where
       e :: Expression
       e = ExpressionVar (mkName n)
-  Mono.IdenConstructor n ->
-    return (if fromApplication then newCtor else functionCall newCtor [])
+  Mono.IdenConstructor n
+    | fromApplication -> return newCtor
+    | otherwise -> return (functionCall newCtor [])
     where
       newCtor :: Expression
       newCtor = ExpressionVar (asNew (mkName n))
@@ -309,13 +311,13 @@ goApplication a = do
         fArg <- goExpression False _appRight
         return (fName, [fArg])
 
-goLiteral :: C.LiteralLoc -> Expression
+goLiteral :: C.LiteralLoc -> Literal
 goLiteral C.LiteralLoc {..} = case _literalLocLiteral of
-  C.LitString s -> ExpressionLiteral (LiteralString s)
-  C.LitInteger i -> ExpressionLiteral (LiteralInt i)
+  C.LitString s -> LiteralString s
+  C.LitInteger i -> LiteralInt i
 
 goAxiom ::
-  Member (Reader MonoTrans.CompileInfoTable) r =>
+  Member (Reader Mono.CompileInfoTable) r =>
   Mono.AxiomDef ->
   Sem r [CCode]
 goAxiom a = do
@@ -343,7 +345,7 @@ goAxiom a = do
       guard (BackendC == b ^. backendItemBackend)
         $> b ^. backendItemCode
     lookupBackends ::
-      Member (Reader MonoTrans.CompileInfoTable) r =>
+      Member (Reader Mono.CompileInfoTable) r =>
       NameId ->
       Sem r [BackendItem]
     lookupBackends f = (^. S.compileInfoBackendItems) . HashMap.lookupDefault impossible f <$> ask
@@ -659,11 +661,6 @@ goInductiveConstructorDef ctor =
               _structMembers = Just (inductiveCtorArgs ctor)
             }
         )
-
-data CDeclType = CDeclType
-  { _typeDeclType :: DeclType,
-    _typeIsPtr :: Bool
-  }
 
 goType :: Mono.Type -> CDeclType
 goType = \case

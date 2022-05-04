@@ -363,7 +363,7 @@ instance HasEntryPoint MiniHaskellOptions where
   getEntryPoint root = EntryPoint root . pure . _mhaskellInputFile
 
 instance HasEntryPoint MiniCOptions where
-  getEntryPoint root = EntryPoint root . pure . _mcInputFile
+  getEntryPoint root = EntryPoint root . pure . _miniCInputFile
 
 instance HasEntryPoint CallsOptions where
   getEntryPoint root = EntryPoint root . pure . _callsInputFile

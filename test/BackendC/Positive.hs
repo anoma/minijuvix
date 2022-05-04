@@ -39,7 +39,7 @@ testDescr PosTest {..} =
               withTempDir
                 ( \dirPath -> do
                     let cOutputFile = dirPath </> "out.c"
-                    let wasmOutputFile = dirPath </> "out.wasm"
+                        wasmOutputFile = dirPath </> "out.wasm"
                     TIO.writeFile cOutputFile (p ^. MiniC.resultCCode)
                     step "WASM generation"
                     P.callProcess "emcc" ["-o", wasmOutputFile, cOutputFile]

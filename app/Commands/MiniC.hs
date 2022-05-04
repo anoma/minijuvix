@@ -7,10 +7,10 @@ import MiniJuvix.Prelude hiding (Doc)
 import Options.Applicative
 
 newtype MiniCOptions = MiniCOptions
-  { _mcInputFile :: FilePath
+  { _miniCInputFile :: FilePath
   }
 
 parseMiniC :: Parser MiniCOptions
 parseMiniC = do
-  _mcInputFile <- parseInputFile
+  _miniCInputFile <- parseInputFile
   pure MiniCOptions {..}

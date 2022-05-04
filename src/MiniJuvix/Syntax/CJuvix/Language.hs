@@ -94,6 +94,11 @@ data Enum = Enum
     _enumMembers :: Maybe [Text]
   }
 
+data CDeclType = CDeclType
+  { _typeDeclType :: DeclType,
+    _typeIsPtr :: Bool
+  }
+
 --------------------------------------------------------------------------------
 -- Expressions
 --------------------------------------------------------------------------------
@@ -254,3 +259,4 @@ returnStatement e =
 
 makeLenses ''CCodeUnit
 makeLenses ''Declaration
+makeLenses ''CDeclType
