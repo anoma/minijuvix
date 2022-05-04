@@ -3,7 +3,7 @@ module BackendC.Positive where
 import Base
 import Data.Text.IO qualified as TIO
 import MiniJuvix.Pipeline
-import MiniJuvix.Translation.MonoJuvixToC as MiniC
+import MiniJuvix.Translation.MonoJuvixToMiniC as MiniC
 import System.IO.Extra (withTempDir)
 import System.Process qualified as P
 

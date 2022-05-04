@@ -1,4 +1,4 @@
-module MiniJuvix.Translation.MonoJuvixToC where
+module MiniJuvix.Translation.MonoJuvixToMiniC where
 
 import Data.HashMap.Strict qualified as HashMap
 import Data.Text qualified as T

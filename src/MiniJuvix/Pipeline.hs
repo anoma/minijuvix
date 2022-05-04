@@ -18,7 +18,7 @@ import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as MicroJuvix
 import MiniJuvix.Syntax.MicroJuvix.TypeChecker qualified as MicroJuvix
 import MiniJuvix.Translation.AbstractToMicroJuvix qualified as MicroJuvix
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as MonoJuvix
-import MiniJuvix.Translation.MonoJuvixToC qualified as MiniC
+import MiniJuvix.Translation.MonoJuvixToMiniC qualified as MiniC
 import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 
