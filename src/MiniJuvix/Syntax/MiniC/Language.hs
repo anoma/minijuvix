@@ -1,4 +1,4 @@
-module MiniJuvix.Syntax.CJuvix.Language where
+module MiniJuvix.Syntax.MiniC.Language where
 
 import MiniJuvix.Prelude hiding (Enum)
 

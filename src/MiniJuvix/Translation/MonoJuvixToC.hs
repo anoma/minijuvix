@@ -4,11 +4,11 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.Text qualified as T
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Backends
-import MiniJuvix.Syntax.CJuvix.Language
-import MiniJuvix.Syntax.CJuvix.Serialization
 import MiniJuvix.Syntax.Concrete.Language qualified as C
 import MiniJuvix.Syntax.Concrete.Scoped.InfoTable qualified as S
 import MiniJuvix.Syntax.ForeignBlock
+import MiniJuvix.Syntax.MiniC.Language
+import MiniJuvix.Syntax.MiniC.Serialization
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Syntax.NameId
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as Mono

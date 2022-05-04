@@ -1,11 +1,11 @@
-module MiniJuvix.Syntax.CJuvix.Serialization where
+module MiniJuvix.Syntax.MiniC.Serialization where
 
 import Language.C qualified as C
 import Language.C.Data.Ident qualified as C
 import Language.C.Pretty qualified as P
 import Language.C.Syntax
 import MiniJuvix.Prelude
-import MiniJuvix.Syntax.CJuvix.Language
+import MiniJuvix.Syntax.MiniC.Language
 import Text.PrettyPrint.HughesPJ qualified as HP
 
 encAngles :: HP.Doc -> HP.Doc
