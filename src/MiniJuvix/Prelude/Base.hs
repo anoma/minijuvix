@@ -6,6 +6,7 @@ module MiniJuvix.Prelude.Base
     module Data.Bool,
     module Data.Char,
     module Data.Either.Extra,
+    module Data.Bifunctor,
     module Data.Eq,
     module Data.Foldable,
     module Data.Function,
@@ -100,6 +101,7 @@ import Data.List.NonEmpty.Extra
 import Data.Maybe
 import Data.Monoid
 import Data.Ord
+import Data.Bifunctor hiding (first, second)
 import Data.Semigroup (Semigroup, (<>))
 import Data.Singletons
 import Data.Singletons.Sigma
