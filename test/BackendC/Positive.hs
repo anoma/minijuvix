@@ -61,5 +61,6 @@ allTests =
 tests :: [PosTest]
 tests =
   [ PosTest "HelloWorld" "HelloWorld",
-    PosTest "Inductive types and pattern matching" "Nat"
+    PosTest "Inductive types and pattern matching" "Nat",
+    PosTest "Polymorphic types" "Polymorphism"
   ]
