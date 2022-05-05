@@ -456,7 +456,7 @@ goPattern' ty = \case
   where
     goApp :: Micro.ConstructorApp -> Sem r ConstructorApp
     goApp capp = case ty ^. Micro.unconcreteType of
-      Micro.TypeIden (Micro.TypeIdenInductive {}) -> do
+      Micro.TypeIden Micro.TypeIdenInductive {} -> do
         let c' :: Name
             c' = goName (capp ^. Micro.constrAppConstructor)
         cInfo <- Micro.lookupConstructor (capp ^. Micro.constrAppConstructor)
