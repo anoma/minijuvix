@@ -398,58 +398,6 @@ goInductiveDefPoly def poly
                 ..
               }
 
--- Drop type variables from patterns
--- Drop type abstractions from signature
--- Replace type variables by concrete types in the signature
--- Rebind (rename) local variables
--- call goFunctionDefConcrete
--- goFunctionDefPoly ::
---   forall r.
---   Members '[Reader ConcreteTable, NameIdGen, Reader Micro.InfoTable] r =>
---   Micro.FunctionDef ->
---   PolyIdenInfo ->
---   Sem r [FunctionDef]
--- goFunctionDefPoly def poly
---   | length tyVars /= poly ^. polyTypeArity = impossible
---   | otherwise = mapM go (toList (poly ^. polyConcretes))
---   where
---     (tyVars, tyTail) = Micro.unfoldTypeAbsType (def ^. Micro.funDefType)
---     go :: ConcreteIdenInfo -> Sem r FunctionDef
---     go i = do
---       _funDefType <- goType sig'
---       let _funDefName = i ^. concreteName
---       _funDefClauses <- mapM (goClause _funDefName) (def ^. Micro.funDefClauses)
---       return FunctionDef {..}
---       where
---         concreteSubs :: Micro.ConcreteSubs
---         concreteSubs = i ^. concreteTypeSubs
---         concreteSubsE :: Micro.SubsE
---         concreteSubsE = Micro.concreteSubsToSubsE concreteSubs
---         goClause :: Name -> Micro.FunctionClause -> Sem r FunctionClause
---         goClause funName c = do
---           pvars' <- mapM cloneName' pvars
---           let localVarsRename :: Micro.Rename
---               localVarsRename = HashMap.fromList (zipExact pvars pvars')
---               _clausePatterns = map (goPattern . Micro.renamePattern localVarsRename) patsTail
---           _clauseBody <-
---             goExpression
---               ( Micro.substitutionE
---                   (concreteSubsE <> Micro.renameToSubsE localVarsRename)
---                   (c ^. Micro.clauseBody)
---               )
---           return
---             FunctionClause
---               { _clauseName = funName,
---                 ..
---               }
---           where
---             patsTail :: [Micro.Pattern]
---             patsTail = dropExact (length tyVars) (c ^. Micro.clausePatterns)
---             pvars :: [Micro.VarName]
---             pvars = concatMap Micro.patternVariables patsTail
---         sig' :: Micro.ConcreteType
---         sig' = Micro.substitutionConcrete (i ^. concreteTypeSubs) tyTail
-
 goFunctionDefPoly ::
   forall r.
   Members '[Reader ConcreteTable, NameIdGen, Reader Micro.InfoTable] r =>
@@ -540,15 +488,6 @@ goPattern' ty = \case
         ps' <- zipWithM goPattern' psTysConcrete (capp ^. Micro.constrAppParameters)
         return (ConstructorApp c' ps')
       _ -> impossible
-
-goPattern :: Micro.Pattern -> Pattern
-goPattern = \case
-  Micro.PatternVariable v -> PatternVariable (goName v)
-  Micro.PatternConstructorApp a -> PatternConstructorApp (goApp a)
-  Micro.PatternWildcard {} -> PatternWildcard
-  where
-    goApp :: Micro.ConstructorApp -> ConstructorApp
-    goApp (Micro.ConstructorApp n ps) = ConstructorApp (goName n) (map goPattern ps)
 
 goType ::
   forall r.

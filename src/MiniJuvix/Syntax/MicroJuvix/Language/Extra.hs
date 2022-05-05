@@ -298,10 +298,10 @@ unfoldFunType t = case t of
 unfoldFunConcreteType :: ConcreteType -> ([ConcreteType], ConcreteType)
 unfoldFunConcreteType = bimap (map mkConcreteType') mkConcreteType' . go . (^. unconcreteType)
   where
-  go :: Type -> ([Type], Type)
-  go t = case t of
-    TypeFunction (Function l r) -> first (l :) (go r)
-    _ -> ([], t)
+    go :: Type -> ([Type], Type)
+    go t = case t of
+      TypeFunction (Function l r) -> first (l :) (go r)
+      _ -> ([], t)
 
 unfoldTypeAbsType :: Type -> ([VarName], Type)
 unfoldTypeAbsType t = case t of

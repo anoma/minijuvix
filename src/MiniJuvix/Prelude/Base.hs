@@ -67,6 +67,7 @@ where
 import Control.Applicative
 import Control.Monad.Extra
 import Control.Monad.Fix
+import Data.Bifunctor hiding (first, second)
 import Data.Bool
 import Data.ByteString.Lazy (ByteString)
 import Data.Char
@@ -101,7 +102,6 @@ import Data.List.NonEmpty.Extra
 import Data.Maybe
 import Data.Monoid
 import Data.Ord
-import Data.Bifunctor hiding (first, second)
 import Data.Semigroup (Semigroup, (<>))
 import Data.Singletons
 import Data.Singletons.Sigma
