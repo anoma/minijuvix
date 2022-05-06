@@ -14,7 +14,7 @@ import MiniJuvix.Syntax.Concrete.Scoped.Name (AbsModulePath)
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty.Ann
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty.Options
-import Prettyprinter hiding (braces, parens)
+import MiniJuvix.Prelude.Pretty hiding (braces, parens)
 
 docStream :: PrettyCode c => Options -> c -> SimpleDocStream Ann
 docStream opts =
@@ -262,10 +262,7 @@ groupStatements = reverse . map reverse . uncurry cons . foldl' aux ([], [])
             map (^. constructorName . S.nameConcrete) _inductiveConstructors
 
 instance SingI s => PrettyCode [Statement s] where
-  ppCode ss = joinGroups <$> mapM (fmap mkGroup . mapM (fmap endSemicolon . ppCode)) (groupStatements ss)
-    where
-      mkGroup = vsep
-      joinGroups = concatWith (\a b -> a <> line <> line <> b)
+  ppCode ss = vsep2 <$> mapM (fmap vsep . mapM (fmap endSemicolon . ppCode)) (groupStatements ss)
 
 instance SingI s => PrettyCode (Statement s) where
   ppCode s = case s of

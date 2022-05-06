@@ -84,6 +84,7 @@ instance Pretty Interval where
       <> colon
       <> ppPosRange (i ^. intStart . locCol, i ^. intEnd . locCol)
     where
+      hyphen :: Doc a
       hyphen = pretty '-'
       ppPosRange :: (Pos, Pos) -> Doc a
       ppPosRange (s, e)

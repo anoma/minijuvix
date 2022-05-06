@@ -126,6 +126,7 @@ instance PrettyCode FunctionDef where
       funDefName' <+> kwColonColon <+> funDefTypeSig' <> line
         <> vsep (toList clauses')
     where
+      ppClause :: Member (Reader Options) r => Doc Ann -> FunctionClause -> Sem r (Doc Ann)
       ppClause fun c = do
         clausePatterns' <- mapM ppCodeAtom (c ^. clausePatterns)
         clauseBody' <- ppCode (c ^. clauseBody)

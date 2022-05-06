@@ -93,6 +93,7 @@ instance PrettyError NotInScope where
       <> "Symbol not in scope:" <+> highlight (ppCode _notInScopeSymbol)
       <?> ((line <>) <$> suggestion)
     where
+      suggestion :: Maybe (Doc a)
       suggestion
         | null suggestions = Nothing
         | otherwise = Just $ "Perhaps you meant:" <+> align (vsep suggestions)

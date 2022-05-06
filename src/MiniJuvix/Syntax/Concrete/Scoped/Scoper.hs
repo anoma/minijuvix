@@ -503,6 +503,7 @@ checkTopModule m@(Module path params body) = do
           _nameConcrete = path
           _nameDefined = getLoc (path ^. modulePathName)
           _nameKind = S.KNameTopModule
+          _nameFixity :: Maybe Fixity
           _nameFixity = Nothing
           -- This visibility annotation is not relevant
           _nameVisibilityAnn = VisPublic
