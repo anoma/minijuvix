@@ -61,7 +61,6 @@ ghc-options:
 # Warnings
 - -Weverything
 - -Wno-unused-packages
-- -Wno-missing-exported-signatures
 - -Wno-missing-import-lists
 - -Wno-missed-specialisations
 - -Wno-all-missed-specialisations
