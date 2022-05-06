@@ -62,7 +62,6 @@ ghc-options:
 - -Weverything
 - -Wno-unused-packages
 - -Wno-missing-import-lists
-- -Wno-missed-specialisations
 - -Wno-unsafe
 - -Wno-safe
 - -Wno-missing-safe-haskell-mode
