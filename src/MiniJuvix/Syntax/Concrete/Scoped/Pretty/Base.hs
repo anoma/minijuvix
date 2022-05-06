@@ -9,12 +9,12 @@ import Data.List.NonEmpty.Extra qualified as NonEmpty
 import Data.Text qualified as T
 import MiniJuvix.Internal.Strings qualified as Str
 import MiniJuvix.Prelude
+import MiniJuvix.Prelude.Pretty hiding (braces, parens)
 import MiniJuvix.Syntax.Concrete.Language
 import MiniJuvix.Syntax.Concrete.Scoped.Name (AbsModulePath)
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty.Ann
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty.Options
-import MiniJuvix.Prelude.Pretty hiding (braces, parens)
 
 docStream :: PrettyCode c => Options -> c -> SimpleDocStream Ann
 docStream opts =
