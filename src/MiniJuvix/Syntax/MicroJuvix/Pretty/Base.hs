@@ -34,7 +34,7 @@ instance PrettyCode NameId where
 
 instance PrettyCode Name where
   ppCode n = do
-    showNameId <- asks _optShowNameId
+    showNameId <- asks (^. optShowNameId)
     uid <-
       if
           | showNameId -> Just . ("@" <>) <$> ppCode (n ^. nameId)
@@ -182,7 +182,7 @@ instance PrettyCode InductiveConstructorDef where
 
 indent' :: Member (Reader Options) r => Doc a -> Sem r (Doc a)
 indent' d = do
-  i <- asks _optIndent
+  i <- asks (^. optIndent)
   return $ indent i d
 
 ppBlock ::

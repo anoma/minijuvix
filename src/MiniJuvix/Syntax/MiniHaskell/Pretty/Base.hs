@@ -8,7 +8,7 @@ where
 import MiniJuvix.Internal.Strings qualified as Str
 import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty qualified as PP
-import MiniJuvix.Syntax.Concrete.Language (Literal (..), LiteralLoc (..))
+import MiniJuvix.Syntax.Concrete.LiteralLoc
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.MiniHaskell.Language
 import MiniJuvix.Syntax.MiniHaskell.Pretty.Ann
@@ -95,7 +95,7 @@ instance PrettyCode InductiveConstructorDef where
 
 indent' :: Member (Reader Options) r => Doc a -> Sem r (Doc a)
 indent' d = do
-  i <- asks _optIndent
+  i <- asks (^. optIndent)
   return $ indent i d
 
 instance PrettyCode InductiveDef where
@@ -148,7 +148,7 @@ instance PrettyCode Literal where
     LitString s -> return $ ppStringLit s
 
 instance PrettyCode LiteralLoc where
-  ppCode = ppCode . _literalLocLiteral
+  ppCode = ppCode . (^. literalLocLiteral)
 
 doubleQuotes :: Doc Ann -> Doc Ann
 doubleQuotes = enclose kwDQuote kwDQuote

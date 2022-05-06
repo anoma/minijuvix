@@ -72,7 +72,6 @@ ghc-options:
 - -Wno-monomorphism-restriction
 - -Wno-missing-kind-signatures
 - -Wno-missing-export-lists
-- -Wno-partial-fields
 
 # HIE Support
 - -fhide-source-paths
@@ -88,13 +87,13 @@ default-extensions:
 - ImportQualifiedPost
 - LambdaCase
 - MultiWayIf
+- NoFieldSelectors
 - NoImplicitPrelude
 - OverloadedStrings
 - QuasiQuotes
 - RecordWildCards
 - TemplateHaskell
 - TypeFamilyDependencies
-- UnicodeSyntax
 
 library:
   source-dirs: src

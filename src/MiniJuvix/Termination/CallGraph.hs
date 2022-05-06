@@ -87,7 +87,7 @@ multiply a b = map sumProdRow a
     sumProdRow :: CallRow -> CallRow
     sumProdRow (CallRow mr) = CallRow $ do
       (ki, ra) <- mr
-      (j, rb) <- _callRow (rowB ki)
+      (j, rb) <- rowB ki ^. callRow
       return (j, mul' ra rb)
 
 multiplyMany :: HashSet CallMatrix -> HashSet CallMatrix -> HashSet CallMatrix

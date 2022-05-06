@@ -55,7 +55,7 @@ genHtml opts recursive theme entry = do
       putStrLn $ "Writing " <> pack htmlFile
       Text.writeFile htmlFile (genModule opts theme m)
       where
-        htmlFile = topModulePathToDottedPath (S._nameConcrete (_modulePath m)) <.> ".html"
+        htmlFile = topModulePathToDottedPath (m ^. modulePath . S.nameConcrete) <.> ".html"
 
 genModule :: Options -> Theme -> Module 'Scoped 'ModuleTop -> Text
 genModule opts theme m =
