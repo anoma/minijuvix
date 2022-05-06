@@ -64,9 +64,9 @@ data Module = Module
     _moduleBody :: ModuleBody
   }
 
-newtype Include = Include {
-  _includeModule :: Module
-   }
+newtype Include = Include
+  { _includeModule :: Module
+  }
 
 newtype ModuleBody = ModuleBody
   { _moduleStatements :: [Statement]
