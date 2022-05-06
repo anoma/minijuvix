@@ -1,4 +1,4 @@
-module SimpleFungibleToken;
+module MonoSimpleFungibleToken;
 
 foreign ghc {
   import Anoma
