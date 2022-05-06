@@ -68,7 +68,6 @@ ghc-options:
 - -Wno-unsafe
 - -Wno-safe
 - -Wno-missing-safe-haskell-mode
-- -Wno-monomorphism-restriction
 - -Wno-missing-kind-signatures
 - -Wno-missing-export-lists
 

@@ -1269,6 +1269,7 @@ parseExpressionAtoms a@(ExpressionAtoms sections) = do
     parser = runM (mkExpressionParser tbl) <* P.eof
     res = P.parse parser filePath (toList sections)
     tbl = makeExpressionTable2 a
+    filePath :: FilePath
     filePath = ""
 
 -- | Monad for parsing expression sections.
@@ -1509,5 +1510,5 @@ parsePatternAtom sec = do
     parser :: ParsePat Pattern
     parser = runM (mkPatternParser tbl) <* P.eof
     res = P.parse parser filePath [sec]
-
+    filePath :: FilePath
     filePath = "tmp"

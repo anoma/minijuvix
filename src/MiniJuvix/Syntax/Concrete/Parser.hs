@@ -121,7 +121,7 @@ statement =
 -- Compile
 --------------------------------------------------------------------------------
 
-compileBlock :: Member InfoTableBuilder r => ParsecS r (Compile 'Parsed)
+compileBlock :: forall r. Member InfoTableBuilder r => ParsecS r (Compile 'Parsed)
 compileBlock = do
   kwCompile
   _compileName <- symbol
@@ -129,6 +129,7 @@ compileBlock = do
   return Compile {..}
   where
     backends = toList <$> braces (P.sepEndBy1 backendItem kwSemicolon)
+    backendItem :: ParsecS r BackendItem
     backendItem = do
       _backendItemBackend <- backend
       kwMapsTo
