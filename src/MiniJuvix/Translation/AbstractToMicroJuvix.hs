@@ -4,6 +4,7 @@ module MiniJuvix.Translation.AbstractToMicroJuvix
   )
 where
 
+import Data.HashSet qualified as HashSet
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.AbstractResult qualified as Abstract
 import MiniJuvix.Syntax.Abstract.Language.Extra qualified as A
@@ -12,27 +13,29 @@ import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.MicroJuvix.Language
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
 import MiniJuvix.Syntax.Universe
-import Data.HashSet qualified as HashSet
 import MiniJuvix.Syntax.Usage qualified as A
 
-newtype TranslationState =  TranslationState {
-  -- | Top modules are supposed to be included at most once.
-  _stateIncluded :: HashSet A.TopModuleName
+newtype TranslationState = TranslationState
+  { -- | Top modules are supposed to be included at most once.
+    _stateIncluded :: HashSet A.TopModuleName
   }
 
 iniState :: TranslationState
-iniState = TranslationState {
-  _stateIncluded = mempty
-  }
+iniState =
+  TranslationState
+    { _stateIncluded = mempty
+    }
 
-makeLenses  ''TranslationState
+makeLenses ''TranslationState
 
 entryMicroJuvix ::
   Abstract.AbstractResult ->
   Sem r MicroJuvixResult
 entryMicroJuvix ares = do
-  _resultModules' <- evalState iniState
-    (mapM goModule (ares ^. Abstract.resultModules))
+  _resultModules' <-
+    evalState
+      iniState
+      (mapM goModule (ares ^. Abstract.resultModules))
   return
     MicroJuvixResult
       { _resultAbstract = ares,
@@ -74,13 +77,15 @@ goImport :: Member (State TranslationState) r => A.TopModule -> Sem r (Maybe Inc
 goImport m = do
   inc <- gets (HashSet.member (m ^. A.moduleName) . (^. stateIncluded))
   if
-    | inc -> return Nothing
-    | otherwise -> do
-        m' <- goModule m
-        return (Just Include {
-          _includeModule = m'
-      })
-
+      | inc -> return Nothing
+      | otherwise -> do
+          m' <- goModule m
+          return
+            ( Just
+                Include
+                  { _includeModule = m'
+                  }
+            )
 
 goStatement :: Member (State TranslationState) r => A.Statement -> Sem r (Maybe Statement)
 goStatement = \case
