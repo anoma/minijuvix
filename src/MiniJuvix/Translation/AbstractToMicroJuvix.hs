@@ -12,21 +12,35 @@ import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.MicroJuvix.Language
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
 import MiniJuvix.Syntax.Universe
+import Data.HashSet qualified as HashSet
 import MiniJuvix.Syntax.Usage qualified as A
+
+newtype TranslationState =  TranslationState {
+  -- | Top modules are supposed to be included at most once.
+  _stateIncluded :: HashSet A.TopModuleName
+  }
+
+iniState :: TranslationState
+iniState = TranslationState {
+  _stateIncluded = mempty
+  }
+
+makeLenses  ''TranslationState
 
 entryMicroJuvix ::
   Abstract.AbstractResult ->
   Sem r MicroJuvixResult
 entryMicroJuvix ares = do
-  _resultModules' <- mapM translateModule (ares ^. Abstract.resultModules)
+  _resultModules' <- evalState iniState
+    (mapM goModule (ares ^. Abstract.resultModules))
   return
     MicroJuvixResult
       { _resultAbstract = ares,
         _resultModules = _resultModules'
       }
 
-translateModule :: A.TopModule -> Sem r Module
-translateModule m = do
+goModule :: Member (State TranslationState) r => A.TopModule -> Sem r Module
+goModule m = do
   _moduleBody' <- goModuleBody (m ^. A.moduleBody)
   return
     Module
@@ -53,20 +67,29 @@ goSymbol s =
 unsupported :: Text -> a
 unsupported thing = error ("Abstract to MicroJuvix: Not yet supported: " <> thing)
 
-goImport :: A.TopModule -> Sem r ModuleBody
-goImport m = goModuleBody (m ^. A.moduleBody)
+goModuleBody :: Member (State TranslationState) r => A.ModuleBody -> Sem r ModuleBody
+goModuleBody b = ModuleBody <$> mapMaybeM goStatement (b ^. A.moduleStatements)
 
-goModuleBody :: A.ModuleBody -> Sem r ModuleBody
-goModuleBody b = ModuleBody <$> mapM goStatement (b ^. A.moduleStatements)
+goImport :: Member (State TranslationState) r => A.TopModule -> Sem r (Maybe Include)
+goImport m = do
+  inc <- gets (HashSet.member (m ^. A.moduleName) . (^. stateIncluded))
+  if
+    | inc -> return Nothing
+    | otherwise -> do
+        m' <- goModule m
+        return (Just Include {
+          _includeModule = m'
+      })
 
-goStatement :: A.Statement -> Sem r Statement
+
+goStatement :: Member (State TranslationState) r => A.Statement -> Sem r (Maybe Statement)
 goStatement = \case
-  A.StatementAxiom d -> StatementAxiom <$> goAxiomDef d
-  A.StatementForeign f -> return (StatementForeign f)
-  A.StatementFunction f -> StatementFunction <$> goFunctionDef f
-  A.StatementImport {} -> unsupported "imports"
+  A.StatementAxiom d -> Just . StatementAxiom <$> goAxiomDef d
+  A.StatementForeign f -> return (Just (StatementForeign f))
+  A.StatementFunction f -> Just . StatementFunction <$> goFunctionDef f
+  A.StatementImport i -> fmap StatementInclude <$> goImport i
   A.StatementLocalModule {} -> unsupported "local modules"
-  A.StatementInductive i -> StatementInductive <$> goInductiveDef i
+  A.StatementInductive i -> Just . StatementInductive <$> goInductiveDef i
 
 goTypeIden :: A.Iden -> TypeIden
 goTypeIden i = case i of
