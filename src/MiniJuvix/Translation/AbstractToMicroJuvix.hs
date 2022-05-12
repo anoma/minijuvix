@@ -79,6 +79,7 @@ goImport m = do
   if
       | inc -> return Nothing
       | otherwise -> do
+          modify (over stateIncluded (HashSet.insert (m ^. A.moduleName)))
           m' <- goModule m
           return
             ( Just
