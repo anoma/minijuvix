@@ -63,7 +63,7 @@ The following dependencies are required for the WASM compiler tests.
 - [[https://releases.llvm.org/download.html][Clang / LLVM]] (NB: On macos the preinstalled clang does not support the wasm target so use `brew install llvm` instead for example)
 - [[https://github.com/WebAssembly/wasi-sdk/releases][wasi-sdk]]
 
-To install =wasi-sdk= you need download obtain =libclang_rt= and =wasi-sysroot= precompiled archives from the [[https://github.com/WebAssembly/wasi-sdk/releases/][wasi-sdk release page]] and:
+To install =wasi-sdk= you need to download =libclang_rt= and =wasi-sysroot= precompiled archives from the [[https://github.com/WebAssembly/wasi-sdk/releases/][wasi-sdk release page]] and:
 - Extract the =libclang_rt.builtins-wasm32-wasi-*.tar.gz= archive in the =clang= installation root (for example =/usr/lib/clang/13= on Ubuntu or =`brew --prefix llvm`= on macos).
 
   For example on macos with homebrew clang:
@@ -102,11 +102,13 @@ stack test --ta '-p "! /slow tests/"'
 
 ** Usage Example
 
-In the following example a MiniJuvix file is compiled using the C backend.  The result is compiled to WASM using [[https://emscripten.org][emscripten]] and then executed using  [[https://wasmer.io][wasmer]].
+In the following example a MiniJuvix file is compiled using the C backend.  The result is compiled to WASM using [[https://emscripten.org][Clang / LLVM]] and then executed using [[https://wasmer.io][wasmer]].
+
+The following assumes you have setup clang with wasi-sdk and set =$WASI_SYSROOT_PATH= appropriately (see [[*Dependencies]]).
 
 #+begin_src shell
 cd tests/positive/MiniC/HelloWorld
-minijuvix minic Input.mjuvix | emcc -x c - -o out.wasm && wasmer out.wasm
+minijuvix minic Input.mjuvix | clang --target=wasm32-wasi -nodefaultlibs -lc --sysroot $WASI_SYSROOT_PATH -x c - -o out.wasm && wasmer out.wasm
 #+end_src
 
 #+RESULTS:
