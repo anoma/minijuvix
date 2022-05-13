@@ -5,8 +5,7 @@ module MiniJuvix.Syntax.MicroJuvix.Error
   )
 where
 
-import MiniJuvix.Prelude qualified as Prelude
-import MiniJuvix.Prelude.Base
+import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Error.Pretty
 import MiniJuvix.Syntax.MicroJuvix.Error.Pretty qualified as P
 import MiniJuvix.Syntax.MicroJuvix.Error.Types
@@ -31,9 +30,12 @@ ppTypeCheckerError = \case
 docStream :: TypeCheckerError -> SimpleDocStream Eann
 docStream = layoutPretty defaultLayoutOptions . ppTypeCheckerError
 
-instance Prelude.JuvixError TypeCheckerError where
+instance JuvixError TypeCheckerError where
   renderAnsiText :: TypeCheckerError -> Text
   renderAnsiText = renderAnsi . docStream
 
   renderText :: TypeCheckerError -> Text
   renderText = P.renderText . docStream
+
+  errorInterval :: TypeCheckerError -> [Interval]
+  errorInterval = const mempty

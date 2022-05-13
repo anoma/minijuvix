@@ -321,21 +321,22 @@ runCLI cli = do
     DisplayVersion -> runDisplayVersion
     DisplayRoot -> putStrLn (pack root)
     Highlight o -> do
-      let entry :: EntryPoint
-          entry = getEntryPoint root o
-      res <- runIO (upToScoping entry)
+      res <- runIOEither (upToScoping (getEntryPoint root o))
       absP <- makeAbsolute (o ^. highlightInputFile)
-      let tbl = res ^. Scoper.resultParserTable
-          items = tbl ^. Parser.infoParsedItems
-          names = res ^. (Scoper.resultScoperTable . Scoper.infoNames)
-          hinput =
-            Highlight.filterInput
-              absP
-              Highlight.HighlightInput
-                { _highlightNames = names,
-                  _highlightParsed = items
-                }
-      putStrLn (Highlight.go hinput)
+      case res of
+        Left err -> putStrLn (Highlight.goError (errorInterval err))
+        Right r -> do
+          let tbl = r ^. Scoper.resultParserTable
+              items = tbl ^. Parser.infoParsedItems
+              names = r ^. (Scoper.resultScoperTable . Scoper.infoNames)
+              hinput =
+                Highlight.filterInput
+                  absP
+                  Highlight.HighlightInput
+                    { _highlightNames = names,
+                      _highlightParsed = items
+                    }
+          putStrLn (Highlight.go hinput)
     Parse opts -> do
       m <- head . (^. Parser.resultModules) <$> runIO (upToParsing (getEntryPoint root opts))
       if opts ^. parseNoPrettyShow then print m else pPrint m

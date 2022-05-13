@@ -1,6 +1,6 @@
 module MiniJuvix.Syntax.Concrete.Loc where
 
-import MiniJuvix.Prelude
+import MiniJuvix.Prelude.Base
 import Prettyprinter
 
 newtype Pos = Pos {_unPos :: Word64}

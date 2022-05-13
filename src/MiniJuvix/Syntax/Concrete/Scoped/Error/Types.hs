@@ -72,6 +72,11 @@ data NotInScope = NotInScope
   }
   deriving stock (Show)
 
+makeLenses ''NotInScope
+
+instance HasLoc NotInScope where
+  getLoc = getLoc . (^. notInScopeSymbol)
+
 newtype ModuleNotInScope = ModuleNotInScope
   { _moduleNotInScopeName :: Name
   }
@@ -125,11 +130,5 @@ data MultipleCompileRuleSameBackend = MultipleCompileRuleSameBackend
 
 newtype WrongKindExpressionCompileBlock = WrongKindExpressionCompileBlock
   { _wrongKindExpressionCompileBlock :: SymbolEntry
-  }
-  deriving stock (Show)
-
-data UnsupportedBackend = UnsupportedBackend
-  { _unsupportedBackend :: Backend,
-    _unsupportedBackendSym :: Symbol
   }
   deriving stock (Show)

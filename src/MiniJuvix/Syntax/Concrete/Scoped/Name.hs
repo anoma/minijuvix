@@ -7,7 +7,6 @@ where
 
 import Lens.Micro.Platform
 import MiniJuvix.Prelude
-import MiniJuvix.Syntax.Concrete.Loc
 import MiniJuvix.Syntax.Concrete.Name qualified as C
 import MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind
 import MiniJuvix.Syntax.Concrete.Scoped.VisibilityAnn

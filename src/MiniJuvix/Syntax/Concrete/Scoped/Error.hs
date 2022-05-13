@@ -12,7 +12,7 @@ import MiniJuvix.Syntax.Concrete.Scoped.Error.Types
 import Prettyprinter
 
 -- | An error that happens during scope checking. Note that it is defined here
--- instead of in ./Error/Types to avoid orphan instances.
+-- instead of in Error.Types to avoid orphan instances.
 data ScopeError
   = ErrParser MegaParsecError
   | ErrInfixParser InfixError
@@ -70,3 +70,8 @@ instance JuvixError ScopeError where
 
   renderText :: ScopeError -> Text
   renderText = P.renderText . docStream
+
+  errorInterval :: ScopeError -> [Interval]
+  errorInterval = \case
+    ErrSymNotInScope e -> [getLoc (e ^. notInScopeSymbol)]
+    _ -> []
