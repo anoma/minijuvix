@@ -17,13 +17,13 @@ import MiniJuvix.Syntax.Usage qualified as A
 
 newtype TranslationState = TranslationState
   { -- | Top modules are supposed to be included at most once.
-    _stateIncluded :: HashSet A.TopModuleName
+    _translationStateIncluded :: HashSet A.TopModuleName
   }
 
 iniState :: TranslationState
 iniState =
   TranslationState
-    { _stateIncluded = mempty
+    { _translationStateIncluded = mempty
     }
 
 makeLenses ''TranslationState
@@ -75,11 +75,11 @@ goModuleBody b = ModuleBody <$> mapMaybeM goStatement (b ^. A.moduleStatements)
 
 goImport :: Member (State TranslationState) r => A.TopModule -> Sem r (Maybe Include)
 goImport m = do
-  inc <- gets (HashSet.member (m ^. A.moduleName) . (^. stateIncluded))
+  inc <- gets (HashSet.member (m ^. A.moduleName) . (^. translationStateIncluded))
   if
       | inc -> return Nothing
       | otherwise -> do
-          modify (over stateIncluded (HashSet.insert (m ^. A.moduleName)))
+          modify (over translationStateIncluded (HashSet.insert (m ^. A.moduleName)))
           m' <- goModule m
           return
             ( Just
