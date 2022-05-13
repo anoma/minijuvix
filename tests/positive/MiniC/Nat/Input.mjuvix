@@ -116,7 +116,7 @@ compile to-str {
 
 inductive Nat {
   zero : Nat;
-  suc : Nat → Nat
+  suc : Nat → Nat;
 };
 
 infixl 6 +;
@@ -151,6 +151,15 @@ two ≔ suc one;
 three : Nat;
 three ≔ suc two;
 
+inductive ListNat {
+  null : ListNat;
+  cons : Nat → ListNat → ListNat;
+};
+
+foldl : (Nat → Nat → Nat) → Nat → ListNat → Nat;
+foldl _ z null ≔ z;
+foldl f z (cons n hs) ≔ foldl f (f z n) hs;
+
 --------------------------------------------------------------------------------
 -- Main
 --------------------------------------------------------------------------------
@@ -175,11 +184,22 @@ four-is-even : Action;
 four-is-even ≔ (put-str "is-even 4 : ")
                  >> put-str-ln (bool-to-str (is-even (suc three)));
 
+l1 : ListNat;
+l1 ≔ cons one (cons two null);
+
+r : Nat;
+r ≔ foldl (+) zero l1;
+
+sum-is-three : Action;
+sum-is-three ≔ (put-str "list sum is 3 : ")
+                >> put-str-ln (nat-to-str r);
+
 main : Action;
 main ≔ three-plus-suc-one
    >> three-eq-suc-two
    >> three-neq-two
    >> three-is-not-even
    >> four-is-even
+   >> sum-is-three
 
 end;

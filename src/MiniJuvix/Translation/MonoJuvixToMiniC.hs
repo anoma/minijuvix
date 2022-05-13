@@ -177,11 +177,11 @@ goFunctionDef Mono.FunctionDef {..} =
     funReturnType :: CDeclType
     funReturnType = snd funType
     funType :: ([CDeclType], CDeclType)
-    funType = unfoldFunType _funDefType
-    unfoldFunType :: Mono.Type -> ([CDeclType], CDeclType)
-    unfoldFunType = \case
+    funType = unfoldFunType' _funDefType
+    unfoldFunType' :: Mono.Type -> ([CDeclType], CDeclType)
+    unfoldFunType' = \case
       Mono.TypeFunction (Mono.Function l r) ->
-        first (goType l :) (unfoldFunType r)
+        first (goType l :) (unfoldFunType' r)
       t -> ([], goType t)
     fallback :: Statement
     fallback =
@@ -661,10 +661,16 @@ goInductiveConstructorDef ctor =
             }
         )
 
+-- | a -> (b -> c)  ==> ([a, b], c)
+unfoldFunType :: Mono.Type -> ([Mono.Type], Mono.Type)
+unfoldFunType t = case t of
+  Mono.TypeFunction (Mono.Function l r) -> first (l :) (unfoldFunType r)
+  _ -> ([], t)
+
 goType :: Mono.Type -> CDeclType
-goType = \case
+goType t = case t of
   Mono.TypeIden ti -> getMonoType ti
-  Mono.TypeFunction {} -> unsupported "TypeFunction"
+  Mono.TypeFunction {} -> goTypeFunction (unfoldFunType t)
   Mono.TypeUniverse {} -> unsupported "TypeUniverse"
   Mono.TypeAny {} -> unsupported "TypeAny"
   where
@@ -680,6 +686,22 @@ goType = \case
           { _typeDeclType = DeclTypeDefType (mkName mn),
             _typeIsPtr = False
           }
+    goTypeFunction :: ([Mono.Type], Mono.Type) -> CDeclType
+    goTypeFunction (margs, mrType) =
+      CDeclType
+        { _typeDeclType =
+            DeclFunPtr
+              ( FunPtr
+                  { _funPtrReturnType = rType ^. typeDeclType,
+                    _funPtrIsPtr = rType ^. typeIsPtr,
+                    _funPtrArgs = goType <$> margs
+                  }
+              ),
+          _typeIsPtr = False
+        }
+      where
+        rType :: CDeclType
+        rType = goType mrType
 
 goTypeDecl :: Text -> CDeclType -> Declaration
 goTypeDecl n CDeclType {..} =
