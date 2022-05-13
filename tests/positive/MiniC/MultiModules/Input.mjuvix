@@ -18,16 +18,16 @@ open Prelude;
 
 bool-to-str : Bool → String;
 bool-to-str true ≔ "True";
-bool-to-str false ≔ "False";
-
+bool-to-str false ≔ "False" -- lol
+;
 
 --------------------------------------------------------------------------------
 -- Main
 --------------------------------------------------------------------------------
 
 fst-of-pair : Action;
-fst-of-pair ≔ (put-str "fst (True, False) = ")
-               >> put-str-ln (bool-to-str (fst Bool Bool (mkPair Bool Bool true false)));
+fst-of-pair ≔ (put-str "fst (True, False) = " {- haha -} ) -- haha
+               >> put-str-ln  (bool-to-str {- hi -} (fst Bool Bool (mkPair Bool Bool true false)));
 
 main : Action;
 main ≔ fst-of-pair;
