@@ -98,7 +98,7 @@ mkLoc offset SourcePos {..} = do
 curLoc :: Member (Reader ParserParams) r => ParsecS r Loc
 curLoc = do
   sp <- getSourcePos
-  offset <- stateOffset <$> getParserState
+  offset <- getOffset
   lift (mkLoc offset sp)
 
 interval :: Member (Reader ParserParams) r => ParsecS r a -> ParsecS r (a, Interval)
