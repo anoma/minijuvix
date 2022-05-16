@@ -81,7 +81,7 @@ instance ToGenericError NotInScope where
   genericError e = Just GenericError {
     _genericErrorFile = e ^. notInScopeSymbol . symbolLoc . intFile,
     _genericErrorLoc = intervalStart (e ^. notInScopeSymbol . symbolLoc),
-    _genericErrorMessage = undefined,
+    _genericErrorMessage = "tmp",
     _genericErrorIntervals = [e ^. notInScopeSymbol . symbolLoc]
    }
 
