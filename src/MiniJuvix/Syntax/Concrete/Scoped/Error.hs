@@ -61,8 +61,35 @@ ppScopeError s = case s of
   ErrMultipleCompileRuleSameBackend e -> ppError e
   ErrWrongKindExpressionCompileBlock e -> ppError e
 
+genericError' :: ScopeError -> Maybe GenericError
+genericError' = \case
+  ErrParser {} -> Nothing
+  ErrInfixParser {} -> Nothing
+  ErrInfixPattern {} -> Nothing
+  ErrMultipleDeclarations {} -> Nothing
+  ErrLacksTypeSig {} -> Nothing
+  ErrImportCycle {} -> Nothing
+  ErrSymNotInScope e -> genericError e
+  ErrQualSymNotInScope {} -> Nothing
+  ErrModuleNotInScope {} -> Nothing
+  ErrBindGroup {} -> Nothing
+  ErrDuplicateFixity {} -> Nothing
+  ErrMultipleExport {} -> Nothing
+  ErrAmbiguousSym {} -> Nothing
+  ErrWrongTopModuleName {} -> Nothing
+  ErrAmbiguousModuleSym {} -> Nothing
+  ErrUnusedOperatorDef {} -> Nothing
+  ErrLacksFunctionClause {} -> Nothing
+  ErrWrongLocationCompileBlock {} -> Nothing
+  ErrMultipleCompileBlockSameName {} -> Nothing
+  ErrMultipleCompileRuleSameBackend {} -> Nothing
+  ErrWrongKindExpressionCompileBlock {} -> Nothing
+
 docStream :: ScopeError -> SimpleDocStream Eann
 docStream = layoutPretty defaultLayoutOptions . ppScopeError
+
+instance ToGenericError ScopeError where
+  genericError = genericError'
 
 instance JuvixError ScopeError where
   renderAnsiText :: ScopeError -> Text

@@ -77,6 +77,14 @@ makeLenses ''NotInScope
 instance HasLoc NotInScope where
   getLoc = getLoc . (^. notInScopeSymbol)
 
+instance ToGenericError NotInScope where
+  genericError e = Just GenericError {
+    _genericErrorFile = e ^. notInScopeSymbol . symbolLoc . intFile,
+    _genericErrorLoc = intervalStart (e ^. notInScopeSymbol . symbolLoc),
+    _genericErrorMessage = undefined,
+    _genericErrorIntervals = [e ^. notInScopeSymbol . symbolLoc]
+   }
+
 newtype ModuleNotInScope = ModuleNotInScope
   { _moduleNotInScopeName :: Name
   }

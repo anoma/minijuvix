@@ -30,6 +30,10 @@ ppTypeCheckerError = \case
 docStream :: TypeCheckerError -> SimpleDocStream Eann
 docStream = layoutPretty defaultLayoutOptions . ppTypeCheckerError
 
+instance ToGenericError TypeCheckerError where
+  genericError :: TypeCheckerError -> Maybe GenericError
+  genericError = const Nothing
+
 instance JuvixError TypeCheckerError where
   renderAnsiText :: TypeCheckerError -> Text
   renderAnsiText = renderAnsi . docStream

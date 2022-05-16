@@ -2,21 +2,21 @@
 -- Control.Exception
 module MiniJuvix.Prelude.Error
   ( module MiniJuvix.Prelude.Error,
+    module MiniJuvix.Prelude.Error.GenericError,
     module MiniJuvix.Syntax.Concrete.Loc,
   )
 where
 
 import MiniJuvix.Prelude.Base
 import MiniJuvix.Syntax.Concrete.Loc
+import MiniJuvix.Prelude.Error.GenericError
 import System.Console.ANSI qualified as Ansi
 
--- import System.IO qualified as IO
-
 -- | Wrapper for any instance of JuvixError.
-data AJuvixError = forall e. JuvixError e => AJuvixError e
+data AJuvixError = forall e. (ToGenericError e, JuvixError e) => AJuvixError e
 
 -- | Minimal interface of an minijuvix error.
-class Typeable e => JuvixError e where
+class (ToGenericError e, Typeable e) => JuvixError e where
   -- | Print the error to stderr with Ansi formatting.
   printErrorAnsi :: e -> IO ()
   printErrorAnsi = hPutStrLn stderr . renderAnsiText
@@ -62,6 +62,9 @@ instance JuvixError Text where
   renderText = id
   renderAnsiText = id
   errorInterval = const mempty
+
+instance ToGenericError AJuvixError where
+  genericError (AJuvixError e) = genericError e
 
 instance JuvixError AJuvixError where
   renderText (AJuvixError r) = renderText r
