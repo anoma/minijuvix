@@ -63,7 +63,7 @@ findRoot cli = do
         Nothing -> return c
         Just yaml -> return (takeDirectory yaml)
     dir0 :: Maybe FilePath
-    dir0 = cliMainFile cli
+    dir0 = takeDirectory <$> cliMainFile cli
 
 class HasEntryPoint a where
   getEntryPoint :: FilePath -> a -> EntryPoint
