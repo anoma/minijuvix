@@ -2,7 +2,6 @@
 
 module Main (main) where
 
-import GlobalOptions
 import App
 import Commands.Extra
 import Commands.Html
@@ -16,6 +15,7 @@ import Commands.Termination as Termination
 import Control.Exception qualified as IO
 import Control.Monad.Extra
 import Data.HashMap.Strict qualified as HashMap
+import GlobalOptions
 import MiniJuvix.Pipeline
 import MiniJuvix.Prelude hiding (Doc)
 import MiniJuvix.Prelude.Pretty hiding (Doc)

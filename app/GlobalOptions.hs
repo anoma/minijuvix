@@ -7,4 +7,5 @@ data GlobalOptions = GlobalOptions
     _globalShowNameIds :: Bool,
     _globalOnlyErrors :: Bool
   }
+
 makeLenses ''GlobalOptions

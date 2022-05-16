@@ -5,13 +5,14 @@ import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Concrete.Loc
 import Prettyprinter.Render.Text
 
-data GenericError = GenericError {
-  _genericErrorLoc :: Loc,
-  _genericErrorFile :: FilePath,
-  _genericErrorMessage :: Text,
-  _genericErrorIntervals :: [Interval]
+data GenericError = GenericError
+  { _genericErrorLoc :: Loc,
+    _genericErrorFile :: FilePath,
+    _genericErrorMessage :: Text,
+    _genericErrorIntervals :: [Interval]
   }
   deriving stock (Show)
+
 makeLenses ''GenericError
 
 class ToGenericError a where

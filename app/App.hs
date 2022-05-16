@@ -20,8 +20,8 @@ runAppIO g = interpret $ \case
   RenderStdOut t
     | g ^. globalOnlyErrors -> return ()
     | otherwise -> embed $ do
-      sup <- Ansi.hSupportsANSI stdout
-      renderIO (not (g ^. globalNoColors) && sup) t
+        sup <- Ansi.hSupportsANSI stdout
+        renderIO (not (g ^. globalNoColors) && sup) t
   ReadGlobalOptions -> return g
   RunPipelineEither p -> embed (runIOEither p)
   Say t

@@ -59,10 +59,11 @@ makeLenses ''Loc
 makeLenses ''Pos
 
 intervalStart :: Interval -> Loc
-intervalStart i = Loc {
-  _locFile = i ^. intFile,
-  _locFileLoc = i ^. intStart
-  }
+intervalStart i =
+  Loc
+    { _locFile = i ^. intFile,
+      _locFileLoc = i ^. intStart
+    }
 
 mkInterval :: Loc -> Loc -> Interval
 mkInterval start end =

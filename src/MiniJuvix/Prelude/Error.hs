@@ -8,8 +8,8 @@ module MiniJuvix.Prelude.Error
 where
 
 import MiniJuvix.Prelude.Base
-import MiniJuvix.Syntax.Concrete.Loc
 import MiniJuvix.Prelude.Error.GenericError
+import MiniJuvix.Syntax.Concrete.Loc
 import System.Console.ANSI qualified as Ansi
 
 -- | Wrapper for any instance of JuvixError.
