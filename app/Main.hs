@@ -3,19 +3,11 @@
 module Main (main) where
 
 import App
-import Commands.Extra
-import Commands.Html
-import Commands.MicroJuvix
-import Commands.MiniC
-import Commands.MiniHaskell
-import Commands.MonoJuvix
-import Commands.Parse
-import Commands.Scope
+import CLI
 import Commands.Termination as Termination
 import Control.Exception qualified as IO
 import Control.Monad.Extra
 import Data.HashMap.Strict qualified as HashMap
-import GlobalOptions
 import MiniJuvix.Pipeline
 import MiniJuvix.Prelude hiding (Doc)
 import MiniJuvix.Prelude.Pretty hiding (Doc)
@@ -41,204 +33,14 @@ import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 import MiniJuvix.Utils.Version (runDisplayVersion)
 import Options.Applicative
-import Options.Applicative.Help.Pretty
 import Text.Show.Pretty hiding (Html)
-
-data Command
-  = Scope ScopeOptions
-  | Parse ParseOptions
-  | Html HtmlOptions
-  | Termination TerminationCommand
-  | MiniHaskell MiniHaskellOptions
-  | MiniC MiniCOptions
-  | MicroJuvix MicroJuvixCommand
-  | MonoJuvix MonoJuvixOptions
-  | DisplayVersion
-  | DisplayRoot
-  | Highlight HighlightOptions
-
-data CLI = CLI
-  { _cliGlobalOptions :: GlobalOptions,
-    _cliCommand :: Command
-  }
-
-newtype HighlightOptions = HighlightOptions
-  { _highlightInputFile :: FilePath
-  }
-
-makeLenses ''HighlightOptions
-makeLenses ''CLI
-
-parseGlobalOptions :: Parser GlobalOptions
-parseGlobalOptions = do
-  _globalNoColors <-
-    switch
-      ( long "no-colors"
-          <> help "Disable globally ANSI formatting"
-      )
-  _globalShowNameIds <-
-    switch
-      ( long "show-name-ids"
-          <> help "Show the unique number of each identifier when pretty printing"
-      )
-  _globalOnlyErrors <-
-    switch
-      ( long "only-errors"
-          <> help "Only print errors in a uniform format (used by minijuvix-mode)"
-      )
-  pure GlobalOptions {..}
-
-parseCLI :: Parser CLI
-parseCLI = do
-  _cliGlobalOptions <- parseGlobalOptions
-  _cliCommand <- parseCommand
-  pure CLI {..}
-
-parseHighlight :: Parser HighlightOptions
-parseHighlight = do
-  _highlightInputFile <- parserInputFile
-  pure HighlightOptions {..}
-
-parseDisplayVersion :: Parser Command
-parseDisplayVersion =
-  flag'
-    DisplayVersion
-    (long "version" <> short 'v' <> help "Print the version and exit")
-
-parseDisplayRoot :: Parser Command
-parseDisplayRoot =
-  flag'
-    DisplayRoot
-    (long "show-root" <> help "Print the detected root of the project")
-
-descr :: ParserInfo CLI
-descr =
-  info
-    (parseCLI <**> helper)
-    ( fullDesc
-        <> progDesc "The MiniJuvix compiler."
-        <> headerDoc (Just headDoc)
-        <> footerDoc (Just foot)
-    )
-  where
-    headDoc :: Doc
-    headDoc = dullblue $ bold $ underline "MiniJuvix help"
-
-    foot :: Doc
-    foot = bold "maintainers: " <> "The MiniJuvix Team"
-
-parseCommand :: Parser Command
-parseCommand =
-  parseDisplayVersion
-    <|> parseDisplayRoot
-    <|> hsubparser
-      ( mconcat
-          [ commandParse,
-            commandScope,
-            commandHtml,
-            commandTermination,
-            commandMonoJuvix,
-            commandMicroJuvix,
-            commandMiniHaskell,
-            commandMiniC,
-            commandHighlight
-          ]
-      )
-  where
-    commandMicroJuvix :: Mod CommandFields Command
-    commandMicroJuvix = command "microjuvix" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (MicroJuvix <$> parseMicroJuvixCommand)
-            (progDesc "Subcommands related to MicroJuvix")
-
-    commandMonoJuvix :: Mod CommandFields Command
-    commandMonoJuvix = command "monojuvix" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (MonoJuvix <$> parseMonoJuvix)
-            (progDesc "Translate a MiniJuvix file to MonoJuvix")
-
-    commandMiniHaskell :: Mod CommandFields Command
-    commandMiniHaskell = command "minihaskell" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (MiniHaskell <$> parseMiniHaskell)
-            (progDesc "Translate a MiniJuvix file to MiniHaskell")
-
-    commandMiniC :: Mod CommandFields Command
-    commandMiniC = command "minic" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (MiniC <$> parseMiniC)
-            (progDesc "Translate a MiniJuvix file to MiniC")
-
-    commandHighlight :: Mod CommandFields Command
-    commandHighlight = command "highlight" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Highlight <$> parseHighlight)
-            (progDesc "Highlight a MiniJuvix file")
-
-    commandParse :: Mod CommandFields Command
-    commandParse = command "parse" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Parse <$> parseParse)
-            (progDesc "Parse a MiniJuvix file")
-
-    commandHtml :: Mod CommandFields Command
-    commandHtml = command "html" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Html <$> parseHtml)
-            (progDesc "Generate HTML for a MiniJuvix file")
-
-    commandScope :: Mod CommandFields Command
-    commandScope = command "scope" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Scope <$> parseScope)
-            (progDesc "Parse and scope a MiniJuvix file")
-
-    commandTermination :: Mod CommandFields Command
-    commandTermination = command "termination" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Termination <$> parseTerminationCommand)
-            (progDesc "Subcommands related to termination checking")
-
-mkScopePrettyOptions :: GlobalOptions -> ScopeOptions -> Scoper.Options
-mkScopePrettyOptions g ScopeOptions {..} =
-  Scoper.defaultOptions
-    { Scoper._optShowNameId = g ^. globalShowNameIds,
-      Scoper._optInlineImports = _scopeInlineImports
-    }
 
 minijuvixYamlFile :: FilePath
 minijuvixYamlFile = "minijuvix.yaml"
 
 findRoot :: CLI -> IO FilePath
 findRoot cli = do
-  setCurrentDirectory dir0
+  whenJust dir0 setCurrentDirectory
   r <- IO.try go :: IO (Either IO.SomeException FilePath)
   case r of
     Left err -> do
@@ -260,10 +62,8 @@ findRoot cli = do
       case l of
         Nothing -> return c
         Just yaml -> return (takeDirectory yaml)
-    dir0 :: FilePath
-    dir0 = case cli ^. cliCommand of
-      Scope s -> takeDirectory (head (s ^. scopeInputFiles))
-      _ -> error "TODO"
+    dir0 :: Maybe FilePath
+    dir0 = cliMainFile cli
 
 class HasEntryPoint a where
   getEntryPoint :: FilePath -> a -> EntryPoint
@@ -419,15 +219,6 @@ runCLI cli = do
                   Nothing -> say (n <> " Fails the termination checking") >> embed exitFailure
                   Just (Termination.LexOrder k) -> say (n <> " Terminates with order " <> show (toList k))
         newline
-
-makeAbsPaths :: CLI -> IO CLI
-makeAbsPaths = traverseOf cliCommand aux
-  where
-  aux  :: Command -> IO Command
-  aux = \case
-    Scope s -> Scope <$> traverseOf scopeInputFiles (mapM makeAbsolute) s
-    _ -> error "TODO"
-
 
 main :: IO ()
 main = do
