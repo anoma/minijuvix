@@ -23,7 +23,12 @@ instance ToGenericError Text where
 
 instance Pretty GenericError where
   pretty :: GenericError -> Doc a
-  pretty _ = "tmp"
+  pretty g =
+    let lineNum = g ^. genericErrorLoc . locFileLoc . locLine
+        colNum = g ^. genericErrorLoc . locFileLoc . locCol in
+    pretty (g ^. genericErrorFile)
+    <> colon <> pretty lineNum <> colon <> pretty colNum
+    <> colon <+> "error" <> colon <+> pretty (g ^. genericErrorMessage) <> line
 
 renderGenericError :: GenericError -> Text
 renderGenericError = renderStrict . layoutPretty defaultLayoutOptions . pretty

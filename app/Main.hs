@@ -236,8 +236,9 @@ mkScopePrettyOptions g ScopeOptions {..} =
 minijuvixYamlFile :: FilePath
 minijuvixYamlFile = "minijuvix.yaml"
 
-findRoot :: IO FilePath
-findRoot = do
+findRoot :: CLI -> IO FilePath
+findRoot cli = do
+  setCurrentDirectory dir0
   r <- IO.try go :: IO (Either IO.SomeException FilePath)
   case r of
     Left err -> do
@@ -259,6 +260,10 @@ findRoot = do
       case l of
         Nothing -> return c
         Just yaml -> return (takeDirectory yaml)
+    dir0 :: FilePath
+    dir0 = case cli ^. cliCommand of
+      Scope s -> takeDirectory (head (s ^. scopeInputFiles))
+      _ -> error "TODO"
 
 class HasEntryPoint a where
   getEntryPoint :: FilePath -> a -> EntryPoint
@@ -299,10 +304,9 @@ instance HasEntryPoint CallGraphOptions where
 runCLI :: Members '[Embed IO, App] r => CLI -> Sem r ()
 runCLI cli = do
   let globalOptions = cli ^. cliGlobalOptions
-      useColors = not (globalOptions ^. globalNoColors)
       toAnsiText' :: forall a. (HasAnsiBackend a, HasTextBackend a) => a -> Text
-      toAnsiText' = toAnsiText useColors
-  root <- embed findRoot
+      toAnsiText' = toAnsiText (not (globalOptions ^. globalNoColors))
+  root <- embed (findRoot cli)
   case cli ^. cliCommand of
     DisplayVersion -> embed runDisplayVersion
     DisplayRoot -> say (pack root)
@@ -416,7 +420,16 @@ runCLI cli = do
                   Just (Termination.LexOrder k) -> say (n <> " Terminates with order " <> show (toList k))
         newline
 
+makeAbsPaths :: CLI -> IO CLI
+makeAbsPaths = traverseOf cliCommand aux
+  where
+  aux  :: Command -> IO Command
+  aux = \case
+    Scope s -> Scope <$> traverseOf scopeInputFiles (mapM makeAbsolute) s
+    _ -> error "TODO"
+
+
 main :: IO ()
 main = do
-  cli <- execParser descr
+  cli <- execParser descr >>= makeAbsPaths
   runM (runAppIO (cli ^. cliGlobalOptions) (runCLI cli))
