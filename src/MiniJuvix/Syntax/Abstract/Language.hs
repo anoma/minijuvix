@@ -1,6 +1,7 @@
 module MiniJuvix.Syntax.Abstract.Language
   ( module MiniJuvix.Syntax.Abstract.Language,
     module MiniJuvix.Syntax.Concrete.Language,
+    module MiniJuvix.Syntax.Hole
   )
 where
 
@@ -10,6 +11,7 @@ import MiniJuvix.Syntax.Concrete.Name qualified as C
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.Universe
+import MiniJuvix.Syntax.Hole
 
 type TopModuleName = S.TopModulePath
 
@@ -102,6 +104,7 @@ data Expression
   | ExpressionUniverse Universe
   | ExpressionFunction Function
   | ExpressionLiteral LiteralLoc
+  | ExpressionHole Hole
   --- | ExpressionMatch Match
   ---  ExpressionLambda Lambda not supported yet
   deriving stock (Eq, Show)
@@ -109,6 +112,7 @@ data Expression
 instance HasAtomicity Expression where
   atomicity e = case e of
     ExpressionIden {} -> Atom
+    ExpressionHole {} -> Atom
     ExpressionUniverse u -> atomicity u
     ExpressionApplication a -> atomicity a
     ExpressionFunction f -> atomicity f
