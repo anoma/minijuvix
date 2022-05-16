@@ -9,6 +9,7 @@ import Control.Exception qualified as IO
 import Control.Monad.Extra
 import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Pipeline
+import MiniJuvix.Pipeline.EntryPoint qualified as EntryPoint
 import MiniJuvix.Prelude hiding (Doc)
 import MiniJuvix.Prelude.Pretty hiding (Doc)
 import MiniJuvix.Syntax.Abstract.InfoTable qualified as Abstract
@@ -65,41 +66,45 @@ findRoot cli = do
     dir0 :: Maybe FilePath
     dir0 = takeDirectory <$> cliMainFile cli
 
+getEntryPoint' :: FilePath -> GlobalOptions -> NonEmpty FilePath -> EntryPoint
+getEntryPoint' root gopts mpaths
+  = EntryPoint root (EntryPoint.Options (gopts ^. globalNoTermination)) mpaths
+
 class HasEntryPoint a where
-  getEntryPoint :: FilePath -> a -> EntryPoint
+  getEntryPoint :: FilePath -> GlobalOptions -> a -> EntryPoint
 
 instance HasEntryPoint ScopeOptions where
-  getEntryPoint root = EntryPoint root . (^. scopeInputFiles)
+  getEntryPoint x y = getEntryPoint' x y . (^. scopeInputFiles)
 
 instance HasEntryPoint ParseOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. parseInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. parseInputFile)
 
 instance HasEntryPoint HighlightOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. highlightInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. highlightInputFile)
 
 instance HasEntryPoint HtmlOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. htmlInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. htmlInputFile)
 
 instance HasEntryPoint MicroJuvixTypeOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. microJuvixTypeInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. microJuvixTypeInputFile)
 
 instance HasEntryPoint MicroJuvixPrettyOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. microJuvixPrettyInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. microJuvixPrettyInputFile)
 
 instance HasEntryPoint MonoJuvixOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. monoJuvixInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. monoJuvixInputFile)
 
 instance HasEntryPoint MiniHaskellOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. miniHaskellInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. miniHaskellInputFile)
 
 instance HasEntryPoint MiniCOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. miniCInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. miniCInputFile)
 
 instance HasEntryPoint CallsOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. callsInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. callsInputFile)
 
 instance HasEntryPoint CallGraphOptions where
-  getEntryPoint root = EntryPoint root . pure . (^. graphInputFile)
+  getEntryPoint x y = getEntryPoint' x y . pure . (^. graphInputFile)
 
 runCLI :: Members '[Embed IO, App] r => CLI -> Sem r ()
 runCLI cli = do

@@ -2,6 +2,8 @@ module TypeCheck.Negative (allTests) where
 
 import Base
 import MiniJuvix.Pipeline
+import MiniJuvix.Pipeline.EntryPoint qualified as EntryPoint
+import MiniJuvix.Prelude.Error as Error
 import MiniJuvix.Syntax.MicroJuvix.Error
 
 type FailMsg = String
@@ -20,7 +22,8 @@ testDescr NegTest {..} =
         { _testName = _name,
           _testRoot = tRoot,
           _testAssertion = Single $ do
-            let entryPoint = EntryPoint "." (pure _file)
+            let gOptions = EntryPoint.Options {_optionsNoTermination = False}
+                entryPoint = EntryPoint "." gOptions (pure _file)
             result <- runIOEither (upToMicroJuvixTyped entryPoint)
             case mapLeft fromMiniJuvixError result of
               Left (Just tyError) -> whenJust (_checkErr tyError) assertFailure

@@ -6,6 +6,7 @@ import Base
 import Data.FileEmbed
 import Data.Text.IO qualified as TIO
 import MiniJuvix.Pipeline
+import MiniJuvix.Pipeline.EntryPoint qualified as EntryPoint
 import MiniJuvix.Translation.MonoJuvixToMiniC as MiniC
 import System.IO.Extra (withTempDir)
 import System.Process qualified as P
@@ -44,7 +45,8 @@ testDescr PosTest {..} =
                 "WASI_SYSROOT_PATH"
 
             step "C Generation"
-            let entryPoint = EntryPoint "." (pure mainFile)
+            let gOptions = EntryPoint.Options {_optionsNoTermination = False}
+                entryPoint = EntryPoint "." gOptions (pure mainFile)
             p :: MiniC.MiniCResult <- runIO (upToMiniC entryPoint)
 
             expected <- TIO.readFile expectedFile

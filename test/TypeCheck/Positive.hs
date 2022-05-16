@@ -2,6 +2,7 @@ module TypeCheck.Positive where
 
 import Base
 import MiniJuvix.Pipeline
+import MiniJuvix.Pipeline.EntryPoint qualified as EntryPoint
 
 data PosTest = PosTest
   { _name :: String,
@@ -19,7 +20,8 @@ testDescr PosTest {..} =
         { _testName = _name,
           _testRoot = tRoot,
           _testAssertion = Single $ do
-            let entryPoint = EntryPoint "." (pure _file)
+            let gOptions = EntryPoint.Options {_optionsNoTermination = False}
+                entryPoint = EntryPoint "." gOptions (pure _file)
             (void . runIO) (upToMicroJuvixTyped entryPoint)
         }
 

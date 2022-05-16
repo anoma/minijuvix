@@ -4,7 +4,7 @@ import Base
 import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Pipeline
-import MiniJuvix.Prelude.Pretty
+import MiniJuvix.Pipeline.EntryPoint qualified as EntryPoint
 import MiniJuvix.Syntax.Concrete.Parser qualified as Parser
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty qualified as M
 import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
@@ -33,7 +33,8 @@ testDescr PosTest {..} =
           _testAssertion = Steps $ \step -> do
             cwd <- getCurrentDirectory
             entryFile <- makeAbsolute _file
-            let entryPoint = EntryPoint cwd (pure entryFile)
+            let gOptions = EntryPoint.Options {_optionsNoTermination = False }
+                entryPoint = EntryPoint cwd gOptions (pure entryFile)
 
             step "Parsing"
             p :: Parser.ParserResult <- runIO (upToParsing entryPoint)
