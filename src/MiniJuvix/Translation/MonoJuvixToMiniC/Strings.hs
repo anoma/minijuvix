@@ -40,3 +40,6 @@ tag = "tag"
 
 data_ :: IsString s => s
 data_ = "data"
+
+main_ :: IsString s => s
+main_ = "main"

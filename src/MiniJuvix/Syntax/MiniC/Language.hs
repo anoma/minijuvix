@@ -20,10 +20,11 @@ data Cpp
   = CppIncludeFile Text
   | CppIncludeSystem Text
   | CppDefine Define
+  | CppDefineParens Define
 
 data Define = Define
   { _defineName :: Text,
-    _defineBody :: Text
+    _defineBody :: Expression
   }
 
 --------------------------------------------------------------------------------

@@ -18,7 +18,13 @@ prettyCpp :: Cpp -> HP.Doc
 prettyCpp = \case
   CppIncludeFile i -> "#include" HP.<+> HP.doubleQuotes (prettyText i)
   CppIncludeSystem i -> "#include" HP.<+> encAngles (prettyText i)
-  CppDefine Define {..} -> "#define" HP.<+> (prettyText _defineName HP.<+> prettyText _defineBody)
+  CppDefine Define {..} -> prettyDefine _defineName (prettyDefineBody _defineBody)
+  CppDefineParens Define {..} -> prettyDefine _defineName (HP.parens (prettyDefineBody _defineBody))
+  where
+    prettyDefineBody :: Expression -> HP.Doc
+    prettyDefineBody e = P.pretty (mkCExpr e)
+    prettyDefine :: Text -> HP.Doc -> HP.Doc
+    prettyDefine n body = "#define" HP.<+> prettyText n HP.<+> body
 
 prettyCCode :: CCode -> HP.Doc
 prettyCCode = \case
