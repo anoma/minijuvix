@@ -60,9 +60,10 @@ run =minijuvix --help=.
 The following dependencies are required for the WASM compiler tests.
 
 - [[https://wasmer.io][wasmer]]
-- [[https://releases.llvm.org/download.html][Clang / LLVM]] (NB: On macos the preinstalled clang does not support the wasm
+- [[https://releases.llvm.org/download.html][Clang / LLVM]] (NB: On macOS the preinstalled clang does not support the wasm
   target so use =brew install llvm= instead for example)
 - [[https://github.com/WebAssembly/wasi-sdk/releases][wasi-sdk]]
+- [[https://lld.llvm.org][wasm-ld]] - the LLVM linker for WASM (NB: On linux you may need to install the =lld= package, on macOS this is installed as part of =llvm=).
 
 To install =wasi-sdk= you need to download =libclang_rt= and =wasi-sysroot=
 precompiled archives from the [[https://github.com/WebAssembly/wasi-sdk/releases/][wasi-sdk release page]] and:
