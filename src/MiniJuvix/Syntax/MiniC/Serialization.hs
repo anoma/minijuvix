@@ -51,14 +51,15 @@ goTypeDecl' CDeclType {..} =
 mkCDecl :: Declaration -> CDecl
 mkCDecl Declaration {..} = case _declType of
   DeclFunPtr FunPtr {..} ->
-    CDecl (mkDeclSpecifier _funPtrReturnType)
-          [(Just declr, Nothing, Nothing)]
-          C.undefNode
+    CDecl
+      (mkDeclSpecifier _funPtrReturnType)
+      [(Just declr, Nothing, Nothing)]
+      C.undefNode
     where
       declr :: CDeclr
       declr = CDeclr (mkIdent <$> _declName) derivedDeclr Nothing [] C.undefNode
       derivedDeclr :: [CDerivedDeclr]
-      derivedDeclr = (CPtrDeclr [] C.undefNode) : (funDerDeclr <> ptrDeclr)
+      derivedDeclr = CPtrDeclr [] C.undefNode : (funDerDeclr <> ptrDeclr)
       ptrDeclr :: [CDerivedDeclr]
       ptrDeclr = [CPtrDeclr [] C.undefNode | _funPtrIsPtr]
       funDerDeclr :: [CDerivedDeclr]

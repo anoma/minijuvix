@@ -159,7 +159,8 @@ goFunctionDef Mono.FunctionDef {..} =
             _funcBody = maybeToList (BodyStatement <$> mkBody (goFunctionClause <$> toList _funDefClauses))
           }
       )
-  ] <> (ExternalMacro . CppDefineParens <$> nullaryDefine)
+  ]
+    <> (ExternalMacro . CppDefineParens <$> nullaryDefine)
   where
     mkBody :: [(Maybe Expression, Statement)] -> Maybe Statement
     mkBody cs = do
@@ -184,13 +185,19 @@ goFunctionDef Mono.FunctionDef {..} =
     funcBasename :: Text
     funcBasename = mkName _funDefName
     nullaryDefine :: [Define]
-    nullaryDefine = if
-      | isNullary -> [Define {_defineName=funcBasename,
-                              _defineBody=functionCall (ExpressionVar funcName) []}]
-      | otherwise -> []
-    funcName = if
-      | isNullary -> asNullary funcBasename
-      | otherwise -> funcBasename
+    nullaryDefine =
+      if
+          | isNullary ->
+              [ Define
+                  { _defineName = funcBasename,
+                    _defineBody = functionCall (ExpressionVar funcName) []
+                  }
+              ]
+          | otherwise -> []
+    funcName =
+      if
+          | isNullary -> asNullary funcBasename
+          | otherwise -> funcBasename
     funArgTypes :: [CDeclType]
     funArgTypes = fst funType
     funReturnType :: CDeclType
