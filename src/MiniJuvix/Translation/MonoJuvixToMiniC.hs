@@ -2,6 +2,7 @@ module MiniJuvix.Translation.MonoJuvixToMiniC where
 
 import Data.HashMap.Strict qualified as HashMap
 import Data.Text qualified as T
+import MiniJuvix.Internal.Strings
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Backends
 import MiniJuvix.Syntax.Concrete.Language qualified as C
@@ -12,7 +13,6 @@ import MiniJuvix.Syntax.MiniC.Serialization
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Syntax.NameId
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as Mono
-import MiniJuvix.Translation.MonoJuvixToMiniC.Strings
 
 newtype MiniCResult = MiniCResult
   { _resultCCode :: Text
@@ -160,7 +160,7 @@ goFunctionDef Mono.FunctionDef {..} =
           }
       )
   ]
-    <> (ExternalMacro . CppDefineParens <$> nullaryDefine)
+    <> (ExternalMacro . CppDefineParens <$> toList nullaryDefine)
   where
     mkBody :: [(Maybe Expression, Statement)] -> Maybe Statement
     mkBody cs = do
@@ -184,16 +184,16 @@ goFunctionDef Mono.FunctionDef {..} =
     isNullary = null funArgTypes && funcBasename /= main_
     funcBasename :: Text
     funcBasename = mkName _funDefName
-    nullaryDefine :: [Define]
+    nullaryDefine :: Maybe Define
     nullaryDefine =
       if
           | isNullary ->
-              [ Define
-                  { _defineName = funcBasename,
-                    _defineBody = functionCall (ExpressionVar funcName) []
-                  }
-              ]
-          | otherwise -> []
+            Just $
+              Define
+                { _defineName = funcBasename,
+                  _defineBody = functionCall (ExpressionVar funcName) []
+                }
+          | otherwise -> Nothing
     funcName =
       if
           | isNullary -> asNullary funcBasename

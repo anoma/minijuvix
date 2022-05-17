@@ -79,22 +79,6 @@ mkCDecl Declaration {..} = case _declType of
       initializer :: Maybe CInit
       initializer = mkCInit <$> _declInitializer
 
--- FuncPointerTypeDecl (FuncPointerType {..}) ->
---   CDecl (mkDeclSpecifier _funcPtrReturnType)
---         [(Just declr, Nothing, Nothing)]
---         C.undefNode
---   where
---     declr :: CDeclr
---     declr = CDeclr (Just (mkIdent _funcPtrName)) derivedDeclr Nothing [] C.undefNode
---     derivedDeclr :: [CDerivedDeclr]
---     derivedDeclr = (CPtrDeclr [] C.undefNode) : (funDerDeclr <> ptrDeclr)
---     ptrDeclr :: [CDerivedDeclr]
---     ptrDeclr = [CPtrDeclr [] C.undefNode | _funcPtrIsPtr]
---     funDerDeclr :: [CDerivedDeclr]
---     funDerDeclr = [CFunDeclr (Right (funArgs, False)) [] C.undefNode]
---     funArgs :: [CDecl]
---     funArgs = mkCDecl <$> _funcPtrArgs
-
 mkCInit :: Initializer -> CInit
 mkCInit = \case
   ExprInitializer e -> CInitExpr (mkCExpr e) C.undefNode
