@@ -1,6 +1,7 @@
 module MiniJuvix.Syntax.Concrete.Scoped.Error.Types
   ( module MiniJuvix.Syntax.Concrete.Language,
     module MiniJuvix.Syntax.Concrete.Scoped.Error.Types,
+    module MiniJuvix.Syntax.Concrete.Scoped.Error.Ann,
   )
 where
 
@@ -11,21 +12,28 @@ import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Concrete.Language
 import MiniJuvix.Syntax.Concrete.Language qualified as L
+import MiniJuvix.Syntax.Concrete.Scoped.Error.Ann
+import MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty.Ansi qualified as Ansi
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty.Base qualified as P
 import MiniJuvix.Syntax.Concrete.Scoped.Scope
-import Prettyprinter.Render.Text
 import Text.EditDistance
 
 class PrettyError e where
   ppError :: e -> Doc Eann
 
-data Eann
-  = Highlight
-  | ScopedAnn P.Ann
+newtype PPOutput = PPOutput (Doc Eann)
 
-prettyErrorText :: PrettyError e => e -> Text
-prettyErrorText = (<> "ת") . renderStrict . layoutPretty defaultLayoutOptions . ppError
+instance HasAnsiBackend PPOutput where
+  toAnsiStream (PPOutput o) = reAnnotateS Ansi.stylize (layoutPretty defaultLayoutOptions o)
+  toAnsiDoc (PPOutput o) = reAnnotate Ansi.stylize o
+
+instance HasTextBackend PPOutput where
+  toTextDoc (PPOutput o) = unAnnotate o
+  toTextStream (PPOutput o) = unAnnotateS (layoutPretty defaultLayoutOptions o)
+
+prettyError :: PrettyError e => e -> AnsiText
+prettyError = AnsiText . PPOutput . (<> "ת") . ppError
 
 highlight :: Doc Eann -> Doc Eann
 highlight = annotate Highlight
@@ -66,7 +74,7 @@ instance ToGenericError MultipleDeclarations where
       GenericError
         { _genericErrorFile = _multipleDeclSecond ^. intFile,
           _genericErrorLoc = intervalStart i1,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i1, _multipleDeclSecond]
         }
     where
@@ -103,7 +111,7 @@ instance ToGenericError LacksTypeSig where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -127,7 +135,7 @@ instance ToGenericError LacksFunctionClause where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -156,7 +164,7 @@ instance ToGenericError ImportCycle where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -178,7 +186,7 @@ instance ToGenericError QualSymNotInScope where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -205,7 +213,7 @@ instance ToGenericError BindGroupConflict where
       GenericError
         { _genericErrorFile = i2 ^. intFile,
           _genericErrorLoc = intervalStart i2,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i1, i2]
         }
     where
@@ -232,7 +240,7 @@ instance ToGenericError DuplicateFixity where
       GenericError
         { _genericErrorFile = i2 ^. intFile,
           _genericErrorLoc = intervalStart i2,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i1, i2]
         }
     where
@@ -257,7 +265,7 @@ instance ToGenericError MultipleExportConflict where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -302,7 +310,7 @@ instance ToGenericError NotInScope where
       GenericError
         { _genericErrorFile = e ^. notInScopeSymbol . symbolLoc . intFile,
           _genericErrorLoc = intervalStart (e ^. notInScopeSymbol . symbolLoc),
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [e ^. notInScopeSymbol . symbolLoc]
         }
 
@@ -326,7 +334,7 @@ instance ToGenericError ModuleNotInScope where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -353,7 +361,7 @@ instance ToGenericError UnusedOperatorDef where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -381,7 +389,7 @@ instance ToGenericError WrongTopModuleName where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -402,7 +410,7 @@ instance ToGenericError AmbiguousSym where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = i : is
         }
     where
@@ -421,7 +429,7 @@ instance ToGenericError AmbiguousModuleSym where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = i : is
         }
     where
@@ -448,7 +456,7 @@ instance ToGenericError WrongLocationCompileBlock where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -471,7 +479,7 @@ instance ToGenericError MultipleCompileBlockSameName where
       GenericError
         { _genericErrorFile = i2 ^. intFile,
           _genericErrorLoc = intervalStart i2,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i1, i2]
         }
     where
@@ -490,7 +498,7 @@ instance ToGenericError MultipleCompileRuleSameBackend where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where
@@ -513,7 +521,7 @@ instance ToGenericError WrongKindExpressionCompileBlock where
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = prettyErrorText e,
+          _genericErrorMessage = prettyError e,
           _genericErrorIntervals = [i]
         }
     where

@@ -7,9 +7,9 @@ where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty
-import MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty qualified as P
 import MiniJuvix.Syntax.Concrete.Scoped.Error.Types
 import Prettyprinter
+import Prettyprinter.Render.Text
 
 -- | An error that happens during scope checking. Note that it is defined here
 -- instead of in Error.Types to avoid orphan instances.
@@ -92,8 +92,7 @@ instance ToGenericError ScopeError where
   genericError = genericError'
 
 instance JuvixError ScopeError where
-  renderAnsiText :: ScopeError -> Text
-  renderAnsiText = renderAnsi . docStream
-
   renderText :: ScopeError -> Text
-  renderText = P.renderText . docStream
+  renderText = renderStrict . docStream
+
+  renderAnsiText = renderStrict . docStream

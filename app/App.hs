@@ -28,10 +28,7 @@ runAppIO g = interpret $ \case
     | g ^. globalOnlyErrors -> return ()
     | otherwise -> embed (putStrLn t)
   ExitError e -> do
-    if
-        | g ^. globalOnlyErrors -> whenJust (genericError e) (embed . hPutStrLn stderr . renderGenericError)
-        | g ^. globalNoColors -> embed (printErrorText e)
-        | otherwise -> embed (printErrorAnsiSafe e)
+    whenJust (genericError e) (embed . hPutStrLn stderr . renderGenericError (not (g ^. globalNoColors)))
     embed exitFailure
 
 runPipeline :: Member App r => Sem PipelineEff a -> Sem r a

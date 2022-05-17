@@ -3,15 +3,15 @@ module MiniJuvix.Prelude.Error.GenericError where
 import MiniJuvix.Prelude.Base
 import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Concrete.Loc
+import Prettyprinter.Render.Terminal qualified as Ansi
 import Prettyprinter.Render.Text
 
 data GenericError = GenericError
   { _genericErrorLoc :: Loc,
     _genericErrorFile :: FilePath,
-    _genericErrorMessage :: Text,
+    _genericErrorMessage :: AnsiText,
     _genericErrorIntervals :: [Interval]
   }
-  deriving stock (Show)
 
 makeLenses ''GenericError
 
@@ -32,11 +32,17 @@ instance Pretty GenericError where
           <> colon
           <> pretty colNum
           <> colon <+> "error"
-          <> colon <+> pretty (g ^. genericErrorMessage)
+          <> colon
           <> line
+          <> pretty (g ^. genericErrorMessage)
 
 errorIntervals :: ToGenericError e => e -> [Interval]
 errorIntervals = maybe [] (^. genericErrorIntervals) . genericError
 
-renderGenericError :: GenericError -> Text
-renderGenericError = renderStrict . layoutPretty defaultLayoutOptions . pretty
+renderGenericError :: Bool -> GenericError -> Text
+renderGenericError ansi g = backend (g ^. genericErrorMessage)
+  where
+    backend :: AnsiText -> Text
+    backend
+      | ansi = Ansi.renderStrict . toAnsiStream
+      | otherwise = renderStrict . toTextStream
