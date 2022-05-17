@@ -8,13 +8,13 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet qualified as HashSet
 import Data.List.NonEmpty.Extra qualified as NonEmpty
 import MiniJuvix.Prelude
-import Prettyprinter.Render.Text
 import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Concrete.Language
 import MiniJuvix.Syntax.Concrete.Language qualified as L
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty.Base qualified as P
 import MiniJuvix.Syntax.Concrete.Scoped.Scope
+import Prettyprinter.Render.Text
 import Text.EditDistance
 
 class PrettyError e where
@@ -69,7 +69,7 @@ instance ToGenericError MultipleDeclarations where
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i1, _multipleDeclSecond]
         }
-      where
+    where
       i1 :: Interval
       i1 = entryName _multipleDeclEntry ^. S.nameDefined
 
@@ -93,7 +93,7 @@ newtype LacksTypeSig = LacksTypeSig
 
 instance PrettyError LacksTypeSig where
   ppError LacksTypeSig {..} =
-      "The declaration is missing a type signature:"
+    "The declaration is missing a type signature:"
       <> line
       <> indent' (highlight (ppCode _lacksTypeSigClause))
 
@@ -106,7 +106,8 @@ instance ToGenericError LacksTypeSig where
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where i =_lacksTypeSigClause ^. clauseOwnerFunction . symbolLoc
+    where
+      i = _lacksTypeSigClause ^. clauseOwnerFunction . symbolLoc
 
 -- | type signature without a function clause
 newtype LacksFunctionClause = LacksFunctionClause
@@ -116,7 +117,7 @@ newtype LacksFunctionClause = LacksFunctionClause
 
 instance PrettyError LacksFunctionClause where
   ppError LacksFunctionClause {..} =
-      "Type signature with no function clause:"
+    "Type signature with no function clause:"
       <> line
       <> indent' (highlight (ppCode _lacksFunctionClause))
 
@@ -129,7 +130,8 @@ instance ToGenericError LacksFunctionClause where
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where i = getLoc (_lacksFunctionClause ^. sigName)
+    where
+      i = getLoc (_lacksFunctionClause ^. sigName)
 
 newtype ImportCycle = ImportCycle
   { -- | If we have [a, b, c] it means that a import b imports c imports a.
@@ -157,12 +159,12 @@ instance ToGenericError ImportCycle where
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where
-          h = head _importCycleImports
-          i = getLoc h
+    where
+      h = head _importCycleImports
+      i = getLoc h
 
-newtype QualSymNotInScope = QualSymNotInScope {
-  _qualSymNotInScope :: QualifiedName
+newtype QualSymNotInScope = QualSymNotInScope
+  { _qualSymNotInScope :: QualifiedName
   }
   deriving stock (Show)
 
@@ -172,15 +174,15 @@ instance PrettyError QualSymNotInScope where
 
 instance ToGenericError QualSymNotInScope where
   genericError e@QualSymNotInScope {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where
-          i = getLoc _qualSymNotInScope
+    where
+      i = getLoc _qualSymNotInScope
 
 data BindGroupConflict = BindGroupConflict
   { _bindGroupFirst :: Symbol,
@@ -199,16 +201,16 @@ instance PrettyError BindGroupConflict where
 
 instance ToGenericError BindGroupConflict where
   genericError e@BindGroupConflict {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i2 ^. intFile,
           _genericErrorLoc = intervalStart i2,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i1, i2]
         }
-        where
-          i1 = getLoc _bindGroupFirst
-          i2 = getLoc _bindGroupSecond
+    where
+      i1 = getLoc _bindGroupFirst
+      i2 = getLoc _bindGroupSecond
 
 data DuplicateFixity = DuplicateFixity
   { _dupFixityFirst :: OperatorSyntaxDef,
@@ -226,16 +228,16 @@ instance PrettyError DuplicateFixity where
 
 instance ToGenericError DuplicateFixity where
   genericError e@DuplicateFixity {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i2 ^. intFile,
           _genericErrorLoc = intervalStart i2,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i1, i2]
         }
-        where
-          i1 = getLoc _dupFixityFirst
-          i2 = getLoc _dupFixitySecond
+    where
+      i1 = getLoc _dupFixityFirst
+      i2 = getLoc _dupFixitySecond
 
 data MultipleExportConflict = MultipleExportConflict
   { _multipleExportModule :: S.AbsModulePath,
@@ -251,15 +253,15 @@ instance PrettyError MultipleExportConflict where
 
 instance ToGenericError MultipleExportConflict where
   genericError e@MultipleExportConflict {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where
-          i = getLoc _multipleExportModule
+    where
+      i = getLoc _multipleExportModule
 
 data NotInScope = NotInScope
   { _notInScopeSymbol :: Symbol,
@@ -272,7 +274,7 @@ makeLenses ''NotInScope
 
 instance PrettyError NotInScope where
   ppError NotInScope {..} =
-      "Symbol not in scope:" <+> highlight (ppCode _notInScopeSymbol)
+    "Symbol not in scope:" <+> highlight (ppCode _notInScopeSymbol)
       <?> ((line <>) <$> suggestion)
     where
       suggestion :: Maybe (Doc a)
@@ -327,8 +329,8 @@ instance ToGenericError ModuleNotInScope where
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where
-        i = getLoc (e ^. moduleNotInScopeName)
+    where
+      i = getLoc (e ^. moduleNotInScopeName)
 
 newtype MegaParsecError = MegaParsecError
   { _megaParsecError :: Text
@@ -347,15 +349,15 @@ instance PrettyError UnusedOperatorDef where
 
 instance ToGenericError UnusedOperatorDef where
   genericError e@UnusedOperatorDef {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where
-          i = getLoc _unusedOperatorDef
+    where
+      i = getLoc _unusedOperatorDef
 
 data WrongTopModuleName = WrongTopModuleName
   { _wrongTopModuleNameExpectedPath :: FilePath,
@@ -375,15 +377,15 @@ instance PrettyError WrongTopModuleName where
 
 instance ToGenericError WrongTopModuleName where
   genericError e@WrongTopModuleName {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where
-          i = getLoc _wrongTopModuleNameActualName
+    where
+      i = getLoc _wrongTopModuleNameActualName
 
 data AmbiguousSym = AmbiguousSym
   { _ambiguousSymName :: Name,
@@ -396,16 +398,16 @@ instance PrettyError AmbiguousSym where
 
 instance ToGenericError AmbiguousSym where
   genericError e@AmbiguousSym {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = i : is
         }
-        where
-          i = getLoc _ambiguousSymName
-          is = map getLoc _ambiguousSymEntires
+    where
+      i = getLoc _ambiguousSymName
+      is = map getLoc _ambiguousSymEntires
 
 data AmbiguousModuleSym = AmbiguousModuleSym
   { _ambiguousModName :: Name,
@@ -415,16 +417,16 @@ data AmbiguousModuleSym = AmbiguousModuleSym
 
 instance ToGenericError AmbiguousModuleSym where
   genericError e@AmbiguousModuleSym {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = i : is
         }
-        where
-          i = getLoc _ambiguousModName
-          is = map getLoc _ambiguousModSymEntires
+    where
+      i = getLoc _ambiguousModName
+      is = map getLoc _ambiguousModSymEntires
 
 data WrongLocationCompileBlock = WrongLocationCompileBlock
   { _wrongLocationCompileBlockExpectedModPath :: S.AbsModulePath,
@@ -442,19 +444,19 @@ instance PrettyError WrongLocationCompileBlock where
 
 instance ToGenericError WrongLocationCompileBlock where
   genericError e@WrongLocationCompileBlock {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where
-          i = getLoc _wrongLocationCompileBlockName
+    where
+      i = getLoc _wrongLocationCompileBlockName
 
 data MultipleCompileBlockSameName = MultipleCompileBlockSameName
   { _multipleCompileBlockFirstDefined :: Interval,
-   _multipleCompileBlockSym :: Symbol
+    _multipleCompileBlockSym :: Symbol
   }
   deriving stock (Show)
 
@@ -465,16 +467,16 @@ instance PrettyError MultipleCompileBlockSameName where
 
 instance ToGenericError MultipleCompileBlockSameName where
   genericError e@MultipleCompileBlockSameName {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i2 ^. intFile,
           _genericErrorLoc = intervalStart i2,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i1, i2]
         }
-        where
-          i1 = _multipleCompileBlockFirstDefined
-          i2 = getLoc _multipleCompileBlockSym
+    where
+      i1 = _multipleCompileBlockFirstDefined
+      i2 = getLoc _multipleCompileBlockSym
 
 data MultipleCompileRuleSameBackend = MultipleCompileRuleSameBackend
   { _multipleCompileRuleSameBackendBackendItem :: BackendItem,
@@ -483,7 +485,7 @@ data MultipleCompileRuleSameBackend = MultipleCompileRuleSameBackend
   deriving stock (Show)
 
 instance ToGenericError MultipleCompileRuleSameBackend where
-  genericError e@MultipleCompileRuleSameBackend{..} =
+  genericError e@MultipleCompileRuleSameBackend {..} =
     Just
       GenericError
         { _genericErrorFile = i ^. intFile,
@@ -491,11 +493,11 @@ instance ToGenericError MultipleCompileRuleSameBackend where
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where i = getLoc _multipleCompileRuleSameBackendSym
+    where
+      i = getLoc _multipleCompileRuleSameBackendSym
 
 data WrongKindExpressionCompileBlock = WrongKindExpressionCompileBlock
-  {
-    _wrongKindExpressionCompileBlockSym :: Symbol,
+  { _wrongKindExpressionCompileBlockSym :: Symbol,
     _wrongKindExpressionCompileBlockEntry :: SymbolEntry
   }
   deriving stock (Show)
@@ -503,19 +505,19 @@ data WrongKindExpressionCompileBlock = WrongKindExpressionCompileBlock
 instance PrettyError WrongKindExpressionCompileBlock where
   ppError WrongKindExpressionCompileBlock {..} =
     "Symbol" <+> ppCode _wrongKindExpressionCompileBlockSym
-    <+> "is not a constructor, inductive, axiom nor a function. Thus, it cannot have a compile rule."
+      <+> "is not a constructor, inductive, axiom nor a function. Thus, it cannot have a compile rule."
 
 instance ToGenericError WrongKindExpressionCompileBlock where
   genericError e@WrongKindExpressionCompileBlock {..} =
-        Just
+    Just
       GenericError
         { _genericErrorFile = i ^. intFile,
           _genericErrorLoc = intervalStart i,
           _genericErrorMessage = prettyErrorText e,
           _genericErrorIntervals = [i]
         }
-        where
-          i = getLoc _wrongKindExpressionCompileBlockSym
+    where
+      i = getLoc _wrongKindExpressionCompileBlockSym
 
 instance PrettyError InfixError where
   ppError InfixError {..} =

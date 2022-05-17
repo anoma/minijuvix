@@ -796,10 +796,11 @@ checkCompile c@Compile {..} = do
       | Just info <- HashMap.lookup sym rules ->
           throw
             ( ErrMultipleCompileBlockSameName
-                (MultipleCompileBlockSameName {
-                    _multipleCompileBlockFirstDefined = info ^. compileInfoDefined,
-                    _multipleCompileBlockSym = sym
-                    })
+                ( MultipleCompileBlockSameName
+                    { _multipleCompileBlockFirstDefined = info ^. compileInfoDefined,
+                      _multipleCompileBlockSym = sym
+                    }
+                )
             )
       | otherwise -> do
           void (checkBackendItems sym _compileBackendItems mempty)
@@ -851,10 +852,11 @@ checkCompileName Compile {..} = do
       (e : _) ->
         throw
           ( ErrWrongKindExpressionCompileBlock
-              (WrongKindExpressionCompileBlock {
-                  _wrongKindExpressionCompileBlockSym = sym,
-                  _wrongKindExpressionCompileBlockEntry = e
-              })
+              ( WrongKindExpressionCompileBlock
+                  { _wrongKindExpressionCompileBlockSym = sym,
+                    _wrongKindExpressionCompileBlockEntry = e
+                  }
+              )
           )
     [x] -> do
       actualPath <- gets (^. scopePath)
