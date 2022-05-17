@@ -188,11 +188,11 @@ goFunctionDef Mono.FunctionDef {..} =
     nullaryDefine =
       if
           | isNullary ->
-            Just $
-              Define
-                { _defineName = funcBasename,
-                  _defineBody = functionCall (ExpressionVar funcName) []
-                }
+              Just $
+                Define
+                  { _defineName = funcBasename,
+                    _defineBody = functionCall (ExpressionVar funcName) []
+                  }
           | otherwise -> Nothing
     funcName =
       if
