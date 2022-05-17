@@ -22,7 +22,7 @@ data ScopeError
   | ErrLacksFunctionClause LacksFunctionClause
   | ErrImportCycle ImportCycle
   | ErrSymNotInScope NotInScope
-  | ErrQualSymNotInScope QualifiedName
+  | ErrQualSymNotInScope QualSymNotInScope
   | ErrModuleNotInScope ModuleNotInScope
   | ErrBindGroup BindGroupConflict
   | ErrDuplicateFixity DuplicateFixity
@@ -46,7 +46,7 @@ ppScopeError s = case s of
   ErrLacksTypeSig e -> ppError e
   ErrImportCycle e -> ppError e
   ErrSymNotInScope e -> ppError e
-  ErrQualSymNotInScope {} -> pretty (show s :: Text)
+  ErrQualSymNotInScope e -> ppError e
   ErrModuleNotInScope e -> ppError e
   ErrBindGroup e -> ppError e
   ErrDuplicateFixity e -> ppError e
@@ -66,24 +66,24 @@ genericError' = \case
   ErrParser {} -> Nothing
   ErrInfixParser {} -> Nothing
   ErrInfixPattern {} -> Nothing
-  ErrMultipleDeclarations {} -> Nothing
-  ErrLacksTypeSig {} -> Nothing
-  ErrImportCycle {} -> Nothing
+  ErrMultipleDeclarations e -> genericError e
+  ErrLacksTypeSig e -> genericError e
+  ErrImportCycle e -> genericError e
   ErrSymNotInScope e -> genericError e
-  ErrQualSymNotInScope {} -> Nothing
-  ErrModuleNotInScope {} -> Nothing
-  ErrBindGroup {} -> Nothing
-  ErrDuplicateFixity {} -> Nothing
-  ErrMultipleExport {} -> Nothing
-  ErrAmbiguousSym {} -> Nothing
-  ErrWrongTopModuleName {} -> Nothing
-  ErrAmbiguousModuleSym {} -> Nothing
-  ErrUnusedOperatorDef {} -> Nothing
-  ErrLacksFunctionClause {} -> Nothing
-  ErrWrongLocationCompileBlock {} -> Nothing
-  ErrMultipleCompileBlockSameName {} -> Nothing
-  ErrMultipleCompileRuleSameBackend {} -> Nothing
-  ErrWrongKindExpressionCompileBlock {} -> Nothing
+  ErrQualSymNotInScope e -> genericError e
+  ErrModuleNotInScope e -> genericError e
+  ErrBindGroup e -> genericError e
+  ErrDuplicateFixity e -> genericError e
+  ErrMultipleExport e -> genericError e
+  ErrAmbiguousSym e -> genericError e
+  ErrWrongTopModuleName e -> genericError e
+  ErrAmbiguousModuleSym e -> genericError e
+  ErrUnusedOperatorDef e -> genericError e
+  ErrLacksFunctionClause e -> genericError e
+  ErrWrongLocationCompileBlock e -> genericError e
+  ErrMultipleCompileBlockSameName e -> genericError e
+  ErrMultipleCompileRuleSameBackend e -> genericError e
+  ErrWrongKindExpressionCompileBlock e -> genericError e
 
 docStream :: ScopeError -> SimpleDocStream Eann
 docStream = layoutPretty defaultLayoutOptions . ppScopeError
@@ -97,8 +97,3 @@ instance JuvixError ScopeError where
 
   renderText :: ScopeError -> Text
   renderText = P.renderText . docStream
-
-  errorInterval :: ScopeError -> [Interval]
-  errorInterval = \case
-    ErrSymNotInScope e -> [getLoc (e ^. notInScopeSymbol)]
-    _ -> []

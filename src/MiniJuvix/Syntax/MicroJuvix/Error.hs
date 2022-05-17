@@ -40,6 +40,3 @@ instance JuvixError TypeCheckerError where
 
   renderText :: TypeCheckerError -> Text
   renderText = P.renderText . docStream
-
-  errorInterval :: TypeCheckerError -> [Interval]
-  errorInterval = const mempty

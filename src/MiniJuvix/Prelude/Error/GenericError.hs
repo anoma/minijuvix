@@ -35,5 +35,8 @@ instance Pretty GenericError where
           <> colon <+> pretty (g ^. genericErrorMessage)
           <> line
 
+errorIntervals :: ToGenericError e => e -> [Interval]
+errorIntervals = maybe [] (^. genericErrorIntervals) . genericError
+
 renderGenericError :: GenericError -> Text
 renderGenericError = renderStrict . layoutPretty defaultLayoutOptions . pretty

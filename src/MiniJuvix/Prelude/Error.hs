@@ -28,8 +28,6 @@ class (ToGenericError e, Typeable e) => JuvixError e where
   -- | Render the error to Text.
   renderText :: e -> Text
 
-  errorInterval :: e -> [Interval]
-
   -- | Render the error with Ansi formatting (if any).
   renderAnsiText :: e -> Text
 
@@ -61,7 +59,6 @@ runErrorIO =
 instance JuvixError Text where
   renderText = id
   renderAnsiText = id
-  errorInterval = const mempty
 
 instance ToGenericError AJuvixError where
   genericError (AJuvixError e) = genericError e
@@ -71,4 +68,3 @@ instance JuvixError AJuvixError where
   renderAnsiText (AJuvixError r) = renderAnsiText r
   printErrorAnsi (AJuvixError r) = printErrorAnsi r
   printErrorText (AJuvixError r) = printErrorText r
-  errorInterval (AJuvixError r) = errorInterval r

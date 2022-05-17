@@ -114,7 +114,7 @@ runCLI cli = do
       res <- runPipelineEither (upToScoping (getEntryPoint root o))
       absP <- embed (makeAbsolute (o ^. highlightInputFile))
       case res of
-        Left err -> say (Highlight.goError (errorInterval err))
+        Left err -> say (Highlight.goError (errorIntervals err))
         Right r -> do
           let tbl = r ^. Scoper.resultParserTable
               items = tbl ^. Parser.infoParsedItems

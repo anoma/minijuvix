@@ -29,6 +29,9 @@ data AbsModulePath = AbsModulePath
 
 makeLenses ''AbsModulePath
 
+instance HasLoc AbsModulePath where
+  getLoc a = getLoc (a ^. absTopModulePath)
+
 topModulePathToAbsPath :: C.TopModulePath -> AbsModulePath
 topModulePathToAbsPath p = AbsModulePath p []
 

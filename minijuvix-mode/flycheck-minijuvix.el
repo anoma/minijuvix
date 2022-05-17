@@ -11,7 +11,7 @@
   :command ("minijuvix" "--only-errors" "scope" source-original)
   :error-patterns
     (
-     (error line-start (file-name) ":" line ":" column ": error: " (message) line-end)
+     (error line-start (file-name) ":" line ":" column ": error: " (message (one-or-more (not "ת"))))
      )
   :modes minijuvix-mode
   )
