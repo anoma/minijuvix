@@ -36,9 +36,8 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
     cheader =
       map
         ExternalMacro
-        [ CppIncludeSystem stdlib,
-          CppIncludeSystem stdbool,
-          CppIncludeSystem stdio
+        [ CppIncludeSystem stdbool,
+          CppIncludeFile minic_runtime
         ]
     cmodules :: [CCode]
     cmodules = toList (i ^. Mono.resultModules) >>= (run . runReader compileInfo . goModule)
@@ -214,10 +213,9 @@ goFunctionDef Mono.FunctionDef {..} =
       StatementCompound
         [ StatementExpr
             ( functionCall
-                (ExpressionVar fprintf)
-                [ ExpressionVar stderr_,
-                  ExpressionLiteral (LiteralString "Error: Pattern match(es) are non-exhaustive in %s\n"),
-                  ExpressionLiteral (LiteralString (_funDefName ^. Mono.nameText))
+                (ExpressionVar putStrLn_)
+                [ ExpressionLiteral
+                    (LiteralString ("Error: Pattern match(es) are non-exhaustive in " <> (_funDefName ^. Mono.nameText)))
                 ]
             ),
           StatementExpr

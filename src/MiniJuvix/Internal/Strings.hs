@@ -208,3 +208,9 @@ tag = "tag"
 
 main_ :: IsString s => s
 main_ = "main"
+
+minic_runtime :: IsString s => s
+minic_runtime = "minic-runtime.h"
+
+putStrLn_ :: IsString s => s
+putStrLn_ = "putStrLn"
