@@ -51,9 +51,6 @@ identifier = fmap fst identifierL
 identifierL :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (Text, Interval)
 identifierL = lexeme bareIdentifier
 
-fromPos :: P.Pos -> Pos
-fromPos = Pos . fromIntegral . P.unPos
-
 integer :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (Integer, Interval)
 integer = do
   minus <- optional (char '-')
@@ -83,23 +80,12 @@ string =
   lexemeInterval $
     pack <$> (char '"' >> manyTill L.charLiteral (char '"'))
 
-mkLoc :: Member (Reader ParserParams) r => Int -> SourcePos -> Sem r Loc
-mkLoc offset SourcePos {..} = do
-  root <- asks (^. parserParamsRoot)
-  let _locFile = normalise (root </> sourceName)
-  return Loc {..}
-  where
-    _locOffset = Pos (fromIntegral offset)
-    _locFileLoc = FileLoc {..}
-      where
-        _locLine = fromPos sourceLine
-        _locCol = fromPos sourceColumn
-
 curLoc :: Member (Reader ParserParams) r => ParsecS r Loc
 curLoc = do
   sp <- getSourcePos
   offset <- getOffset
-  lift (mkLoc offset sp)
+  root <- lift (asks (^. parserParamsRoot))
+  return (mkLoc root offset sp)
 
 interval :: Member (Reader ParserParams) r => ParsecS r a -> ParsecS r (a, Interval)
 interval ma = do

@@ -63,7 +63,7 @@ ppScopeError s = case s of
 
 genericError' :: ScopeError -> Maybe GenericError
 genericError' = \case
-  ErrParser {} -> Nothing
+  ErrParser e -> genericError e
   ErrInfixParser {} -> Nothing
   ErrInfixPattern {} -> Nothing
   ErrMultipleDeclarations e -> genericError e

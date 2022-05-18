@@ -12,6 +12,7 @@ import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Concrete.Language
 import MiniJuvix.Syntax.Concrete.Language qualified as L
+import MiniJuvix.Syntax.Concrete.Parser.Error qualified as Parser
 import MiniJuvix.Syntax.Concrete.Scoped.Error.Ann
 import MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty.Ansi qualified as Ansi
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
@@ -341,9 +342,15 @@ instance ToGenericError ModuleNotInScope where
       i = getLoc (e ^. moduleNotInScopeName)
 
 newtype MegaParsecError = MegaParsecError
-  { _megaParsecError :: Text
+  { _megaParsecError :: Parser.ParserError
   }
   deriving stock (Show)
+
+instance PrettyError MegaParsecError where
+  ppError MegaParsecError {..} = pretty _megaParsecError
+
+instance ToGenericError MegaParsecError where
+  genericError (MegaParsecError e) = genericError e
 
 newtype UnusedOperatorDef = UnusedOperatorDef
   { _unusedOperatorDef :: OperatorSyntaxDef
@@ -539,9 +546,6 @@ infixErrorAux :: Doc Eann -> Doc Eann -> Doc Eann
 infixErrorAux kind pp =
   "Error while resolving infixities in the" <+> kind <> ":" <> line
     <> indent' (highlight pp)
-
-instance PrettyError MegaParsecError where
-  ppError MegaParsecError {..} = pretty _megaParsecError
 
 instance PrettyError AmbiguousModuleSym where
   ppError AmbiguousModuleSym {..} = ambiguousMessage _ambiguousModName _ambiguousModSymEntires

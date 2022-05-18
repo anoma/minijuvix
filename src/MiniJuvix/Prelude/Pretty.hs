@@ -1,12 +1,14 @@
 module MiniJuvix.Prelude.Pretty
   ( module MiniJuvix.Prelude.Pretty,
     module Prettyprinter,
+    module Prettyprinter.Render.Terminal,
   )
 where
 
 import MiniJuvix.Prelude.Base
 import Prettyprinter hiding (hsep, vsep)
 import Prettyprinter qualified as PP
+import Prettyprinter.Render.Terminal (AnsiStyle)
 import Prettyprinter.Render.Terminal qualified as Ansi
 import Prettyprinter.Render.Text qualified as Text
 import Prelude
@@ -36,6 +38,14 @@ instance HasTextBackend AnsiText where
 instance HasAnsiBackend AnsiText where
   toAnsiStream (AnsiText t) = toAnsiStream t
   toAnsiDoc (AnsiText t) = toAnsiDoc t
+
+instance HasTextBackend (Doc a) where
+  toTextDoc = unAnnotate
+  toTextStream = unAnnotateS . layoutPretty defaultLayoutOptions
+
+instance HasAnsiBackend (Doc Ansi.AnsiStyle) where
+  toAnsiDoc = id
+  toAnsiStream = layoutPretty defaultLayoutOptions
 
 instance Show AnsiText where
   show (AnsiText t) = unpack (Text.renderStrict (toTextStream t))
