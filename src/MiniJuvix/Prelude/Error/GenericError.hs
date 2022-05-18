@@ -40,9 +40,19 @@ errorIntervals :: ToGenericError e => e -> [Interval]
 errorIntervals = maybe [] (^. genericErrorIntervals) . genericError
 
 renderGenericError :: Bool -> GenericError -> Text
-renderGenericError ansi g = backend (g ^. genericErrorMessage)
+renderGenericError ansi g
+  | ansi = Ansi.renderStrict (layoutPretty defaultLayoutOptions (header <> toAnsiDoc (g ^. genericErrorMessage)))
+  | otherwise = renderStrict (layoutPretty defaultLayoutOptions (header <> toTextDoc (g ^. genericErrorMessage)))
   where
-    backend :: AnsiText -> Text
-    backend
-      | ansi = Ansi.renderStrict . toAnsiStream
-      | otherwise = renderStrict . toTextStream
+    header :: Doc a
+    header =
+      let lineNum = g ^. genericErrorLoc . locFileLoc . locLine
+          colNum = g ^. genericErrorLoc . locFileLoc . locCol
+       in pretty (g ^. genericErrorFile)
+            <> colon
+            <> pretty lineNum
+            <> colon
+            <> pretty colNum
+            <> colon <+> "error"
+            <> colon
+            <> line

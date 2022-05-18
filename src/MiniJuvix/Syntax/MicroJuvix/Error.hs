@@ -7,9 +7,10 @@ where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Error.Pretty
-import MiniJuvix.Syntax.MicroJuvix.Error.Pretty qualified as P
+import MiniJuvix.Syntax.MicroJuvix.Error.Pretty.Ann
 import MiniJuvix.Syntax.MicroJuvix.Error.Types
 import Prettyprinter
+import Prettyprinter.Render.Text qualified as Text
 
 data TypeCheckerError
   = ErrTooManyPatterns TooManyPatterns
@@ -32,11 +33,16 @@ docStream = layoutPretty defaultLayoutOptions . ppTypeCheckerError
 
 instance ToGenericError TypeCheckerError where
   genericError :: TypeCheckerError -> Maybe GenericError
-  genericError = const Nothing
+  genericError = \case
+    ErrTooManyPatterns e -> genericError e
+    ErrWrongConstructorType e -> genericError e
+    ErrWrongConstructorAppArgs e -> genericError e
+    ErrWrongType e -> genericError e
+    ErrExpectedFunctionType e -> genericError e
 
 instance JuvixError TypeCheckerError where
   renderAnsiText :: TypeCheckerError -> Text
   renderAnsiText = renderAnsi . docStream
 
   renderText :: TypeCheckerError -> Text
-  renderText = P.renderText . docStream
+  renderText = Text.renderStrict . docStream
