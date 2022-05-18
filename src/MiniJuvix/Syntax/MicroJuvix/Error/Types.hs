@@ -49,18 +49,13 @@ makeLenses ''WrongConstructorType
 
 instance PrettyError WrongConstructorType where
   ppError e =
-    "Type error near" <+> highlight (pretty (funName ^. nameDefined)) <+> "in the definition of" <+> highlight (pretty funName) <> "."
-      <> line
-      <> "The constructor" <+> ppCode (e ^. wrongCtorTypeName) <+> "has type:"
+    "The constructor" <+> ppCode (e ^. wrongCtorTypeName) <+> "has type:"
       <> line
       <> indent' (ppCode (e ^. wrongCtorTypeActual))
       <> line
       <> "but is expected to have type:"
       <> line
       <> indent' (ppCode (e ^. wrongCtorTypeExpected))
-    where
-      funName :: Name
-      funName = e ^. wrongCtorTypeFunName
 
 instance ToGenericError WrongConstructorType where
   genericError e =
@@ -72,7 +67,7 @@ instance ToGenericError WrongConstructorType where
           _genericErrorIntervals = [i]
         }
     where
-      i = getLoc (e ^. wrongCtorTypeFunName)
+      i = getLoc (e ^. wrongCtorTypeName)
 
 -- | the arguments of a constructor pattern do not match
 -- the expected arguments of the constructor
@@ -87,9 +82,7 @@ makeLenses ''WrongConstructorAppArgs
 
 instance PrettyError WrongConstructorAppArgs where
   ppError e =
-    "Type error near" <+> highlight (pretty (funName ^. nameDefined)) <+> "in the definition of" <+> highlight (pretty (funName ^. nameText)) <> "."
-      <> line
-      <> "The constructor:" <+> ctorName <+> "is being matched against" <+> numPats
+    "The constructor:" <+> ctorName <+> "is being matched against" <+> numPats
       <> ":"
       <> line
       <> indent' (ppCode (e ^. wrongCtorAppApp))
@@ -107,9 +100,6 @@ instance PrettyError WrongConstructorAppArgs where
       pat :: Int -> Doc ann
       pat n = pretty n <+> plural "pattern" "patterns" n
 
-      funName :: Name
-      funName = e ^. wrongCtorAppName
-
 instance ToGenericError WrongConstructorAppArgs where
   genericError e =
     Just
@@ -120,7 +110,7 @@ instance ToGenericError WrongConstructorAppArgs where
           _genericErrorIntervals = [i]
         }
     where
-      i = e ^. wrongCtorAppName . nameDefined
+      i = getLoc (e ^. wrongCtorAppApp . constrAppConstructor)
 
 -- | the type of an expression does not match the inferred type
 data WrongType = WrongType
