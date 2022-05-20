@@ -27,6 +27,11 @@ all:
 markdown-docs: $(MDFILES)
 	mdbook build
 
+.PHONY: serve-docs
+serve-docs:
+	make markdown-docs
+	mdbook serve --open
+
 %.md: %.org
 	@echo "Processing ...  $@"
 	${ORGTOMDPRG} $? ${ORGOPTS}
