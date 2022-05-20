@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == true 
     steps:
-      name: Fails in order to indicate that pull request needs to be marked as
-            ready to review.
-      run: exit 1
+      - name: Fails in order to indicate that pull request needs to be marked as
+              ready to review.
+        run: exit 1
 
   ormolu:
     runs-on: ubuntu-latest
