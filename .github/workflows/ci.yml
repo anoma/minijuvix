@@ -1,15 +1,23 @@
 name: MiniJuvix CI
 
 on:
-  push:
-    branches: [ main , dev ]
   pull_request:
     branches:
       - main
-      - dev
+    types: [opened, synchronize, reopened,review_requested, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
-
+  not-a-draft:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == true 
+    steps:
+      name: Fails in order to indicate that pull request needs to be marked as
+            ready to review.
+      run: exit 1
   ormolu:
     runs-on: ubuntu-latest
     steps:
