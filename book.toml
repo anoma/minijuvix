@@ -1,9 +1,17 @@
 [book]
+<<<<<<< HEAD
 title = "MiniJuvix"
 authors =  [ "Jonathan Prieto-Cubides" , "Jan Mas Rovira" , "Paul Cadman" ]
 language = "en"
 multilingual = false
 src = "docs"
+=======
+title = "The MiniJuvix Book"
+authors =  [ "Jonathan Prieto-Cubides" , "Jan Mas Rovira" , "Paul Cadman" ]
+language = "en"
+multilingual = false
+src = "docs/md/"
+>>>>>>> 2ba128b (Add initial docs generation website (#119))
 
 [build]
 build-dir = "_docs"

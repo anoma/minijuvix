@@ -69,5 +69,9 @@ UPDATES-FOR-CHANGELOG.org
 
 # C Code generation
 *.wasm
+<<<<<<< HEAD
 docs/**/*.md
+=======
+docs/md/
+>>>>>>> 2ba128b (Add initial docs generation website (#119))
 _docs

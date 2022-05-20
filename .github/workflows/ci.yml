@@ -182,7 +182,8 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
-    if:  ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    # Enable before merging.
+    # if:  ${{ github.ref == 'refs/heads/master' }}
     steps:
       - name: Checkout our repository
         uses: actions/checkout@v2
@@ -193,7 +194,7 @@ jobs:
         with:
           pandoc-version: '2.13'
 
-      - name: Setup mdBook
+      - name: MDBook setup
         uses: peaceiris/actions-mdbook@v1
         with:
           mdbook-version: 'latest'
@@ -203,9 +204,8 @@ jobs:
           cd main
           make markdown-docs
 
-      - name: Deploy
+      - name: Deploy website
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.ref == 'refs/heads/main' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: main/_docs/

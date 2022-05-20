@@ -3,11 +3,19 @@ PREFIX="$(PWD)/.stack-work/prefix"
 UNAME := $(shell uname)
 HLINTQUIET :=
 
+<<<<<<< HEAD
 ORGFILES = $(shell find docs/ -type f -name '*.org')
 MDFILES:=$(ORGFILES:.org=.md)
 
 ORGTOMDPRG ?=pandoc
 ORGOPTS=--from org --to markdown --standalone -o $@
+=======
+ORGFILES = $(shell find docs/org -type f -name '*.org')
+MDFILES:=$(patsubst docs/org/%,docs/md/%,$(ORGFILES:.org=.md))
+
+ORGTOMDPRG ?=pandoc
+ORGOPTS=--from org --to markdown_strict -s -o $@
+>>>>>>> 2ba128b (Add initial docs generation website (#119))
 
 # ORGTOMDPRG ?=emacs
 # ORGOPTS=--batch -f org-html-export-to-markdown
@@ -23,6 +31,7 @@ endif
 all:
 	make pre-commit
 
+<<<<<<< HEAD
 .PHONY: markdown-docs
 markdown-docs: $(MDFILES)
 	mdbook build
@@ -36,6 +45,20 @@ serve-docs:
 	@echo "Processing ...  $@"
 	${ORGTOMDPRG} $? ${ORGOPTS}
 
+=======
+docs/md/%.md : docs/org/%.org
+	@echo "Processing ...  $@"
+	@mkdir -p $(dir $@)
+	${ORGTOMDPRG} $? ${ORGOPTS}
+
+.PHONY: markdown-docs
+markdown-docs: $(MDFILES)
+
+.PHONY: serve-docs
+serve-docs:
+	mdbook serve --open
+
+>>>>>>> 2ba128b (Add initial docs generation website (#119))
 .PHONY : checklines
 checklines :
 	@grep '.\{81,\}' \
