@@ -10,6 +10,7 @@ on:
       - synchronize
       - ready_for_review
       - review_requested
+      - closed
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -23,6 +24,33 @@ jobs:
       - name: Fails in order to indicate that pull request needs to be marked as
               ready to review.
         run: exit 1
+
+  docs:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout our repository
+        uses: actions/checkout@v2
+
+      - uses: r-lib/actions/setup-pandoc@v1
+        with:
+          pandoc-version: '2.13'
+
+      - name: MDBook setup
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: 'latest'
+
+      - name: Generate Markdown files for each Org file
+        run: make markdown-docs
+
+      - name: Deploy HTML to github pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _docs
+          enable_jekyll: false
+
 
   ormolu:
     runs-on: ubuntu-latest
@@ -86,7 +114,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest , macOS-latest ]
+        os: [ubuntu-latest , macOS-latest]
         ghc: ["9.2.2"]
     steps:
       - uses: actions/cache@v3
@@ -116,23 +144,19 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: main
+          submodules: true
 
       - name: Build Haskell Project
         run: |
           cd main
           make ci-build
 
-      - name: Download MiniJuvix-stdlib
-        run: |
-          cd main
-          make minijuvix-stdlib
-
   test:
     needs: build
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macOS-latest , ubuntu-latest ]
+        os: [ubuntu-latest , macOS-latest]
         ghc: ["9.2.2"]
     steps:
       - uses: actions/cache@v3
@@ -179,34 +203,3 @@ jobs:
         run: |
           cd main
           make ci-test
-
-  docs:
-    runs-on: ubuntu-latest
-    if:  ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-    steps:
-      - name: Checkout our repository
-        uses: actions/checkout@v2
-        with:
-          path: main
-
-      - uses: r-lib/actions/setup-pandoc@v1
-        with:
-          pandoc-version: '2.13'
-
-      - name: Setup mdBook
-        uses: peaceiris/actions-mdbook@v1
-        with:
-          mdbook-version: 'latest'
-
-      - name: Generate Markdown files for each Org file
-        run: |
-          cd main
-          make markdown-docs
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.ref == 'refs/heads/main' }}
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: main/_docs/
-          enable_jekyll: false
