@@ -4,6 +4,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+typedef __UINTPTR_TYPE__ uintptr_t;
+
+typedef struct juvix_function {
+    uintptr_t fun;
+} juvix_function_t;
+
+
+#define juvix_function_call(ret_t,arg_ts,f,args) ((ret_t(*)arg_ts)(f->fun))args
+
 char* intToStr(int i) {
     int length = snprintf(NULL, 0, "%d", i);
     char* str = (char*)malloc(length + 1);

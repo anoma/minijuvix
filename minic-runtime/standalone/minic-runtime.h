@@ -5,6 +5,14 @@ typedef __SIZE_TYPE__ size_t;
 typedef __UINT8_TYPE__ uint8_t;
 typedef __UINT16_TYPE__ uint16_t;
 typedef __UINT32_TYPE__ uint32_t;
+typedef __UINTPTR_TYPE__ uintptr_t;
+
+typedef struct juvix_function {
+    uintptr_t fun;
+} juvix_function_t;
+
+
+#define juvix_function_call(ret_t,arg_ts,f,args) ((ret_t(*)arg_ts)(f->fun))args
 
 /**
  * Allocator
