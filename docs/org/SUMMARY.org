@@ -1,6 +1,6 @@
 * Summary
 
-- [[./about/what-is.md][MiniJuvix]]
+- [[./introduction/about/what-is.md][MiniJuvix]]
 - [[./introduction/getting-started.md][Getting started]]
 - [[./examples/README.md][Examples]]
   - [[./examples/backend-specific/minic-hello-world.md][Hello world]]
@@ -30,6 +30,6 @@
   - [[./tools/emacs-mode.md][Writting MiniJuvix programs with Emacs Mode]]
   - [[./tools/testing.md][Test Suite]]
 
-- [[./about/what-is.md][About]]
-  - [[./about/team.md][The Dev Team]]
-  - [[./about/community.md][Community]]
+- [[./introduction/about/what-is.md][About]]
+  - [[./introduction/about/team.md][The Dev Team]]
+  - [[./introduction/about/community.md][Community]]
