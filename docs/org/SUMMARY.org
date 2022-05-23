@@ -1,6 +1,7 @@
 * Summary
 
 - [[./introduction/about/what-is.md][MiniJuvix]]
+- [[./introduction/changelog.md][Changelog]]
 - [[./introduction/getting-started.md][Getting started]]
 - [[./examples/README.md][Examples]]
   - [[./examples/backend-specific/minic-hello-world.md][Hello world]]
