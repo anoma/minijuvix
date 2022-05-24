@@ -3,6 +3,7 @@ module TypeCheck.Negative (allTests) where
 import Base
 import MiniJuvix.Pipeline
 import MiniJuvix.Prelude.Error as Error
+import MiniJuvix.Syntax.Concrete.Scoped.Error
 import MiniJuvix.Syntax.MicroJuvix.Error
 
 type FailMsg = String
@@ -23,10 +24,9 @@ testDescr NegTest {..} =
           _testAssertion = Single $ do
             let entryPoint = EntryPoint "." (pure _file)
             result <- runIOEither (upToMicroJuvixTyped entryPoint)
-            case result of
-              Left err -> case fromAJuvixError err of
-                Just tyError -> whenJust (_checkErr tyError) assertFailure
-                Nothing -> assertFailure ("The type checker did not find an error.\nThere is another error:\n" <> unpack (Error.renderText err))
+            case mapLeft fromMiniJuvixError result of
+              Left (Just tyError) -> whenJust (_checkErr tyError) assertFailure
+              Left Nothing -> assertFailure "The type checker did not find an error."
               Right _ -> assertFailure "An error ocurred but it was not in the type checker."
         }
 

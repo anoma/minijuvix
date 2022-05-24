@@ -22,7 +22,10 @@ import MiniJuvix.Syntax.Concrete.Parser.ParserResult
 -- Running the parser
 --------------------------------------------------------------------------------
 
-entryParser :: Members '[Files, Error ParserError] r => EntryPoint -> Sem r ParserResult
+entryParser ::
+  Members '[Files, Error ParserError] r =>
+  EntryPoint ->
+  Sem r ParserResult
 entryParser e = do
   (_resultTable, _resultModules) <- runInfoTableBuilder (runReader e (mapM goFile (e ^. entryModulePaths)))
   let _resultEntry = e
@@ -51,7 +54,9 @@ runModuleParser root fileName input =
         { _parserParamsRoot = root
         }
 
-topModuleDef :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (Module 'Parsed 'ModuleTop)
+topModuleDef ::
+  Members '[Reader ParserParams, InfoTableBuilder] r =>
+  ParsecS r (Module 'Parsed 'ModuleTop)
 topModuleDef = space >> moduleDef <* (optional kwSemicolon >> P.eof)
 
 --------------------------------------------------------------------------------

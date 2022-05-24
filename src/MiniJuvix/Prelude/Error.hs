@@ -2,45 +2,116 @@
 -- Control.Exception
 module MiniJuvix.Prelude.Error
   ( module MiniJuvix.Prelude.Error,
-    module MiniJuvix.Prelude.Error.GenericError,
     module MiniJuvix.Syntax.Concrete.Loc,
   )
 where
 
 import MiniJuvix.Prelude.Base
-import MiniJuvix.Prelude.Error.GenericError
+import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Concrete.Loc
+import Prettyprinter.Render.Terminal qualified as Ansi
+import Prettyprinter.Render.Text
 import System.Console.ANSI qualified as Ansi
 
--- | Wrapper for any instance of JuvixError.
-data AJuvixError = forall e. (ToGenericError e, JuvixError e) => AJuvixError e
+data GenericError = GenericError
+  { _genericErrorLoc :: Loc,
+    _genericErrorFile :: FilePath,
+    _genericErrorMessage :: AnsiText,
+    _genericErrorIntervals :: [Interval]
+  }
 
--- | Minimal interface of an minijuvix error.
-class (ToGenericError e, Typeable e) => JuvixError e where
-  -- | Print the error to stderr with Ansi formatting.
-  printErrorAnsi :: e -> IO ()
-  printErrorAnsi = hPutStrLn stderr . renderAnsiText
+makeLenses ''GenericError
 
-  -- | Print the error to stderr without formatting.
-  printErrorText :: e -> IO ()
-  printErrorText = hPutStrLn stderr . renderText
+instance Pretty GenericError where
+  pretty :: GenericError -> Doc a
+  pretty g =
+    let lineNum = g ^. genericErrorLoc . locFileLoc . locLine
+        colNum = g ^. genericErrorLoc . locFileLoc . locCol
+     in pretty (g ^. genericErrorFile)
+          <> colon
+          <> pretty lineNum
+          <> colon
+          <> pretty colNum
+          <> colon <+> "error"
+          <> colon
+          <> line
+          <> pretty (g ^. genericErrorMessage)
 
-  -- | Render the error to Text.
-  renderText :: e -> Text
+class ToGenericError a where
+  genericError :: a -> Maybe GenericError
 
-  -- | Render the error with Ansi formatting (if any).
-  renderAnsiText :: e -> Text
+instance ToGenericError Text where
+  genericError = const Nothing
 
-toAJuvixError :: JuvixError e => e -> AJuvixError
-toAJuvixError = AJuvixError
+-- TODO: throw a generic error showing which object
+-- doesn't have implemented ToGenericError
+toGenericError :: ToGenericError e => e -> GenericError
+toGenericError x = fromMaybe (error "Report this!") (genericError x)
 
-fromAJuvixError :: JuvixError e => AJuvixError -> Maybe e
-fromAJuvixError (AJuvixError e) = cast e
+data MiniJuvixError
+  = forall a. (ToGenericError a, Typeable a) => MiniJuvixError a
 
-throwJuvixError :: (JuvixError err, Member (Error AJuvixError) r) => err -> Sem r a
-throwJuvixError = throw . toAJuvixError
+instance ToGenericError MiniJuvixError where
+  genericError (MiniJuvixError e) = genericError e
 
-printErrorAnsiSafe :: JuvixError e => e -> IO ()
+fromMiniJuvixError :: Typeable a => MiniJuvixError -> Maybe a
+fromMiniJuvixError (MiniJuvixError e) = cast e
+
+errorIntervals :: ToGenericError e => e -> [Interval]
+errorIntervals = maybe [] (^. genericErrorIntervals) . genericError
+
+-- runErrorIO'
+-- ((embed . hPutStrLn stderr . render) e) >> exitFailure
+
+render :: ToGenericError e => Bool -> e -> Text
+render ansi err = render' ansi (toGenericError err)
+
+render' :: Bool -> GenericError -> Text
+render' ansi g
+  | ansi =
+      Ansi.renderStrict
+        ( layoutPretty
+            defaultLayoutOptions
+            (header <> toAnsiDoc (g ^. genericErrorMessage) <> endChar)
+        )
+  | otherwise =
+      renderStrict
+        ( layoutPretty
+            defaultLayoutOptions
+            (header <> toTextDoc (g ^. genericErrorMessage) <> endChar)
+        )
+  where
+    header :: Doc a
+    header =
+      let lineNum = g ^. genericErrorLoc . locFileLoc . locLine
+          colNum = g ^. genericErrorLoc . locFileLoc . locCol
+       in pretty (g ^. genericErrorFile)
+            <> colon
+            <> pretty lineNum
+            <> colon
+            <> pretty colNum
+            <> colon <+> "error"
+            <> colon
+            <> line
+    endChar :: Doc a
+    endChar = "ת"
+
+-- | Render the error to Text.
+renderText :: ToGenericError e => e -> Text
+renderText = render False
+
+-- | Render the error with Ansi formatting (if any).
+renderAnsiText :: ToGenericError e => e -> Text
+renderAnsiText = render True
+
+printErrorAnsi :: ToGenericError e => e -> IO ()
+printErrorAnsi = hPutStrLn stderr . renderAnsiText
+
+-- | Print the error to stderr without formatting.
+printErrorText :: ToGenericError e => e -> IO ()
+printErrorText = hPutStrLn stderr . renderText
+
+printErrorAnsiSafe :: ToGenericError e => e -> IO ()
 printErrorAnsiSafe e =
   ifM
     (Ansi.hSupportsANSI stderr)
@@ -48,23 +119,10 @@ printErrorAnsiSafe e =
     (printErrorText e)
 
 runErrorIO ::
-  (JuvixError a, Member (Embed IO) r) =>
+  (ToGenericError a, Member (Embed IO) r) =>
   Sem (Error a ': r) b ->
   Sem r b
 runErrorIO =
   runError >=> \case
     Left err -> embed (printErrorAnsiSafe err >> exitFailure)
     Right a -> return a
-
-instance JuvixError Text where
-  renderText = id
-  renderAnsiText = id
-
-instance ToGenericError AJuvixError where
-  genericError (AJuvixError e) = genericError e
-
-instance JuvixError AJuvixError where
-  renderText (AJuvixError r) = renderText r
-  renderAnsiText (AJuvixError r) = renderAnsiText r
-  printErrorAnsi (AJuvixError r) = printErrorAnsi r
-  printErrorText (AJuvixError r) = printErrorText r

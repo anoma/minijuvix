@@ -37,6 +37,6 @@ instance HasLoc ParserError where
         (snd . head . fst)
           (M.attachSourcePos errorOffset (M.bundleErrors b) state)
 
-instance JuvixError ParserError where
-  renderText = renderStrict . layoutPretty defaultLayoutOptions . pretty
-  renderAnsiText = renderText
+-- instance JuvixError ParserError where
+--   renderText = renderStrict . layoutPretty defaultLayoutOptions . pretty
+--   renderAnsiText = renderText
