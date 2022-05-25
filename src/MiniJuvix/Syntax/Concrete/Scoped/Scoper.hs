@@ -484,7 +484,7 @@ checkTopModule m@(Module path params body) = do
     checkPath :: Members '[Files, Reader ScopeParameters, Error ScoperError] s => Sem s ()
     checkPath = do
       expectedPath <- modulePathToFilePath path
-      let actualPath = getLoc path ^. intFile
+      let actualPath = getLoc path ^. intervalFile
       unlessM (fromMaybe True <$> equalPaths' expectedPath actualPath) $
         throw
           ( ErrWrongTopModuleName

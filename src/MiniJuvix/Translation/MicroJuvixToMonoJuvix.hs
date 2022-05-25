@@ -172,9 +172,6 @@ goModule Micro.Module {..} = do
         _moduleBody = _moduleBody'
       }
 
-unsupported :: Text -> a
-unsupported msg = error $ msg <> " not yet supported"
-
 goModuleBody ::
   Members '[Error Err, Reader ConcreteTable, NameIdGen, Reader Micro.InfoTable] r =>
   Micro.ModuleBody ->

@@ -2,8 +2,6 @@ module TypeCheck.Negative (allTests) where
 
 import Base
 import MiniJuvix.Pipeline
-import MiniJuvix.Prelude.Error as Error
-import MiniJuvix.Syntax.Concrete.Scoped.Error
 import MiniJuvix.Syntax.MicroJuvix.Error
 
 type FailMsg = String

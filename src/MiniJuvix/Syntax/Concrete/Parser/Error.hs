@@ -3,7 +3,6 @@ module MiniJuvix.Syntax.Concrete.Parser.Error where
 import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Concrete.Base (errorOffset)
-import Prettyprinter.Render.Text
 import Text.Megaparsec qualified as M
 
 newtype ParserError = ParserError
@@ -15,8 +14,8 @@ instance ToGenericError ParserError where
   genericError e =
     Just
       GenericError
-        { _genericErrorLoc = intervalStart i,
-          _genericErrorFile = i ^. intFile,
+        { _genericErrorLoc = intervalStartLoc i,
+          _genericErrorFile = i ^. intervalFile,
           _genericErrorMessage = AnsiText $ pretty @_ @AnsiStyle e,
           _genericErrorIntervals = [i]
         }
@@ -36,7 +35,3 @@ instance HasLoc ParserError where
       sourcePos =
         (snd . head . fst)
           (M.attachSourcePos errorOffset (M.bundleErrors b) state)
-
--- instance JuvixError ParserError where
---   renderText = renderStrict . layoutPretty defaultLayoutOptions . pretty
---   renderAnsiText = renderText

@@ -2,32 +2,8 @@ module MiniJuvix.Syntax.MicroJuvix.Error.Types where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty
-import MiniJuvix.Syntax.MicroJuvix.Error.Pretty.Ann
-import MiniJuvix.Syntax.MicroJuvix.Error.Pretty.Ansi qualified as Ansi
+import MiniJuvix.Syntax.MicroJuvix.Error.Pretty
 import MiniJuvix.Syntax.MicroJuvix.Language
-import MiniJuvix.Syntax.MicroJuvix.Pretty.Base qualified as Micro
-
-ppCode :: Micro.PrettyCode c => c -> Doc Eann
-ppCode = reAnnotate MicroAnn . Micro.runPrettyCode Micro.defaultOptions
-
-newtype PPOutput = PPOutput (Doc Eann)
-
-instance HasAnsiBackend PPOutput where
-  toAnsiStream (PPOutput o) = reAnnotateS Ansi.stylize (layoutPretty defaultLayoutOptions o)
-  toAnsiDoc (PPOutput o) = reAnnotate Ansi.stylize o
-
-instance HasTextBackend PPOutput where
-  toTextDoc (PPOutput o) = unAnnotate o
-  toTextStream (PPOutput o) = unAnnotateS (layoutPretty defaultLayoutOptions o)
-
-indent' :: Doc ann -> Doc ann
-indent' = indent 2
-
-prettyT :: Text -> Doc Eann
-prettyT = pretty
-
-highlight :: Doc Eann -> Doc Eann
-highlight = annotate Highlight
 
 -- | the type of the constructor used in a pattern does
 -- not match the type of the inductive being matched
@@ -45,9 +21,9 @@ instance ToGenericError WrongConstructorType where
   genericError e =
     Just
       GenericError
-        { _genericErrorFile = i ^. intFile,
-          _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = AnsiText . PPOutput $ msg,
+        { _genericErrorFile = i ^. intervalFile,
+          _genericErrorLoc = intervalStartLoc i,
+          _genericErrorMessage = prettyError msg,
           _genericErrorIntervals = [i]
         }
     where
@@ -76,9 +52,9 @@ instance ToGenericError WrongConstructorAppArgs where
   genericError e =
     Just
       GenericError
-        { _genericErrorFile = i ^. intFile,
-          _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = AnsiText . PPOutput $ msg,
+        { _genericErrorFile = i ^. intervalFile,
+          _genericErrorLoc = intervalStartLoc i,
+          _genericErrorMessage = prettyError msg,
           _genericErrorIntervals = [i]
         }
     where
@@ -96,6 +72,7 @@ instance ToGenericError WrongConstructorAppArgs where
       numPats = pat (length (e ^. wrongCtorAppApp . constrAppParameters))
       numTypes :: Doc ann
       numTypes = pat (length (e ^. wrongCtorAppTypes))
+
       ctorName :: Doc Eann
       ctorName = ppCode (e ^. wrongCtorAppApp . constrAppConstructor)
       pat :: Int -> Doc ann
@@ -115,9 +92,9 @@ instance ToGenericError WrongType where
   genericError e =
     Just
       GenericError
-        { _genericErrorFile = i ^. intFile,
-          _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = AnsiText . PPOutput $ msg,
+        { _genericErrorFile = i ^. intervalFile,
+          _genericErrorLoc = intervalStartLoc i,
+          _genericErrorMessage = prettyError msg,
           _genericErrorIntervals = [i]
         }
     where
@@ -151,9 +128,9 @@ instance ToGenericError ExpectedFunctionType where
   genericError e =
     Just
       GenericError
-        { _genericErrorFile = i ^. intFile,
-          _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = AnsiText . PPOutput $ msg,
+        { _genericErrorFile = i ^. intervalFile,
+          _genericErrorLoc = intervalStartLoc i,
+          _genericErrorMessage = prettyError msg,
           _genericErrorIntervals = [i]
         }
     where
@@ -184,9 +161,9 @@ instance ToGenericError TooManyPatterns where
   genericError e =
     Just
       GenericError
-        { _genericErrorFile = i ^. intFile,
-          _genericErrorLoc = intervalStart i,
-          _genericErrorMessage = AnsiText . PPOutput $ msg,
+        { _genericErrorFile = i ^. intervalFile,
+          _genericErrorLoc = intervalStartLoc i,
+          _genericErrorMessage = prettyError msg,
           _genericErrorIntervals = [i]
         }
     where

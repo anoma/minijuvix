@@ -1,19 +1,13 @@
-module MiniJuvix.Syntax.MicroJuvix.Error.Pretty
-  (
-    module MiniJuvix.Syntax.MicroJuvix.Error.Pretty,
-    module MiniJuvix.Syntax.MicroJuvix.Error.Pretty.Ann
+module MiniJuvix.Termination.Error.Pretty
+  ( module MiniJuvix.Termination.Error.Pretty,
+  module MiniJuvix.Termination.Error.Pretty.Ann
   )
 where
 
-
 import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty
-import MiniJuvix.Syntax.MicroJuvix.Error.Pretty.Ansi qualified as Ansi
-import MiniJuvix.Syntax.MicroJuvix.Error.Pretty.Ann
-import MiniJuvix.Syntax.MicroJuvix.Pretty.Base qualified as Micro
-
-ppCode :: Micro.PrettyCode c => c -> Doc Eann
-ppCode = reAnnotate MicroAnn . Micro.runPrettyCode Micro.defaultOptions
+import MiniJuvix.Termination.Error.Pretty.Ansi qualified as Ansi
+import MiniJuvix.Termination.Error.Pretty.Ann
 
 newtype PPOutput = PPOutput (Doc Eann)
 

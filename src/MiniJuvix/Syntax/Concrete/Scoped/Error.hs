@@ -8,12 +8,6 @@ where
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty
 import MiniJuvix.Syntax.Concrete.Scoped.Error.Types
-
--- import Prettyprinter
--- import Prettyprinter.Render.Text
-
--- | An error that happens during scope checking. Note that it is defined here
--- instead of in Error.Types to avoid orphan instances.
 data ScoperError
   = ErrParser MegaParsecError
   | ErrInfixParser InfixError
@@ -37,63 +31,26 @@ data ScoperError
   | ErrMultipleCompileRuleSameBackend MultipleCompileRuleSameBackend
   | ErrWrongKindExpressionCompileBlock WrongKindExpressionCompileBlock
   deriving stock (Show)
-
--- ppScopeError :: ScopeError -> Doc Eann
--- ppScopeError s = case s of
---   ErrParser txt -> ppError txt
---   ErrInfixParser e -> ppError e
---   ErrInfixPattern e -> ppError e
---   ErrMultipleDeclarations e -> ppError e
---   ErrLacksTypeSig e -> ppError e
---   ErrImportCycle e -> ppError e
---   ErrSymNotInScope e -> ppError e
---   ErrQualSymNotInScope e -> ppError e
---   ErrModuleNotInScope e -> ppError e
---   ErrBindGroup e -> ppError e
---   ErrDuplicateFixity e -> ppError e
---   ErrMultipleExport e -> ppError e
---   ErrAmbiguousSym e -> ppError e
---   ErrWrongTopModuleName e -> ppError e
---   ErrAmbiguousModuleSym e -> ppError e
---   ErrUnusedOperatorDef e -> ppError e
---   ErrLacksFunctionClause e -> ppError e
---   ErrWrongLocationCompileBlock e -> ppError e
---   ErrMultipleCompileBlockSameName e -> ppError e
---   ErrMultipleCompileRuleSameBackend e -> ppError e
---   ErrWrongKindExpressionCompileBlock e -> ppError e
-
-genericError' :: ScoperError -> Maybe GenericError
-genericError' = \case
-  ErrParser e -> genericError e
-  ErrInfixParser {} -> Nothing
-  ErrInfixPattern {} -> Nothing
-  ErrMultipleDeclarations e -> genericError e
-  ErrLacksTypeSig e -> genericError e
-  ErrImportCycle e -> genericError e
-  ErrSymNotInScope e -> genericError e
-  ErrQualSymNotInScope e -> genericError e
-  ErrModuleNotInScope e -> genericError e
-  ErrBindGroup e -> genericError e
-  ErrDuplicateFixity e -> genericError e
-  ErrMultipleExport e -> genericError e
-  ErrAmbiguousSym e -> genericError e
-  ErrWrongTopModuleName e -> genericError e
-  ErrAmbiguousModuleSym e -> genericError e
-  ErrUnusedOperatorDef e -> genericError e
-  ErrLacksFunctionClause e -> genericError e
-  ErrWrongLocationCompileBlock e -> genericError e
-  ErrMultipleCompileBlockSameName e -> genericError e
-  ErrMultipleCompileRuleSameBackend e -> genericError e
-  ErrWrongKindExpressionCompileBlock e -> genericError e
-
--- docStream :: ScopeError -> SimpleDocStream Eann
--- docStream = layoutPretty defaultLayoutOptions . ppScopeError
-
 instance ToGenericError ScoperError where
-  genericError = genericError'
-
--- instance JuvixError ScopeError where
---   renderText :: ScopeError -> Text
---   renderText = renderStrict . docStream
-
---   renderAnsiText = renderStrict . docStream
+  genericError =  \case
+    ErrParser e -> genericError e
+    ErrInfixParser {} -> Nothing
+    ErrInfixPattern {} -> Nothing
+    ErrMultipleDeclarations e -> genericError e
+    ErrLacksTypeSig e -> genericError e
+    ErrImportCycle e -> genericError e
+    ErrSymNotInScope e -> genericError e
+    ErrQualSymNotInScope e -> genericError e
+    ErrModuleNotInScope e -> genericError e
+    ErrBindGroup e -> genericError e
+    ErrDuplicateFixity e -> genericError e
+    ErrMultipleExport e -> genericError e
+    ErrAmbiguousSym e -> genericError e
+    ErrWrongTopModuleName e -> genericError e
+    ErrAmbiguousModuleSym e -> genericError e
+    ErrUnusedOperatorDef e -> genericError e
+    ErrLacksFunctionClause e -> genericError e
+    ErrWrongLocationCompileBlock e -> genericError e
+    ErrMultipleCompileBlockSameName e -> genericError e
+    ErrMultipleCompileRuleSameBackend e -> genericError e
+    ErrWrongKindExpressionCompileBlock e -> genericError e
