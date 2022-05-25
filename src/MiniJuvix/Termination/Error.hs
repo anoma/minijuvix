@@ -10,10 +10,10 @@ import MiniJuvix.Termination.Error.Types
 import MiniJuvix.Prelude
 
 newtype TerminationError
-  = ErrTerminationError FailedTerminationCheck
+  = ErrNoLexOrder NoLexOrder
   deriving stock (Show)
 
 instance ToGenericError TerminationError where
   genericError :: TerminationError -> Maybe GenericError
   genericError = \case
-    ErrTerminationError e -> genericError e
+    ErrNoLexOrder e -> genericError e

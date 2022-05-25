@@ -37,9 +37,6 @@ instance Pretty GenericError where
 class ToGenericError a where
   genericError :: a -> Maybe GenericError
 
-instance ToGenericError Text where
-  genericError = const Nothing
-
 toGenericError :: ToGenericError e => e -> GenericError
 toGenericError x =
   fromMaybe

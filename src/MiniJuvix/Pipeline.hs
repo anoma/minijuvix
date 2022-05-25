@@ -116,16 +116,14 @@ pipelineScoper ::
 pipelineScoper = mapError (MiniJuvixError @Scoper.ScoperError) . Scoper.entryScoper
 
 pipelineAbstract ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
   Scoper.ScoperResult ->
   Sem r Abstract.AbstractResult
-pipelineAbstract = mapError (MiniJuvixError @Text) . Abstract.entryAbstract
+pipelineAbstract =  Abstract.entryAbstract
 
 pipelineMicroJuvix ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
   Abstract.AbstractResult ->
   Sem r MicroJuvix.MicroJuvixResult
-pipelineMicroJuvix = mapError (MiniJuvixError @Text) . MicroJuvix.entryMicroJuvix
+pipelineMicroJuvix = MicroJuvix.entryMicroJuvix
 
 pipelineMicroJuvixTyped ::
   Members '[Files, NameIdGen, Error MiniJuvixError] r =>
@@ -135,19 +133,17 @@ pipelineMicroJuvixTyped =
   mapError (MiniJuvixError @MicroJuvix.TypeCheckerError) . MicroJuvix.entryMicroJuvixTyped
 
 pipelineMonoJuvix ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
+  Members '[Files, NameIdGen] r =>
   MicroJuvix.MicroJuvixTypedResult ->
   Sem r MonoJuvix.MonoJuvixResult
-pipelineMonoJuvix = mapError (MiniJuvixError @Text) . MonoJuvix.entryMonoJuvix
+pipelineMonoJuvix = MonoJuvix.entryMonoJuvix
 
 pipelineMiniHaskell ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
   MonoJuvix.MonoJuvixResult ->
   Sem r MiniHaskell.MiniHaskellResult
-pipelineMiniHaskell = mapError (MiniJuvixError @Text) . MiniHaskell.entryMiniHaskell
+pipelineMiniHaskell = MiniHaskell.entryMiniHaskell
 
 pipelineMiniC ::
-  Members '[Files, Error MiniJuvixError] r =>
   MonoJuvix.MonoJuvixResult ->
   Sem r MiniC.MiniCResult
-pipelineMiniC = mapError (MiniJuvixError @Text) . MiniC.entryMiniC
+pipelineMiniC = MiniC.entryMiniC

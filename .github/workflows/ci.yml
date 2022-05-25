@@ -111,6 +111,7 @@ jobs:
           mixed-line-ending --all-files
 
   build:
+    needs: not-a-draft
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

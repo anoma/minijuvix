@@ -6,15 +6,14 @@ import MiniJuvix.Syntax.Abstract.Language
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as Scoped
 import MiniJuvix.Termination.Error.Pretty
 
-newtype FailedTerminationCheck = FailedTerminationCheck
-  { _failedTerminationCheckFunName :: Name
+newtype NoLexOrder = NoLexOrder
+  { _noLexOrderFun :: Name
   }
   deriving stock (Show)
 
-makeLenses 'FailedTerminationCheck
-
-instance ToGenericError FailedTerminationCheck where
-  genericError FailedTerminationCheck {..} =
+makeLenses 'NoLexOrder
+instance ToGenericError NoLexOrder where
+  genericError NoLexOrder {..} =
     Just
       GenericError
         { _genericErrorFile = i ^. intervalFile,
@@ -23,7 +22,7 @@ instance ToGenericError FailedTerminationCheck where
           _genericErrorIntervals = [i]
         }
     where
-      name = _failedTerminationCheckFunName
+      name = _noLexOrderFun
       i = getLoc name
 
       msg :: Doc Eann
