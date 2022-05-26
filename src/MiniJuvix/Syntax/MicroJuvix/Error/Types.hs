@@ -19,13 +19,12 @@ makeLenses ''WrongConstructorType
 
 instance ToGenericError WrongConstructorType where
   genericError e =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc (e ^. wrongCtorTypeName)
       msg =
@@ -50,13 +49,12 @@ makeLenses ''WrongConstructorAppArgs
 
 instance ToGenericError WrongConstructorAppArgs where
   genericError e =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc (e ^. wrongCtorAppApp . constrAppConstructor)
       msg =
@@ -90,13 +88,12 @@ makeLenses ''WrongType
 
 instance ToGenericError WrongType where
   genericError e =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc (e ^. wrongTypeExpression)
       msg =
@@ -126,13 +123,12 @@ makeLenses ''ExpectedFunctionType
 
 instance ToGenericError ExpectedFunctionType where
   genericError e =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc (e ^. expectedFunctionTypeExpression)
       msg =
@@ -159,13 +155,12 @@ makeLenses ''TooManyPatterns
 
 instance ToGenericError TooManyPatterns where
   genericError e =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc (e ^. tooManyPatternsClause . clauseName)
 

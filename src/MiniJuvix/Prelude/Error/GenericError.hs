@@ -35,19 +35,13 @@ instance Pretty GenericError where
           <> pretty (g ^. genericErrorMessage)
 
 class ToGenericError a where
-  genericError :: a -> Maybe GenericError
-
-toGenericError :: ToGenericError e => e -> GenericError
-toGenericError x =
-  fromMaybe
-    (error "There is no a instance of GenericError for this error")
-    (genericError x)
+  genericError :: a -> GenericError
 
 errorIntervals :: ToGenericError e => e -> [Interval]
-errorIntervals = maybe [] (^. genericErrorIntervals) . genericError
+errorIntervals = (^. genericErrorIntervals) . genericError
 
 render :: ToGenericError e => Bool -> e -> Text
-render ansi err = render' ansi (toGenericError err)
+render ansi err = render' ansi (genericError err)
 
 render' :: Bool -> GenericError -> Text
 render' ansi g

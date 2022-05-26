@@ -27,13 +27,12 @@ data MultipleDeclarations = MultipleDeclarations
 
 instance ToGenericError MultipleDeclarations where
   genericError MultipleDeclarations {..} =
-    Just
-      GenericError
-        { _genericErrorFile = _multipleDeclSecond ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i1,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i1, _multipleDeclSecond]
-        }
+    GenericError
+      { _genericErrorFile = _multipleDeclSecond ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i1,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i1, _multipleDeclSecond]
+      }
     where
       i1 :: Interval
       i1 = entryName _multipleDeclEntry ^. S.nameDefined
@@ -50,13 +49,12 @@ newtype InfixError = InfixError
 
 instance ToGenericError InfixError where
   genericError InfixError {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc _infixErrorAtoms
       msg :: Doc Eann
@@ -73,13 +71,12 @@ newtype InfixErrorP = InfixErrorP
 
 instance ToGenericError InfixErrorP where
   genericError InfixErrorP {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc _infixErrorAtomsP
       msg :: Doc Eann
@@ -96,13 +93,12 @@ newtype LacksTypeSig = LacksTypeSig
 
 instance ToGenericError LacksTypeSig where
   genericError LacksTypeSig {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = _lacksTypeSigClause ^. clauseOwnerFunction . symbolLoc
       msg =
@@ -118,13 +114,12 @@ newtype LacksFunctionClause = LacksFunctionClause
 
 instance ToGenericError LacksFunctionClause where
   genericError LacksFunctionClause {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc (_lacksFunctionClause ^. sigName)
       msg =
@@ -140,13 +135,12 @@ newtype ImportCycle = ImportCycle
 
 instance ToGenericError ImportCycle where
   genericError ImportCycle {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       h = head _importCycleImports
       i = getLoc h
@@ -167,13 +161,12 @@ newtype QualSymNotInScope = QualSymNotInScope
 
 instance ToGenericError QualSymNotInScope where
   genericError QualSymNotInScope {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc _qualSymNotInScope
       msg = "Qualified symbol not in scope:" <+> ppCode _qualSymNotInScope
@@ -186,13 +179,12 @@ data BindGroupConflict = BindGroupConflict
 
 instance ToGenericError BindGroupConflict where
   genericError BindGroupConflict {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i2 ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i2,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i1, i2]
-        }
+    GenericError
+      { _genericErrorFile = i2 ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i2,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i1, i2]
+      }
     where
       i1 = getLoc _bindGroupFirst
       i2 = getLoc _bindGroupSecond
@@ -211,13 +203,12 @@ data DuplicateFixity = DuplicateFixity
 
 instance ToGenericError DuplicateFixity where
   genericError DuplicateFixity {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i2 ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i2,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i1, i2]
-        }
+    GenericError
+      { _genericErrorFile = i2 ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i2,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i1, i2]
+      }
     where
       i1 = getLoc _dupFixityFirst
       i2 = getLoc _dupFixitySecond
@@ -241,13 +232,12 @@ data MultipleExportConflict = MultipleExportConflict
 
 instance ToGenericError MultipleExportConflict where
   genericError MultipleExportConflict {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc _multipleExportModule
       msg =
@@ -266,13 +256,12 @@ makeLenses ''NotInScope
 
 instance ToGenericError NotInScope where
   genericError e@NotInScope {..} =
-    Just
-      GenericError
-        { _genericErrorFile = e ^. notInScopeSymbol . symbolLoc . intervalFile,
-          _genericErrorLoc = intervalStartLoc (e ^. notInScopeSymbol . symbolLoc),
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [e ^. notInScopeSymbol . symbolLoc]
-        }
+    GenericError
+      { _genericErrorFile = e ^. notInScopeSymbol . symbolLoc . intervalFile,
+        _genericErrorLoc = intervalStartLoc (e ^. notInScopeSymbol . symbolLoc),
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [e ^. notInScopeSymbol . symbolLoc]
+      }
     where
       msg =
         "Symbol not in scope:" <+> highlight (ppCode _notInScopeSymbol)
@@ -308,13 +297,12 @@ makeLenses ''ModuleNotInScope
 
 instance ToGenericError ModuleNotInScope where
   genericError e@ModuleNotInScope {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc (e ^. moduleNotInScopeName)
       msg = "The module" <+> ppCode _moduleNotInScopeName <+> "is not in scope"
@@ -334,13 +322,12 @@ newtype UnusedOperatorDef = UnusedOperatorDef
 
 instance ToGenericError UnusedOperatorDef where
   genericError UnusedOperatorDef {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc _unusedOperatorDef
       msg =
@@ -356,13 +343,12 @@ data WrongTopModuleName = WrongTopModuleName
 
 instance ToGenericError WrongTopModuleName where
   genericError WrongTopModuleName {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc _wrongTopModuleNameActualName
       msg =
@@ -383,13 +369,12 @@ data AmbiguousSym = AmbiguousSym
 
 instance ToGenericError AmbiguousSym where
   genericError AmbiguousSym {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = i : is
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = i : is
+      }
     where
       i = getLoc _ambiguousSymName
       is = map getLoc _ambiguousSymEntires
@@ -403,13 +388,12 @@ data AmbiguousModuleSym = AmbiguousModuleSym
 
 instance ToGenericError AmbiguousModuleSym where
   genericError AmbiguousModuleSym {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = i : is
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = i : is
+      }
     where
       i = getLoc _ambiguousModName
       is = map getLoc _ambiguousModSymEntires
@@ -423,13 +407,12 @@ data WrongLocationCompileBlock = WrongLocationCompileBlock
 
 instance ToGenericError WrongLocationCompileBlock where
   genericError WrongLocationCompileBlock {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       name = _wrongLocationCompileBlockName
       i = getLoc name
@@ -447,13 +430,12 @@ data MultipleCompileBlockSameName = MultipleCompileBlockSameName
 
 instance ToGenericError MultipleCompileBlockSameName where
   genericError MultipleCompileBlockSameName {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i2 ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i2,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i1, i2]
-        }
+    GenericError
+      { _genericErrorFile = i2 ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i2,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i1, i2]
+      }
     where
       i1 = _multipleCompileBlockFirstDefined
       i2 = getLoc _multipleCompileBlockSym
@@ -469,13 +451,12 @@ data MultipleCompileRuleSameBackend = MultipleCompileRuleSameBackend
 
 instance ToGenericError MultipleCompileRuleSameBackend where
   genericError MultipleCompileRuleSameBackend {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       backend = _multipleCompileRuleSameBackendBackendItem ^. backendItemBackend
       name = _multipleCompileRuleSameBackendSym
@@ -495,13 +476,12 @@ data WrongKindExpressionCompileBlock = WrongKindExpressionCompileBlock
 
 instance ToGenericError WrongKindExpressionCompileBlock where
   genericError WrongKindExpressionCompileBlock {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       i = getLoc _wrongKindExpressionCompileBlockSym
       msg =

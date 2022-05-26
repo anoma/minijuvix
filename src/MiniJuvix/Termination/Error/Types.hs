@@ -15,13 +15,12 @@ makeLenses 'NoLexOrder
 
 instance ToGenericError NoLexOrder where
   genericError NoLexOrder {..} =
-    Just
-      GenericError
-        { _genericErrorFile = i ^. intervalFile,
-          _genericErrorLoc = intervalStartLoc i,
-          _genericErrorMessage = prettyError msg,
-          _genericErrorIntervals = [i]
-        }
+    GenericError
+      { _genericErrorFile = i ^. intervalFile,
+        _genericErrorLoc = intervalStartLoc i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
     where
       name = _noLexOrderFun
       i = getLoc name

@@ -19,7 +19,7 @@ concurrency:
 jobs:
   not-a-draft:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == true
+    if: github.event.pull_request.draft == false
     steps:
       - name: Fails in order to indicate that pull request needs to be marked as
               ready to review.
@@ -50,7 +50,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: _docs
           enable_jekyll: false
-
 
   ormolu:
     runs-on: ubuntu-latest
@@ -111,7 +110,7 @@ jobs:
           mixed-line-ending --all-files
 
   build:
-    needs: not-a-draft
+    if: github.event.pull_request.draft == false
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

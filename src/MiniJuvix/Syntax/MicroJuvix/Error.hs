@@ -18,7 +18,7 @@ data TypeCheckerError
   deriving stock (Show)
 
 instance ToGenericError TypeCheckerError where
-  genericError :: TypeCheckerError -> Maybe GenericError
+  genericError :: TypeCheckerError -> GenericError
   genericError = \case
     ErrTooManyPatterns e -> genericError e
     ErrWrongConstructorType e -> genericError e
