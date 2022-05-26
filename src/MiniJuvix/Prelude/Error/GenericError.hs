@@ -42,19 +42,11 @@ errorIntervals = (^. genericErrorIntervals) . genericError
 
 render :: ToGenericError e => Bool -> e -> Text
 render ansi err
-  | ansi =
-      Ansi.renderStrict
-        ( layoutPretty
-            defaultLayoutOptions
-            (header <> toAnsiDoc (g ^. genericErrorMessage) <> endChar)
-        )
-  | otherwise =
-      renderStrict
-        ( layoutPretty
-            defaultLayoutOptions
-            (header <> toTextDoc (g ^. genericErrorMessage) <> endChar)
-        )
+  | ansi = aux Ansi.renderStrict (toAnsiDoc (g ^. genericErrorMessage))
+  | otherwise = aux renderStrict (toAnsiDoc (g ^. genericErrorMessage))
   where
+    aux :: (SimpleDocStream a -> Text) -> Doc a -> Text
+    aux f x = (f . layoutPretty defaultLayoutOptions) (header <> x <> endChar)
     g :: GenericError
     g = genericError err
 
