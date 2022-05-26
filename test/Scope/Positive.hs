@@ -4,7 +4,7 @@ import Base
 import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Pipeline
-import MiniJuvix.Pipeline.EntryPoint qualified as EntryPoint
+import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.Concrete.Parser qualified as Parser
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty qualified as M
 import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
@@ -33,8 +33,7 @@ testDescr PosTest {..} =
           _testAssertion = Steps $ \step -> do
             cwd <- getCurrentDirectory
             entryFile <- makeAbsolute _file
-            let gOptions = EntryPoint.Options {_optionsNoTermination = False }
-                entryPoint = EntryPoint cwd gOptions (pure entryFile)
+            let entryPoint = EntryPoint cwd defaultGlobalOptions (pure entryFile)
 
             step "Parsing"
             p :: Parser.ParserResult <- runIO (upToParsing entryPoint)
@@ -58,14 +57,20 @@ testDescr PosTest {..} =
 
             step "Parsing pretty scoped"
             let fs2 = HashMap.singleton entryFile scopedPretty
-            p' :: Parser.ParserResult <- (runM . runErrorIO @MiniJuvixError . runNameIdGen . runFilesPure fs2) (upToParsing entryPoint)
+            p' :: Parser.ParserResult <-
+              (runM . runErrorIO @MiniJuvixError . runNameIdGen . runFilesPure fs2)
+                (upToParsing entryPoint)
 
             step "Parsing pretty parsed"
             let fs3 = HashMap.singleton entryFile parsedPretty
-            parsedPretty' :: Parser.ParserResult <- (runM . runErrorIO @MiniJuvixError . runNameIdGen . runFilesPure fs3) (upToParsing entryPoint)
+            parsedPretty' :: Parser.ParserResult <-
+              (runM . runErrorIO @MiniJuvixError . runNameIdGen . runFilesPure fs3)
+                (upToParsing entryPoint)
 
             step "Scoping the scoped"
-            s' :: Scoper.ScoperResult <- (runM . runErrorIO @MiniJuvixError . runNameIdGen . runFilesPure fs) (upToScoping entryPoint)
+            s' :: Scoper.ScoperResult <-
+              (runM . runErrorIO @MiniJuvixError . runNameIdGen . runFilesPure fs)
+                (upToScoping entryPoint)
 
             step "Checks"
             let smodules = s ^. Scoper.resultModules

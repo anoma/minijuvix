@@ -5,21 +5,32 @@ where
 
 import MiniJuvix.Prelude
 
-newtype Options = Options
-  { _optionsNoTermination :: Bool
+data GlobalOptions = GlobalOptions
+  { _globalNoColors :: Bool,
+    _globalShowNameIds :: Bool,
+    _globalOnlyErrors :: Bool,
+    _globalNoTermination :: Bool
   }
   deriving stock (Eq, Show)
 
-makeLenses ''Options
+defaultGlobalOptions :: GlobalOptions
+defaultGlobalOptions =
+  GlobalOptions
+    { _globalNoColors = False,
+      _globalShowNameIds = False,
+      _globalOnlyErrors = False,
+      _globalNoTermination = False
+    }
 
 -- | The head of _entryModulePaths is assumed to be the Main module
 data EntryPoint = EntryPoint
   { _entryPointRoot :: FilePath,
-    _entryPointOptions :: Options,
+    _entryPointOptions :: GlobalOptions,
     _entryPointModulePaths :: NonEmpty FilePath
   }
   deriving stock (Eq, Show)
 
+makeLenses ''GlobalOptions
 makeLenses ''EntryPoint
 
 mainModulePath :: Lens' EntryPoint FilePath

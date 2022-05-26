@@ -1,17 +1,14 @@
 {-# LANGUAGE ApplicativeDo #-}
 
-module GlobalOptions where
+module GlobalOptions
+  ( GlobalOptions (..),
+    parseGlobalOptions,
+  )
+where
 
+import MiniJuvix.Pipeline.EntryPoint
 import MiniJuvix.Prelude
 import Options.Applicative
-
-data GlobalOptions = GlobalOptions
-  { _globalNoColors :: Bool,
-    _globalShowNameIds :: Bool,
-    _globalOnlyErrors :: Bool
-  }
-
-makeLenses ''GlobalOptions
 
 parseGlobalOptions :: Parser GlobalOptions
 parseGlobalOptions = do
@@ -29,5 +26,10 @@ parseGlobalOptions = do
     switch
       ( long "only-errors"
           <> help "Only print errors in a uniform format (used by minijuvix-mode)"
+      )
+  _globalNoTermination <-
+    switch
+      ( long "no-termination"
+          <> help "Disable the termination checker"
       )
   pure GlobalOptions {..}

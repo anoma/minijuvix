@@ -23,7 +23,7 @@ import Commands.MonoJuvix
 import Commands.Parse
 import Commands.Scope
 import Commands.Termination
-import GlobalOptions
+import MiniJuvix.Pipeline.EntryPoint
 import MiniJuvix.Prelude hiding (Doc)
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty qualified as Scoper
 import Options.Applicative

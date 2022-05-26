@@ -2,7 +2,6 @@ module Scope.Negative (allTests) where
 
 import Base
 import MiniJuvix.Pipeline
-import MiniJuvix.Pipeline.EntryPoint qualified as EntryPoint
 import MiniJuvix.Syntax.Concrete.Scoped.Error
 
 type FailMsg = String
@@ -24,8 +23,7 @@ testDescr NegTest {..} =
         { _testName = _name,
           _testRoot = tRoot,
           _testAssertion = Single $ do
-            let gOptions = EntryPoint.Options {_optionsNoTermination = False}
-                entryPoint = EntryPoint "." gOptions (pure _file)
+            let entryPoint = EntryPoint "." defaultGlobalOptions (pure _file)
             res <- runIOEither (upToScoping entryPoint)
             case mapLeft fromMiniJuvixError res of
               Left (Just err) -> whenJust (_checkErr err) assertFailure
