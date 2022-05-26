@@ -60,7 +60,6 @@ entryMonoJuvix i = do
     table = Micro.buildTable (i ^. Micro.resultModules)
     _resultMicroTyped = i
 
-
 cloneName' :: Members '[NameIdGen] r => Micro.Name -> Sem r Micro.Name
 cloneName' n = do
   fresh <- freshNameId

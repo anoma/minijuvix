@@ -1,9 +1,8 @@
 module MiniJuvix.Termination.Types.SizeInfo where
 
-
+import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Language.Extra
-import  Data.HashMap.Strict qualified as HashMap
 
 -- | i = SizeInfo [v] ⇔ v is smaller than argument i of the caller function.
 -- Indexes are 0 based

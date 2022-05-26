@@ -947,7 +947,7 @@ checkLambda ::
   Members '[Error ScoperError, State Scope, State ScoperState, Reader LocalVars, InfoTableBuilder, NameIdGen] r =>
   Lambda 'Parsed ->
   Sem r (Lambda 'Scoped)
-checkLambda Lambda {..} = Lambda <$> mapM checkLambdaClause lambdaClauses
+checkLambda Lambda {..} = Lambda <$> mapM checkLambdaClause _lambdaClauses
 
 checkLambdaClause ::
   Members '[Error ScoperError, State Scope, State ScoperState, Reader LocalVars, InfoTableBuilder, NameIdGen] r =>
@@ -1120,7 +1120,7 @@ checkParens ::
   Members '[Error ScoperError, State Scope, State ScoperState, Reader LocalVars, InfoTableBuilder, NameIdGen] r =>
   ExpressionAtoms 'Parsed ->
   Sem r Expression
-checkParens e@(ExpressionAtoms as) = case as of
+checkParens e@(ExpressionAtoms as _) = case as of
   AtomIdentifier s :| [] -> do
     scopedId <- checkName s
     let scopedIdenNoFix = idenOverName (set S.nameFixity Nothing) scopedId
@@ -1157,7 +1157,8 @@ checkExpressionAtoms ::
   Members '[Error ScoperError, State Scope, State ScoperState, Reader LocalVars, InfoTableBuilder, NameIdGen] r =>
   ExpressionAtoms 'Parsed ->
   Sem r (ExpressionAtoms 'Scoped)
-checkExpressionAtoms (ExpressionAtoms l) = ExpressionAtoms <$> mapM checkExpressionAtom l
+checkExpressionAtoms (ExpressionAtoms l i) = do
+  (`ExpressionAtoms` i) <$> mapM checkExpressionAtom l
 
 checkParseExpressionAtoms ::
   Members '[Error ScoperError, State Scope, State ScoperState, Reader LocalVars, InfoTableBuilder, NameIdGen] r =>
@@ -1194,7 +1195,7 @@ checkStatement s = case s of
 -------------------------------------------------------------------------------
 makeExpressionTable2 ::
   ExpressionAtoms 'Scoped -> [[P.Operator Parse Expression]]
-makeExpressionTable2 (ExpressionAtoms atoms) = [appOp] : operators ++ [[functionOp]]
+makeExpressionTable2 (ExpressionAtoms atoms _) = [appOp] : operators ++ [[functionOp]]
   where
     operators = mkSymbolTable idens
     idens :: [ScopedIden]
@@ -1272,7 +1273,7 @@ parseExpressionAtoms ::
   Members '[Error ScoperError, State Scope] r =>
   ExpressionAtoms 'Scoped ->
   Sem r Expression
-parseExpressionAtoms a@(ExpressionAtoms sections) = do
+parseExpressionAtoms a@(ExpressionAtoms sections _) = do
   case res of
     Left {} ->
       throw

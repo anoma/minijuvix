@@ -14,9 +14,9 @@ import MiniJuvix.Syntax.Concrete.Language
 import MiniJuvix.Syntax.Concrete.Language qualified as L
 import MiniJuvix.Syntax.Concrete.Parser.Error qualified as Parser
 import MiniJuvix.Syntax.Concrete.Scoped.Error.Ann
+import MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Concrete.Scoped.Scope
-import MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty
 
 data MultipleDeclarations = MultipleDeclarations
   { _multipleDeclEntry :: SymbolEntry,
@@ -47,6 +47,24 @@ newtype InfixError = InfixError
   { _infixErrAtoms :: ExpressionAtoms 'Scoped
   }
   deriving stock (Show)
+
+instance ToGenericError InfixError where
+  genericError InfixError {..} =
+    Just
+      GenericError
+        { _genericErrorFile = i ^. intervalFile,
+          _genericErrorLoc = intervalStartLoc i,
+          _genericErrorMessage = prettyError msg,
+          _genericErrorIntervals = [i]
+        }
+    where
+      i = getLoc _infixErrAtoms
+      msg :: Doc a
+      msg =
+        "Error solving infixities"
+          <> line
+
+-- <> error "todo: print list of atoms"
 
 -- | megaparsec error while resolving infixities of patterns.
 newtype InfixErrorP = InfixErrorP

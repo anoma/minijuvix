@@ -218,8 +218,11 @@ goFunctionDef Mono.FunctionDef {..} =
             ( functionCall
                 (ExpressionVar Str.putStrLn_)
                 [ ExpressionLiteral
-                    (LiteralString ("Error: Pattern match(es) are non-exhaustive in "
-                                  <> (_funDefName ^. Mono.nameText)))
+                    ( LiteralString
+                        ( "Error: Pattern match(es) are non-exhaustive in "
+                            <> (_funDefName ^. Mono.nameText)
+                        )
+                    )
                 ]
             ),
           StatementExpr
@@ -259,7 +262,6 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
             let subArgs = map (memberAccess Object asCtor) ctorArgs
             (p, subArg) <- zip _constrAppParameters subArgs
             patternCondition subArg p
-
       Mono.PatternVariable {} -> []
       Mono.PatternWildcard {} -> []
 

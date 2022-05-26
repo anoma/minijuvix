@@ -118,7 +118,7 @@ pipelineScoper = mapError (MiniJuvixError @Scoper.ScoperError) . Scoper.entrySco
 pipelineAbstract ::
   Scoper.ScoperResult ->
   Sem r Abstract.AbstractResult
-pipelineAbstract =  Abstract.entryAbstract
+pipelineAbstract = Abstract.entryAbstract
 
 pipelineMicroJuvix ::
   Abstract.AbstractResult ->

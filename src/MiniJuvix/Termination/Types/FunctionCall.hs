@@ -1,7 +1,4 @@
-module MiniJuvix.Termination.Types.FunctionCall
-  ( module MiniJuvix.Termination.Types.FunctionCall)
-where
-
+module MiniJuvix.Termination.Types.FunctionCall (module MiniJuvix.Termination.Types.FunctionCall) where
 
 import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Prelude
@@ -11,7 +8,6 @@ import MiniJuvix.Syntax.Abstract.Pretty.Base
 import MiniJuvix.Syntax.Concrete.Scoped.Name (nameUnqualify)
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Termination.Types.SizeRelation
-
 import Prettyprinter as PP
 
 newtype CallMap = CallMap

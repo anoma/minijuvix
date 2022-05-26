@@ -1,9 +1,8 @@
 module MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty
   ( module MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty,
-    module MiniJuvix.Syntax.Concrete.Scoped.Error.Ann
+    module MiniJuvix.Syntax.Concrete.Scoped.Error.Ann,
   )
 where
-
 
 import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty
@@ -16,6 +15,7 @@ newtype PPOutput = PPOutput (Doc Eann)
 
 prettyError :: Doc Eann -> AnsiText
 prettyError = AnsiText . PPOutput
+
 instance HasAnsiBackend PPOutput where
   toAnsiStream (PPOutput o) = reAnnotateS Ansi.stylize (layoutPretty defaultLayoutOptions o)
   toAnsiDoc (PPOutput o) = reAnnotate Ansi.stylize o

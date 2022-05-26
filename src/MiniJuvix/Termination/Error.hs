@@ -1,13 +1,13 @@
 module MiniJuvix.Termination.Error
-  (module MiniJuvix.Termination.Error,
-   module MiniJuvix.Termination.Error.Pretty,
-   module MiniJuvix.Termination.Error.Types
+  ( module MiniJuvix.Termination.Error,
+    module MiniJuvix.Termination.Error.Pretty,
+    module MiniJuvix.Termination.Error.Types,
   )
 where
 
+import MiniJuvix.Prelude
 import MiniJuvix.Termination.Error.Pretty
 import MiniJuvix.Termination.Error.Types
-import MiniJuvix.Prelude
 
 newtype TerminationError
   = ErrNoLexOrder NoLexOrder

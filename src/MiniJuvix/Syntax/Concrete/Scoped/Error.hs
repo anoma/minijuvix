@@ -8,6 +8,7 @@ where
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Concrete.Scoped.Error.Pretty
 import MiniJuvix.Syntax.Concrete.Scoped.Error.Types
+
 data ScoperError
   = ErrParser MegaParsecError
   | ErrInfixParser InfixError
@@ -31,10 +32,11 @@ data ScoperError
   | ErrMultipleCompileRuleSameBackend MultipleCompileRuleSameBackend
   | ErrWrongKindExpressionCompileBlock WrongKindExpressionCompileBlock
   deriving stock (Show)
+
 instance ToGenericError ScoperError where
-  genericError =  \case
+  genericError = \case
     ErrParser e -> genericError e
-    ErrInfixParser {} -> Nothing
+    ErrInfixParser e -> genericError e
     ErrInfixPattern {} -> Nothing
     ErrMultipleDeclarations e -> genericError e
     ErrLacksTypeSig e -> genericError e

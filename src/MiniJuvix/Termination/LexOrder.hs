@@ -1,5 +1,5 @@
 module MiniJuvix.Termination.LexOrder
-  ( module MiniJuvix.Termination.LexOrder
+  ( module MiniJuvix.Termination.LexOrder,
   )
 where
 

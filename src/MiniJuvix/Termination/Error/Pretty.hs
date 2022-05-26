@@ -1,13 +1,13 @@
 module MiniJuvix.Termination.Error.Pretty
   ( module MiniJuvix.Termination.Error.Pretty,
-  module MiniJuvix.Termination.Error.Pretty.Ann
+    module MiniJuvix.Termination.Error.Pretty.Ann,
   )
 where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty
-import MiniJuvix.Termination.Error.Pretty.Ansi qualified as Ansi
 import MiniJuvix.Termination.Error.Pretty.Ann
+import MiniJuvix.Termination.Error.Pretty.Ansi qualified as Ansi
 
 newtype PPOutput = PPOutput (Doc Eann)
 

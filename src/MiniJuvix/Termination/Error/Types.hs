@@ -12,6 +12,7 @@ newtype NoLexOrder = NoLexOrder
   deriving stock (Show)
 
 makeLenses 'NoLexOrder
+
 instance ToGenericError NoLexOrder where
   genericError NoLexOrder {..} =
     Just

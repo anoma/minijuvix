@@ -3,13 +3,13 @@
 module MiniJuvix.Prelude.Error
   ( module MiniJuvix.Prelude.Error,
     module MiniJuvix.Syntax.Concrete.Loc,
-    module MiniJuvix.Prelude.Error.GenericError
+    module MiniJuvix.Prelude.Error.GenericError,
   )
 where
 
 import MiniJuvix.Prelude.Base
-import MiniJuvix.Syntax.Concrete.Loc
 import MiniJuvix.Prelude.Error.GenericError
+import MiniJuvix.Syntax.Concrete.Loc
 
 data MiniJuvixError
   = forall a. (ToGenericError a, Typeable a) => MiniJuvixError a

@@ -1,6 +1,6 @@
 module MiniJuvix.Termination.Checker
   ( module MiniJuvix.Termination.Checker,
-    module MiniJuvix.Termination.FunctionCall
+    module MiniJuvix.Termination.FunctionCall,
   )
 where
 
@@ -8,8 +8,8 @@ import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.InfoTable
 import MiniJuvix.Syntax.Abstract.Language.Extra
 import MiniJuvix.Syntax.Concrete.Scoped.Name (unqualifiedSymbol)
-import MiniJuvix.Termination.Types
 import MiniJuvix.Termination.FunctionCall
+import MiniJuvix.Termination.Types
 
 buildCallMap :: InfoTable -> TopModule -> CallMap
 buildCallMap infotable = run . execState mempty . runReader infotable . checkModule

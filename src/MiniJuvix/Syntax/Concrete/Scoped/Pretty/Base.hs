@@ -568,7 +568,7 @@ instance SingI s => PrettyCode (LambdaClause s) where
 
 instance SingI s => PrettyCode (Lambda s) where
   ppCode Lambda {..} = do
-    lambdaClauses' <- ppBlock lambdaClauses
+    lambdaClauses' <- ppBlock _lambdaClauses
     return $ kwLambda <+> lambdaClauses'
 
 instance SingI s => PrettyCode (FunctionClause s) where
@@ -796,7 +796,7 @@ instance SingI s => PrettyCode (ExpressionAtom s) where
     AtomParens e -> parens <$> ppExpression e
 
 instance SingI s => PrettyCode (ExpressionAtoms s) where
-  ppCode (ExpressionAtoms l) = hsep . toList <$> mapM ppCode l
+  ppCode as = hsep . toList <$> mapM ppCode (as ^. expressionAtoms)
 
 ppExpression :: forall s r. (SingI s, Members '[Reader Options] r) => ExpressionType s -> Sem r (Doc Ann)
 ppExpression = case sing :: SStage s of

@@ -1,6 +1,7 @@
 module MiniJuvix.Termination.FunctionCall
-  (module MiniJuvix.Termination.FunctionCall
-  ) where
+  ( module MiniJuvix.Termination.FunctionCall,
+  )
+where
 
 import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Prelude
