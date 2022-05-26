@@ -1081,7 +1081,7 @@ checkPatternAtoms ::
   Members '[Error ScoperError, State Scope, State ScoperState, InfoTableBuilder, NameIdGen] r =>
   PatternAtoms 'Parsed ->
   Sem r (PatternAtoms 'Scoped)
-checkPatternAtoms (PatternAtoms s) = PatternAtoms <$> mapM checkPatternAtom s
+checkPatternAtoms (PatternAtoms s i) = (`PatternAtoms` i) <$> mapM checkPatternAtom s
 
 checkPatternAtom ::
   Members '[Error ScoperError, State Scope, State ScoperState, InfoTableBuilder, NameIdGen] r =>
@@ -1278,7 +1278,7 @@ parseExpressionAtoms a@(ExpressionAtoms sections _) = do
     Left {} ->
       throw
         ( ErrInfixParser
-            InfixError {_infixErrAtoms = a}
+            InfixError {_infixErrorAtoms = a}
         )
     Right r -> return r
   where
@@ -1396,7 +1396,7 @@ makePatternTable atom = [appOp] : operators
     operators = mkSymbolTable constructorRefs
     constructorRefs :: [ConstructorRef]
     constructorRefs = case atom of
-      PatternAtomParens (PatternAtoms atoms) -> mapMaybe getConstructorRef (toList atoms)
+      PatternAtomParens (PatternAtoms atoms _) -> mapMaybe getConstructorRef (toList atoms)
       _ -> []
     mkSymbolTable :: [ConstructorRef] -> [[P.Operator ParsePat Pattern]]
     mkSymbolTable = reverse . map (map snd) . groupSortOn' fst . mapMaybe unqualifiedSymbolOp
@@ -1498,7 +1498,7 @@ parsePatternTerm = do
         strPath = "inner parens"
         parenPat :: PatternAtom 'Scoped -> Maybe [PatternAtom 'Scoped]
         parenPat s = case s of
-          PatternAtomParens (PatternAtoms ss) -> Just (toList ss)
+          PatternAtomParens (PatternAtoms ss _) -> Just (toList ss)
           _ -> Nothing
 
 mkPatternParser ::
@@ -1517,15 +1517,20 @@ mkPatternParser table = embed @ParsePat pPattern
         parseTermRec = runReader pPattern parsePatternTerm
 
 parsePatternAtom ::
-  Members '[Error ScoperError, State Scope] r => PatternAtom 'Scoped -> Sem r Pattern
+  Members '[Error ScoperError, State Scope] r =>
+  PatternAtom 'Scoped ->
+  Sem r Pattern
 parsePatternAtom sec = do
   case res of
-    Left {} -> throw (ErrInfixPattern (InfixErrorP sec))
+    Left {} -> case sec of
+      PatternAtomParens a -> throw (ErrInfixPattern (InfixErrorP a))
+      _ -> impossible
     Right r -> return r
   where
     tbl = makePatternTable sec
     parser :: ParsePat Pattern
     parser = runM (mkPatternParser tbl) <* P.eof
     res = P.parse parser filePath [sec]
+
     filePath :: FilePath
     filePath = "tmp"

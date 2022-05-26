@@ -44,7 +44,7 @@ instance ToGenericError MultipleDeclarations where
 
 -- | megaparsec error while resolving infixities.
 newtype InfixError = InfixError
-  { _infixErrAtoms :: ExpressionAtoms 'Scoped
+  { _infixErrorAtoms :: ExpressionAtoms 'Scoped
   }
   deriving stock (Show)
 
@@ -58,19 +58,35 @@ instance ToGenericError InfixError where
           _genericErrorIntervals = [i]
         }
     where
-      i = getLoc _infixErrAtoms
-      msg :: Doc a
+      i = getLoc _infixErrorAtoms
+      msg :: Doc Eann
       msg =
         "Error solving infixities"
           <> line
-
--- <> error "todo: print list of atoms"
+          <> indent' (highlight (ppCode _infixErrorAtoms))
 
 -- | megaparsec error while resolving infixities of patterns.
 newtype InfixErrorP = InfixErrorP
-  { _infixErrAtomsP :: PatternAtom 'Scoped
+  { _infixErrorAtomsP :: PatternAtoms 'Scoped
   }
   deriving stock (Show)
+
+instance ToGenericError InfixErrorP where
+  genericError InfixErrorP {..} =
+    Just
+      GenericError
+        { _genericErrorFile = i ^. intervalFile,
+          _genericErrorLoc = intervalStartLoc i,
+          _genericErrorMessage = prettyError msg,
+          _genericErrorIntervals = [i]
+        }
+    where
+      i = getLoc _infixErrorAtomsP
+      msg :: Doc Eann
+      msg =
+        "Error solving infixities:"
+          <> line
+          <> indent' (highlight (ppCode _infixErrorAtomsP))
 
 -- | function clause without a type signature.
 newtype LacksTypeSig = LacksTypeSig

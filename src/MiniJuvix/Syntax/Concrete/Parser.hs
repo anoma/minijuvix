@@ -187,7 +187,9 @@ expressionAtom =
     <|> (AtomFunArrow <$ kwRightArrow)
     <|> parens (AtomParens <$> parseExpressionAtoms)
 
-parseExpressionAtoms :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (ExpressionAtoms 'Parsed)
+parseExpressionAtoms ::
+  Members '[Reader ParserParams, InfoTableBuilder] r =>
+  ParsecS r (ExpressionAtoms 'Parsed)
 parseExpressionAtoms = do
   (_expressionAtoms, _expressionAtomsLoc) <- interval (P.some expressionAtom)
   return ExpressionAtoms {..}
@@ -397,10 +399,12 @@ patternAtom :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (
 patternAtom =
   PatternAtomIden <$> name
     <|> PatternAtomWildcard <$ kwWildcard
-    <|> (PatternAtomParens <$> parens patternAtoms)
+    <|> (PatternAtomParens <$> parens parsePatternAtoms)
 
-patternAtoms :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (PatternAtoms 'Parsed)
-patternAtoms = PatternAtoms <$> P.some patternAtom
+parsePatternAtoms :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (PatternAtoms 'Parsed)
+parsePatternAtoms = do
+  (_patternAtoms, _patternAtomsLoc) <- interval (P.some patternAtom)
+  return PatternAtoms {..}
 
 --------------------------------------------------------------------------------
 -- Function binding declaration

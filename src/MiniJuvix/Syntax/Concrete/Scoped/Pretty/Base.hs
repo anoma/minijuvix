@@ -644,7 +644,7 @@ instance SingI s => PrettyCode (PatternAtom s) where
     PatternAtomParens p -> parens <$> ppCode p
 
 instance SingI s => PrettyCode (PatternAtoms s) where
-  ppCode (PatternAtoms ps) = hsep . toList <$> mapM ppCode ps
+  ppCode (PatternAtoms ps _) = hsep . toList <$> mapM ppCode ps
 
 ppPattern :: forall s r. (SingI s, Members '[Reader Options] r) => PatternType s -> Sem r (Doc Ann)
 ppPattern = case sing :: SStage s of
