@@ -84,7 +84,6 @@ default-extensions:
 - NoFieldSelectors
 - NoImplicitPrelude
 - OverloadedStrings
-- QuasiQuotes
 - RecordWildCards
 - TemplateHaskell
 - TypeFamilyDependencies

@@ -126,10 +126,8 @@ goNameText n =
       KNameFunction ->
         if n ^. Mono.nameText == haskellMainName then mempty else idSuffix
       _ -> idSuffix
-    idSuffix :: Text
     idSuffix = "_" <> show (n ^. Mono.nameId . unNameId)
-    haskellMainName :: Text
-    haskellMainName = "main"
+    haskellMainName = "main" :: Text
 
 goFunctionDef :: Members '[Reader Mono.CompileInfoTable] r => Mono.FunctionDef -> Sem r FunctionDef
 goFunctionDef Mono.FunctionDef {..} = do
