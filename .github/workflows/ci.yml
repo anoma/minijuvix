@@ -110,7 +110,6 @@ jobs:
           mixed-line-ending --all-files
 
   build:
-    if: github.event.pull_request.draft == false
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

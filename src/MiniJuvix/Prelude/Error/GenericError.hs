@@ -41,10 +41,7 @@ errorIntervals :: ToGenericError e => e -> [Interval]
 errorIntervals = (^. genericErrorIntervals) . genericError
 
 render :: ToGenericError e => Bool -> e -> Text
-render ansi err = render' ansi (genericError err)
-
-render' :: Bool -> GenericError -> Text
-render' ansi g
+render ansi err
   | ansi =
       Ansi.renderStrict
         ( layoutPretty
@@ -58,6 +55,9 @@ render' ansi g
             (header <> toTextDoc (g ^. genericErrorMessage) <> endChar)
         )
   where
+    g :: GenericError
+    g = genericError err
+
     header :: Doc a
     header =
       let lineNum = g ^. genericErrorLoc . locFileLoc . locLine

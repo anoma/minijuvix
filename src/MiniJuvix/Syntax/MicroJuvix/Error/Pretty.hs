@@ -29,8 +29,5 @@ instance HasTextBackend PPOutput where
 indent' :: Doc ann -> Doc ann
 indent' = indent 2
 
-prettyT :: Text -> Doc Eann
-prettyT = pretty
-
 highlight :: Doc Eann -> Doc Eann
 highlight = annotate Highlight
