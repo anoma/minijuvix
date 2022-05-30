@@ -79,6 +79,7 @@ data DeclType
   | DeclTypeDef DeclType
   | DeclEnum Enum
   | DeclFunPtr FunPtr
+  | DeclJuvixClosure
   | BoolType
 
 data StructUnion = StructUnion
@@ -107,6 +108,9 @@ data CDeclType = CDeclType
     _typeIsPtr :: Bool
   }
 
+uIntPtrType :: DeclType
+uIntPtrType = DeclTypeDefType "uintptr_t"
+
 --------------------------------------------------------------------------------
 -- Expressions
 --------------------------------------------------------------------------------
@@ -130,6 +134,24 @@ data Cast = Cast
   { _castDecl :: Declaration,
     _castExpression :: Expression
   }
+
+castToType :: CDeclType -> Expression -> Expression
+castToType cDecl e =
+  ExpressionCast
+    ( Cast
+        { _castDecl = cDeclToDecl cDecl,
+          _castExpression = e
+        }
+    )
+
+cDeclToDecl :: CDeclType -> Declaration
+cDeclToDecl CDeclType {..} =
+      Declaration
+        { _declType = _typeDeclType,
+          _declIsPtr = _typeIsPtr,
+          _declName = Nothing,
+          _declInitializer = Nothing
+        }
 
 data Call = Call
   { _callCallee :: Expression,
@@ -218,6 +240,15 @@ typeDefType typName declName =
     { _declType = DeclTypeDefType typName,
       _declIsPtr = False,
       _declName = Just declName,
+      _declInitializer = Nothing
+    }
+
+typeDefType' :: Text -> Declaration
+typeDefType' typName =
+  Declaration
+    { _declType = DeclTypeDefType typName,
+      _declIsPtr = False,
+      _declName = Nothing,
       _declInitializer = Nothing
     }
 

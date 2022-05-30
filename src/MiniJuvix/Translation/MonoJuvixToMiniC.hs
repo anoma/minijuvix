@@ -40,31 +40,33 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
           CppIncludeFile Str.minicRuntime
         ]
     cmodules :: [CCode]
-    cmodules = toList (i ^. Mono.resultModules) >>= (run . runReader compileInfo . goModule)
+    cmodules = do
+      m <- toList (i ^. Mono.resultModules)
+      run (runReader (Mono.buildTable m) (runReader compileInfo (goModule m)))
 
 unsupported :: Text -> a
 unsupported msg = error (msg <> " Mono to C: not yet supported")
 
 goModule ::
-  Member (Reader Mono.CompileInfoTable) r =>
+  Members '[Reader Mono.CompileInfoTable, Reader Mono.InfoTable] r =>
   Mono.Module ->
   Sem r [CCode]
 goModule Mono.Module {..} = goModuleBody _moduleBody
 
 goModuleBody ::
-  Member (Reader Mono.CompileInfoTable) r =>
+  Members '[Reader Mono.CompileInfoTable, Reader Mono.InfoTable] r =>
   Mono.ModuleBody ->
   Sem r [CCode]
 goModuleBody Mono.ModuleBody {..} =
   concatMapM goStatement _moduleStatements
 
 goStatement ::
-  Member (Reader Mono.CompileInfoTable) r =>
+  Members '[Reader Mono.CompileInfoTable, Reader Mono.InfoTable] r =>
   Mono.Statement ->
   Sem r [CCode]
 goStatement = \case
   Mono.StatementInductive d -> return (goInductiveDef d)
-  Mono.StatementFunction d -> return (goFunctionDef d)
+  Mono.StatementFunction d -> goFunctionDef d
   Mono.StatementForeign d -> return (goForeign d)
   Mono.StatementAxiom d -> goAxiom d
 
@@ -144,20 +146,28 @@ mkName n =
     idSuffix :: Text
     idSuffix = "_" <> show (n ^. Mono.nameId . unNameId)
 
-goFunctionDef :: Mono.FunctionDef -> [CCode]
-goFunctionDef Mono.FunctionDef {..} =
-  [ ExternalFunc
-      ( Function
-          { _funcReturnType = funReturnType ^. typeDeclType,
-            _funcIsPtr = funReturnType ^. typeIsPtr,
-            _funcQualifier = None,
-            _funcName = funcName,
-            _funcArgs = namedArgs asFunArg funArgTypes,
-            _funcBody = maybeToList (BodyStatement <$> mkBody (goFunctionClause <$> toList _funDefClauses))
-          }
-      )
-  ]
-    <> (ExternalMacro . CppDefineParens <$> toList nullaryDefine)
+goFunctionDef ::
+  Members '[Reader Mono.InfoTable] r =>
+  Mono.FunctionDef ->
+  Sem r [CCode]
+goFunctionDef Mono.FunctionDef {..} = do
+  fc <- mapM (goFunctionClause (fst (unfoldFunType _funDefType))) (toList _funDefClauses)
+  let bodySpec = (\(c, b, _) -> (c, b)) <$> fc
+  let preDecls :: [Function] = (\(_, _, ds) -> ds) =<< fc
+  return $
+    (ExternalFunc <$> preDecls)
+      <> [ ExternalFunc
+             ( Function
+                 { _funcReturnType = funReturnType ^. typeDeclType,
+                   _funcIsPtr = funReturnType ^. typeIsPtr,
+                   _funcQualifier = None,
+                   _funcName = funcName,
+                   _funcArgs = namedArgs asFunArg funArgTypes,
+                   _funcBody = maybeToList (BodyStatement <$> mkBody bodySpec)
+                 }
+             )
+         ]
+      <> (ExternalMacro . CppDefineParens <$> toList nullaryDefine)
   where
     mkBody :: [(Maybe Expression, Statement)] -> Maybe Statement
     mkBody cs = do
@@ -233,10 +243,22 @@ goFunctionDef Mono.FunctionDef {..} =
             )
         ]
 
-type PatternBindings = HashMap Text Expression
+type PatternBindings = HashMap Text (Expression, FunType)
 
-goFunctionClause :: Mono.FunctionClause -> (Maybe Expression, Statement)
-goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
+type FunType = ([CDeclType], CDeclType)
+
+typeToFunType :: Mono.Type -> FunType
+typeToFunType = second goType . first (map goType) . unfoldFunType
+
+goFunctionClause ::
+  forall r.
+  Member (Reader Mono.InfoTable) r =>
+  [Mono.Type] ->
+  Mono.FunctionClause ->
+  Sem r (Maybe Expression, Statement, [Function])
+goFunctionClause argTyps Mono.FunctionClause {..} = do
+  (stmt, decls) <- returnStmt
+  return (clauseCondition, stmt, decls)
   where
     conditions :: [Expression]
     conditions = do
@@ -277,66 +299,198 @@ goFunctionClause Mono.FunctionClause {..} = (clauseCondition, returnStmt)
                   _binaryRight = e2
                 }
             )
+    patternBindings :: Sem r PatternBindings
+    patternBindings = HashMap.fromList <$> patternVars
+    patternVars :: Sem r [(Text, (Expression, FunType))]
+    patternVars = mapM' f (zipWith (curry (second (first ExpressionVar))) _clausePatterns (zip funArgs argTyps))
+      where
+        f (p, (arg, argTyp)) =
+          case p of
+            Mono.PatternVariable v -> return [(v ^. Mono.nameText, (arg, typeToFunType argTyp))]
+            Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
+              goConstructorApp arg _constrAppConstructor _constrAppParameters
+            Mono.PatternWildcard {} -> return []
+    returnStmt :: Sem r (Statement, [Function])
+    returnStmt = do
+      bindings <- patternBindings
+      (decls :: [Function], clauseResult) <- runOutputList (runReader bindings (goExpression _clauseBody))
+      return $ (StatementReturn (Just clauseResult), decls)
 
-    patternBindings :: PatternBindings
-    patternBindings = HashMap.fromList patternVars
+    goConstructorApp :: Expression -> Mono.Name -> [Mono.Pattern] -> Sem r [(Text, (Expression, FunType))]
+    goConstructorApp arg n ps = do
+      ctorInfo' <- ctorInfo
+      mapM' f (zip ps (zip ctorArgs ctorInfo'))
+      where
+        ctorInfo :: Sem r [Mono.Type]
+        ctorInfo = do
+          p' :: HashMap Mono.Name Mono.ConstructorInfo <- asks (^. Mono.infoConstructors)
+          let fInfo =  HashMap.lookupDefault impossible n p'
+          return $ fInfo ^. Mono.constructorInfoArgs
+        f :: (Mono.Pattern, (Text, Mono.Type)) -> Sem r [(Text, (Expression, FunType))]
+        f (p, (field, fieldType)) = do
+          let ctorField = memberAccess Object asConstructor field
+          case p of
+            Mono.PatternVariable v -> do
+              return [(v ^. Mono.nameText, (ctorField, typeToFunType fieldType))]
+            Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
+              goConstructorApp ctorField _constrAppConstructor _constrAppParameters
+            Mono.PatternWildcard {} -> return []
+          where
+            asConstructor :: Expression
+            asConstructor = functionCall (ExpressionVar (asCast (mkName n))) [arg]
 
-    patternVars :: [(Text, Expression)]
-    patternVars = do
-      (p, arg) <- zipWith (curry (second ExpressionVar)) _clausePatterns funArgs
-      case p of
-        Mono.PatternVariable v -> [(v ^. Mono.nameText, arg)]
-        Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
-          goConstructorApp arg _constrAppConstructor _constrAppParameters
-        Mono.PatternWildcard {} -> []
 
-    returnStmt :: Statement
-    returnStmt = StatementReturn (Just (run (runReader patternBindings (goExpression _clauseBody))))
+mapM' :: Monad m => (a -> m [b]) -> [a] -> m [b]
+mapM' f as = concat <$> (mapM f as)
 
-goConstructorApp :: Expression -> Mono.Name -> [Mono.Pattern] -> [(Text, Expression)]
-goConstructorApp arg n ps = do
-  (p, field) <- zip ps ctorArgs
-  let ctorField = memberAccess Object asConstructor field
-  case p of
-    Mono.PatternVariable v -> [(v ^. Mono.nameText, ctorField)]
-    Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
-      goConstructorApp ctorField _constrAppConstructor _constrAppParameters
-    Mono.PatternWildcard {} -> []
-  where
-    asConstructor :: Expression
-    asConstructor = functionCall (ExpressionVar (asCast (mkName n))) [arg]
-
-goExpression :: Member (Reader PatternBindings) r => Mono.Expression -> Sem r Expression
+goExpression :: Members '[Reader Mono.InfoTable, Reader PatternBindings, Output Function] r => Mono.Expression -> Sem r Expression
 goExpression = \case
-  Mono.ExpressionIden i -> goIden i
+  Mono.ExpressionIden i -> do
+    let rootFunName = mkName (getName i)
+    let funName = rootFunName <> "_fun"
+    let newFunName = "new_" <> funName
+    let localName :: Text = "f"
+
+    case i of
+      Mono.IdenVar {} -> goIden i
+      _ -> do
+        (argTyps, retTyp) <- getType i
+        if
+            | null argTyps -> goIden i
+            | otherwise -> do
+                output $
+                  Function
+                    { _funcReturnType = retTyp ^. typeDeclType,
+                      _funcIsPtr = retTyp ^. typeIsPtr,
+                      _funcQualifier = None,
+                      _funcName = funName,
+                      _funcArgs = namedArgs asFunArg (declFunctionPtrType : argTyps),
+                      _funcBody =
+                        [ returnStatement (functionCall (ExpressionVar rootFunName) (ExpressionVar <$> (take (length argTyps) (drop 1 funArgs))))
+                        ]
+                    }
+                output $
+                  Function
+                    { _funcReturnType = declFunctionType,
+                      _funcIsPtr = True,
+                      _funcQualifier = None,
+                      _funcName = newFunName,
+                      _funcArgs = [],
+                      _funcBody =
+                        [ BodyDecl
+                            ( Declaration
+                                { _declType = declFunctionType,
+                                  _declIsPtr = True,
+                                  _declName = Just localName,
+                                  _declInitializer = Just $ ExprInitializer (mallocSizeOf Str.juvixFunctionT)
+                                }
+                            ),
+                          BodyStatement
+                            ( StatementExpr
+                                ( ExpressionAssign
+                                    ( Assign
+                                        { _assignLeft = memberAccess Pointer (ExpressionVar localName) "fun",
+                                          _assignRight =
+                                            castToType
+                                              ( CDeclType
+                                                  { _typeDeclType = uIntPtrType,
+                                                    _typeIsPtr = False
+                                                  }
+                                              )
+                                              (ExpressionVar funName)
+                                        }
+                                    )
+                                )
+                            ),
+                          returnStatement (ExpressionVar localName)
+                        ]
+                    }
+                return $ functionCall (ExpressionVar newFunName) []
   Mono.ExpressionApplication a -> goApplication a
   Mono.ExpressionLiteral l -> return (ExpressionLiteral (goLiteral l))
 
-goIden :: Member (Reader PatternBindings) r => Mono.Iden -> Sem r Expression
+getType ::
+  Members '[Reader Mono.InfoTable, Reader PatternBindings] r =>
+  Mono.Iden ->
+  Sem r ([CDeclType], CDeclType)
+getType = \case
+  Mono.IdenFunction n -> do
+    fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoFunctions)
+    return $ typeToFunType (fInfo ^. Mono.functionInfoType)
+  Mono.IdenConstructor n -> do
+    fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoConstructors)
+    return (goType <$> (fInfo ^. Mono.constructorInfoArgs), goType (Mono.TypeIden $ Mono.TypeIdenInductive (fInfo ^. Mono.constructorInfoInductive)))
+  Mono.IdenAxiom n -> do
+    fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoAxioms)
+    return $ typeToFunType (fInfo ^. Mono.axiomInfoType)
+  Mono.IdenVar n -> do
+    p :: PatternBindings <- ask
+    return $ snd (HashMap.lookupDefault impossible (n ^. Mono.nameText) p)
+
+getName :: Mono.Iden -> Mono.Name
+getName = \case
+  Mono.IdenFunction n -> n
+  Mono.IdenConstructor n -> n
+  Mono.IdenVar n -> n
+  Mono.IdenAxiom n -> n
+
+goIden :: Members '[Reader PatternBindings, Reader Mono.InfoTable] r => Mono.Iden -> Sem r Expression
 goIden = \case
   Mono.IdenFunction n -> return (ExpressionVar (mkName n))
   Mono.IdenConstructor n -> return (ExpressionVar (asNew (mkName n)))
-  Mono.IdenVar n -> HashMap.lookupDefault impossible (n ^. Mono.nameText) <$> ask
+  Mono.IdenVar n -> do
+    p :: PatternBindings <- ask
+    return $ fst (HashMap.lookupDefault impossible (n ^. Mono.nameText) p)
   Mono.IdenAxiom n -> return (ExpressionVar (mkName n))
 
-goApplication :: forall r. Member (Reader PatternBindings) r => Mono.Application -> Sem r Expression
+goApplication :: forall r. Members '[Reader PatternBindings, Reader Mono.InfoTable, Output Function] r => Mono.Application -> Sem r Expression
 goApplication a = do
-  (fName, fArgs) <- f
-  return (functionCall fName (reverse fArgs))
-  where
-    f :: Sem r (Expression, [Expression])
-    f = unfoldApp a
+  (iden, fArgs) <- f
 
-    unfoldApp :: Mono.Application -> Sem r (Expression, [Expression])
+  case iden of
+    Mono.IdenVar n -> do
+      p :: PatternBindings <- ask
+      let (idenExp, idenTyp) = HashMap.lookupDefault impossible (n ^. Mono.nameText) p
+      return $ juvixFunctionCall idenTyp idenExp (reverse fArgs)
+    _ -> do
+      idenExp <- goIden iden
+      return $ functionCall idenExp (reverse fArgs)
+  where
+    -- let (fName, fArgs) = fun
+    -- e <- case fName of
+    --   Mono.ExpressionIden i -> do
+    --     arity <- getArity i
+    --     traceShowM ("name", Mono.getName i)
+    --     traceShowM ("arity", arity)
+    --     case i of
+    --       Mono.IdenFunction n -> if
+    --         | arity == length fArgs -> return (ExpressionVar (mkName n))
+    --         | otherwise -> undefined
+    --       Mono.IdenConstructor n -> return (ExpressionVar (asNew (mkName n)))
+    --       Mono.IdenVar n -> HashMap.lookupDefault impossible (n ^. Mono.nameText) <$> ask
+    --       Mono.IdenAxiom n -> return (ExpressionVar (mkName n))
+    --   Mono.ExpressionApplication a' -> goApplication a'
+    --   Mono.ExpressionLiteral l -> return (ExpressionLiteral (goLiteral l))
+    -- args <- mapM goExpression (reverse fArgs)
+
+    fun :: (Mono.Expression, [Mono.Expression])
+    fun = unfoldAppFun a
+    unfoldAppFun :: Mono.Application -> (Mono.Expression, [Mono.Expression])
+    unfoldAppFun Mono.Application {..} = case _appLeft of
+      Mono.ExpressionApplication x -> second (_appRight :) (unfoldAppFun x)
+      _ -> (_appLeft, [_appRight])
+    f :: Sem r (Mono.Iden, [Expression])
+    f = unfoldApp a
+    unfoldApp :: Mono.Application -> Sem r (Mono.Iden, [Expression])
     unfoldApp Mono.Application {..} = case _appLeft of
       Mono.ExpressionApplication x -> do
         fName <- goExpression _appRight
         uf <- unfoldApp x
         return (second (fName :) uf)
-      _ -> do
-        fName <- goExpression _appLeft
+      Mono.ExpressionIden i -> do
         fArg <- goExpression _appRight
-        return (fName, [fArg])
+        return (i, [fArg])
+      Mono.ExpressionLiteral {} -> impossible
 
 goLiteral :: C.LiteralLoc -> Literal
 goLiteral C.LiteralLoc {..} = case _literalLocLiteral of
@@ -711,7 +865,7 @@ unfoldFunType t = case t of
 goType :: Mono.Type -> CDeclType
 goType t = case t of
   Mono.TypeIden ti -> getMonoType ti
-  Mono.TypeFunction {} -> goTypeFunction (unfoldFunType t)
+  Mono.TypeFunction {} -> declFunctionPtrType
   Mono.TypeUniverse {} -> unsupported "TypeUniverse"
   Mono.TypeAny {} -> unsupported "TypeAny"
   where
@@ -727,22 +881,6 @@ goType t = case t of
           { _typeDeclType = DeclTypeDefType (mkName mn),
             _typeIsPtr = False
           }
-    goTypeFunction :: ([Mono.Type], Mono.Type) -> CDeclType
-    goTypeFunction (margs, mrType) =
-      CDeclType
-        { _typeDeclType =
-            DeclFunPtr
-              ( FunPtr
-                  { _funPtrReturnType = rType ^. typeDeclType,
-                    _funPtrIsPtr = rType ^. typeIsPtr,
-                    _funPtrArgs = goType <$> margs
-                  }
-              ),
-          _typeIsPtr = False
-        }
-      where
-        rType :: CDeclType
-        rType = goType mrType
 
 goTypeDecl :: Text -> CDeclType -> Declaration
 goTypeDecl n CDeclType {..} =
@@ -753,6 +891,46 @@ goTypeDecl n CDeclType {..} =
       _declInitializer = Nothing
     }
 
+goTypeDecl'' :: CDeclType -> Declaration
+goTypeDecl'' CDeclType {..} =
+  Declaration
+    { _declType = _typeDeclType,
+      _declIsPtr = _typeIsPtr,
+      _declName = Nothing,
+      _declInitializer = Nothing
+    }
+
 mallocSizeOf :: Text -> Expression
 mallocSizeOf typeName =
   functionCall (ExpressionVar Str.malloc) [functionCall (ExpressionVar Str.sizeof) [ExpressionVar typeName]]
+
+declFunctionType :: DeclType
+declFunctionType = DeclTypeDefType Str.juvixFunctionT
+
+declFunctionPtrType :: CDeclType
+declFunctionPtrType =
+  CDeclType
+    { _typeDeclType = declFunctionType,
+      _typeIsPtr = True
+    }
+
+funPtrType :: FunType -> CDeclType
+funPtrType (argTyps, rTyp) =
+  CDeclType
+    { _typeDeclType =
+        DeclFunPtr
+          ( FunPtr
+              { _funPtrReturnType = rTyp ^. typeDeclType,
+                _funPtrIsPtr = rTyp ^. typeIsPtr,
+                _funPtrArgs = argTyps
+              }
+          ),
+      _typeIsPtr = False
+    }
+
+juvixFunctionCall :: FunType -> Expression -> [Expression] -> Expression
+juvixFunctionCall funType funParam args =
+  functionCall (castToType (funPtrType fTyp) (memberAccess Pointer funParam "fun")) (funParam : args)
+  where
+    fTyp :: FunType
+    fTyp = first (declFunctionPtrType :) (funType)
