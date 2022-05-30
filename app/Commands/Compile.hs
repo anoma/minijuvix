@@ -24,7 +24,7 @@ data CompileOptions = CompileOptions
   { _compileInputFile :: FilePath,
     _compileTarget :: CompileTarget,
     _compileRuntime :: CompileRuntime,
-    _compileOutputFile :: FilePath
+    _compileOutputFile :: Maybe FilePath
   }
 
 makeLenses ''CompileOptions
@@ -41,6 +41,7 @@ parseCompile = do
           <> showDefaultWith targetShow
           <> help "select a target: wasm, c"
       )
+
   _compileRuntime <-
     option
       (eitherReader parseRuntime)
@@ -51,16 +52,18 @@ parseCompile = do
           <> showDefaultWith runtimeShow
           <> help "select a runtime: standalone, libc"
       )
+
   _compileOutputFile <-
-    option
-      str
-      ( long "output"
-          <> short 'o'
-          <> metavar "OUTPUT_FILE"
-          <> help "Path to output file"
-          <> action "file"
-          <> value "out"
-      )
+    optional $
+      option
+        str
+        ( long "output"
+            <> short 'o'
+            <> metavar "OUTPUT_FILE"
+            <> help "Path to output file"
+            <> action "file"
+        )
+
   _compileInputFile <- parserInputFile
 
   pure CompileOptions {..}
@@ -108,12 +111,15 @@ prepareRuntime projRoot o = do
   where
     standaloneRuntimeDir :: [(FilePath, BS.ByteString)]
     standaloneRuntimeDir = $(FE.makeRelativeToProject "minic-runtime/standalone" >>= FE.embedDir)
+
     libCRuntimeDir :: [(FilePath, BS.ByteString)]
     libCRuntimeDir = $(FE.makeRelativeToProject "minic-runtime/libc" >>= FE.embedDir)
+
     runtimeProjectDir :: [(FilePath, BS.ByteString)]
     runtimeProjectDir = case o ^. compileRuntime of
       RuntimeStandalone -> standaloneRuntimeDir
       RuntimeLibC -> libCRuntimeDir
+
     writeRuntime :: (FilePath, BS.ByteString) -> IO ()
     writeRuntime (filePath, contents) =
       BS.writeFile (projRoot </> minijuvixBuildDir </> takeFileName filePath) contents
@@ -127,6 +133,7 @@ clangCompile projRoot o = do
   where
     sysrootEnvVar :: IO (Either Text String)
     sysrootEnvVar = maybeToEither "Missing environment variable WASI_SYSROOT_PATH" <$> lookupEnv "WASI_SYSROOT_PATH"
+
     withSysrootPath :: String -> IO (Either Text ())
     withSysrootPath sysrootPath = runClang clangArgs
       where
@@ -134,8 +141,10 @@ clangCompile projRoot o = do
         clangArgs = case o ^. compileRuntime of
           RuntimeStandalone -> standaloneArgs sysrootPath outputFile inputFile
           RuntimeLibC -> libcArgs sysrootPath outputFile inputFile
+
         outputFile :: FilePath
-        outputFile = o ^. compileOutputFile
+        outputFile = fromMaybe (takeBaseName (o ^. compileInputFile) <> ".wasm") (o ^. compileOutputFile)
+
         inputFile :: FilePath
         inputFile = inputCFile projRoot o
 
