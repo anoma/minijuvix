@@ -205,7 +205,7 @@ runCLI cli = do
       say miniC
     Compile o -> do
       miniC <- (^. MiniC.resultCCode) <$> runPipeline (upToMiniC (getEntryPoint root globalOptions o))
-      result <- embed (runCompile o miniC)
+      result <- embed (runCompile root o miniC)
       case result of
         Left err -> say ("Error: " <> err)
         _ -> return ()

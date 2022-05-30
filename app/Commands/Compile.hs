@@ -87,23 +87,23 @@ parseCompile = do
       RuntimeStandalone -> "standalone"
       RuntimeLibC -> "libc"
 
-inputCFile :: CompileOptions -> FilePath
-inputCFile o = minijuvixBuildDir </> outputMiniCFile
+inputCFile :: FilePath -> CompileOptions -> FilePath
+inputCFile projRoot o = projRoot </> minijuvixBuildDir </> outputMiniCFile
   where
     outputMiniCFile :: FilePath
     outputMiniCFile = takeBaseName (o ^. compileInputFile) <> ".c"
 
-runCompile :: CompileOptions -> Text -> IO (Either Text ())
-runCompile o minic = do
-  createDirectoryIfMissing True minijuvixBuildDir
-  TIO.writeFile (inputCFile o) minic
-  prepareRuntime o
+runCompile :: FilePath -> CompileOptions -> Text -> IO (Either Text ())
+runCompile projRoot o minic = do
+  createDirectoryIfMissing True (projRoot </> minijuvixBuildDir)
+  TIO.writeFile (inputCFile projRoot o) minic
+  prepareRuntime projRoot o
   case o ^. compileTarget of
-    TargetWasm -> clangCompile o
+    TargetWasm -> clangCompile projRoot o
     TargetC -> return (Right ())
 
-prepareRuntime :: CompileOptions -> IO ()
-prepareRuntime o = do
+prepareRuntime :: FilePath -> CompileOptions -> IO ()
+prepareRuntime projRoot o = do
   mapM_ writeRuntime runtimeProjectDir
   where
     standaloneRuntimeDir :: [(FilePath, BS.ByteString)]
@@ -116,10 +116,10 @@ prepareRuntime o = do
       RuntimeLibC -> libCRuntimeDir
     writeRuntime :: (FilePath, BS.ByteString) -> IO ()
     writeRuntime (filePath, contents) =
-      BS.writeFile (minijuvixBuildDir </> takeFileName filePath) contents
+      BS.writeFile (projRoot </> minijuvixBuildDir </> takeFileName filePath) contents
 
-clangCompile :: CompileOptions -> IO (Either Text ())
-clangCompile o = do
+clangCompile :: FilePath -> CompileOptions -> IO (Either Text ())
+clangCompile projRoot o = do
   v <- sysrootEnvVar
   case v of
     Left s -> return (Left s)
@@ -137,7 +137,7 @@ clangCompile o = do
         outputFile :: FilePath
         outputFile = o ^. compileOutputFile
         inputFile :: FilePath
-        inputFile = inputCFile o
+        inputFile = inputCFile projRoot o
 
 standaloneArgs :: FilePath -> FilePath -> FilePath -> [String]
 standaloneArgs sysrootPath wasmOutputFile inputFile =
