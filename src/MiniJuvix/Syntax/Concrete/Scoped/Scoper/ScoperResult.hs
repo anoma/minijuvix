@@ -1,4 +1,4 @@
-module MiniJuvix.Syntax.Concrete.Scoped.Scoper.ScoperResult (module MiniJuvix.Syntax.Concrete.Scoped.Scoper.ScoperResult) where
+module MiniJuvix.Syntax.Concrete.Scoped.Scoper.ScoperResult where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Concrete.Language

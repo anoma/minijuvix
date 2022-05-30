@@ -19,5 +19,5 @@ data AbstractResult = AbstractResult
 
 makeLenses ''AbstractResult
 
-getEntryPoint :: Lens' AbstractResult E.EntryPoint
-getEntryPoint = resultScoper . resultParserResult . resultEntry
+abstractResultEntryPoint :: Lens' AbstractResult E.EntryPoint
+abstractResultEntryPoint = resultScoper . resultParserResult . resultEntry

@@ -14,7 +14,12 @@ data EntryPoint = EntryPoint
   deriving stock (Eq, Show)
 
 defaultEntryPoint :: FilePath -> EntryPoint
-defaultEntryPoint mainFile = EntryPoint "." False (pure mainFile)
+defaultEntryPoint mainFile =
+  EntryPoint
+    { _entryPointRoot = ".",
+      _entryPointNoTermination = False,
+      _entryPointModulePaths = pure mainFile
+    }
 
 makeLenses ''EntryPoint
 
