@@ -3,9 +3,6 @@ module Command
     module Commands.Extra,
     module Commands.Html,
     module Commands.MicroJuvix,
-    module Commands.MiniC,
-    module Commands.MiniHaskell,
-    module Commands.MonoJuvix,
     module Commands.Parse,
     module Commands.Scope,
     module Commands.Termination,
@@ -17,9 +14,6 @@ import Commands.Compile
 import Commands.Extra
 import Commands.Html
 import Commands.MicroJuvix
-import Commands.MiniC
-import Commands.MiniHaskell
-import Commands.MonoJuvix
 import Commands.Parse
 import Commands.Scope
 import Commands.Termination
@@ -33,25 +27,14 @@ data Command
   | Parse ParseOptions
   | Html HtmlOptions
   | Termination TerminationCommand
-  | MiniHaskell MiniHaskellOptions
-  | MiniC MiniCOptions
+  | MiniHaskell
+  | MiniC
   | Compile CompileOptions
   | MicroJuvix MicroJuvixCommand
-  | MonoJuvix MonoJuvixOptions
+  | MonoJuvix
   | DisplayVersion
   | DisplayRoot
-  | Highlight HighlightOptions
-
-newtype HighlightOptions = HighlightOptions
-  { _highlightInputFile :: FilePath
-  }
-
-makeLenses ''HighlightOptions
-
-parseHighlight :: Parser HighlightOptions
-parseHighlight = do
-  _highlightInputFile <- parserInputFile
-  pure HighlightOptions {..}
+  | Highlight
 
 parseDisplayVersion :: Parser Command
 parseDisplayVersion =
@@ -106,7 +89,7 @@ parseCommand =
         minfo :: ParserInfo Command
         minfo =
           info
-            (MonoJuvix <$> parseMonoJuvix)
+            (pure MonoJuvix)
             (progDesc "Translate a MiniJuvix file to MonoJuvix")
 
     commandMiniHaskell :: Mod CommandFields Command
@@ -115,7 +98,7 @@ parseCommand =
         minfo :: ParserInfo Command
         minfo =
           info
-            (MiniHaskell <$> parseMiniHaskell)
+            (pure MiniHaskell)
             (progDesc "Translate a MiniJuvix file to MiniHaskell")
 
     commandMiniC :: Mod CommandFields Command
@@ -124,7 +107,7 @@ parseCommand =
         minfo :: ParserInfo Command
         minfo =
           info
-            (MiniC <$> parseMiniC)
+            (pure MiniC)
             (progDesc "Translate a MiniJuvix file to MiniC")
 
     commandCompile :: Mod CommandFields Command
@@ -142,7 +125,7 @@ parseCommand =
         minfo :: ParserInfo Command
         minfo =
           info
-            (Highlight <$> parseHighlight)
+            (pure Highlight)
             (progDesc "Highlight a MiniJuvix file")
 
     commandParse :: Mod CommandFields Command

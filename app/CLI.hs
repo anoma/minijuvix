@@ -20,49 +20,37 @@ makeLenses ''CLI
 
 parseCLI :: Parser CLI
 parseCLI = do
-  _cliGlobalOptions <- parseGlobalOptions
+  _globalNoColors <-
+    switch
+      ( long "no-colors"
+          <> help "Disable globally ANSI formatting"
+      )
+  _globalShowNameIds <-
+    switch
+      ( long "show-name-ids"
+          <> help "Show the unique number of each identifier when pretty printing"
+      )
+  _globalOnlyErrors <-
+    switch
+      ( long "only-errors"
+          <> help "Only print errors in a uniform format (used by minijuvix-mode)"
+      )
+  _globalNoTermination <-
+    switch
+      ( long "no-termination"
+          <> help "Disable the termination checker"
+      )
   _cliCommand <- parseCommand
-  pure CLI {..}
+  _globalInputFiles <- parseInputFiles
+  pure CLI {_cliGlobalOptions = GlobalOptions {..}, ..}
 
-cliMainFile :: CLI -> Maybe FilePath
-cliMainFile = aux . (^. cliCommand)
-  where
-    aux :: Command -> Maybe FilePath
-    aux = \case
-      Scope s -> Just (head (s ^. scopeInputFiles))
-      Parse s -> Just (s ^. parseInputFile)
-      Termination (Calls s) -> Just (s ^. callsInputFile)
-      Termination (CallGraph s) -> Just (s ^. graphInputFile)
-      Html s -> Just (s ^. htmlInputFile)
-      MiniHaskell s -> Just (s ^. miniHaskellInputFile)
-      Highlight s -> Just (s ^. highlightInputFile)
-      MiniC s -> Just (s ^. miniCInputFile)
-      Compile s -> Just (s ^. compileInputFile)
-      MicroJuvix (TypeCheck s) -> Just (s ^. microJuvixTypeInputFile)
-      MicroJuvix (Pretty s) -> Just (s ^. microJuvixPrettyInputFile)
-      MonoJuvix s -> Just (s ^. monoJuvixInputFile)
-      DisplayVersion -> Nothing
-      DisplayRoot -> Nothing
+cliMainFile :: CLI -> FilePath
+cliMainFile CLI {_cliGlobalOptions = GlobalOptions {..}} = head _globalInputFiles
 
 makeAbsPaths :: CLI -> IO CLI
-makeAbsPaths = traverseOf cliCommand aux
-  where
-    aux :: Command -> IO Command
-    aux = \case
-      Scope s -> Scope <$> traverseOf scopeInputFiles (mapM makeAbsolute) s
-      Parse s -> Parse <$> traverseOf parseInputFile makeAbsolute s
-      Termination (Calls s) -> Termination . Calls <$> traverseOf callsInputFile makeAbsolute s
-      Termination (CallGraph s) -> Termination . CallGraph <$> traverseOf graphInputFile makeAbsolute s
-      Html s -> Html <$> traverseOf htmlInputFile makeAbsolute s
-      MiniHaskell s -> MiniHaskell <$> traverseOf miniHaskellInputFile makeAbsolute s
-      Highlight s -> Highlight <$> traverseOf highlightInputFile makeAbsolute s
-      MiniC s -> MiniC <$> traverseOf miniCInputFile makeAbsolute s
-      Compile s -> Compile <$> traverseOf compileInputFile makeAbsolute s
-      MicroJuvix (TypeCheck s) -> MicroJuvix . TypeCheck <$> traverseOf microJuvixTypeInputFile makeAbsolute s
-      MicroJuvix (Pretty s) -> MicroJuvix . Pretty <$> traverseOf microJuvixPrettyInputFile makeAbsolute s
-      MonoJuvix s -> MonoJuvix <$> traverseOf monoJuvixInputFile makeAbsolute s
-      DisplayVersion -> return DisplayVersion
-      DisplayRoot -> return DisplayRoot
+makeAbsPaths cli = do
+  nOpts <- traverseOf globalInputFiles (mapM makeAbsolute) (cli ^. cliGlobalOptions)
+  return (set cliGlobalOptions nOpts cli)
 
 descr :: ParserInfo CLI
 descr =

@@ -11,3 +11,6 @@ parserInputFile =
         <> help "Path to a .mjuvix file"
         <> action "file"
     )
+
+parseInputFiles :: Parser (NonEmpty FilePath)
+parseInputFiles = some1 parserInputFile

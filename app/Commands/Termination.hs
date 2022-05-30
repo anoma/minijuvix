@@ -1,6 +1,5 @@
 module Commands.Termination where
 
-import Commands.Extra
 import Control.Monad.Extra
 import Data.Text qualified as Text
 import MiniJuvix.Prelude hiding (Doc)
@@ -12,15 +11,13 @@ data TerminationCommand
   | CallGraph CallGraphOptions
 
 data CallsOptions = CallsOptions
-  { _callsInputFile :: FilePath,
-    _callsShowIds :: Bool,
+  { _callsShowIds :: Bool,
     _callsFunctionNameFilter :: Maybe (NonEmpty Text),
     _callsShowDecreasingArgs :: A.ShowDecrArgs
   }
 
-data CallGraphOptions = CallGraphOptions
-  { _graphInputFile :: FilePath,
-    _graphFunctionNameFilter :: Maybe (NonEmpty Text)
+newtype CallGraphOptions = CallGraphOptions
+  { _graphFunctionNameFilter :: Maybe (NonEmpty Text)
   }
 
 makeLenses ''CallsOptions
@@ -28,7 +25,6 @@ makeLenses ''CallGraphOptions
 
 parseCalls :: Parser CallsOptions
 parseCalls = do
-  _callsInputFile <- parserInputFile
   _callsShowIds <-
     switch
       ( long "show-name-ids"
@@ -64,7 +60,6 @@ parseCalls = do
 
 parseCallGraph :: Parser CallGraphOptions
 parseCallGraph = do
-  _graphInputFile <- parserInputFile
   _graphFunctionNameFilter <-
     fmap msum . optional $
       nonEmpty . Text.words
