@@ -33,7 +33,7 @@ testDescr PosTest {..} =
           _testAssertion = Steps $ \step -> do
             cwd <- getCurrentDirectory
             entryFile <- makeAbsolute _file
-            let entryPoint = EntryPoint cwd defaultGlobalOptions (pure entryFile)
+            let entryPoint = EntryPoint cwd False (pure entryFile)
 
             step "Parsing"
             p :: Parser.ParserResult <- runIO (upToParsing entryPoint)

@@ -1,14 +1,22 @@
 {-# LANGUAGE ApplicativeDo #-}
 
 module GlobalOptions
-  ( GlobalOptions (..),
-    parseGlobalOptions,
+  ( module GlobalOptions,
   )
 where
 
-import MiniJuvix.Pipeline.EntryPoint
 import MiniJuvix.Prelude
 import Options.Applicative
+
+data GlobalOptions = GlobalOptions
+  { _globalNoColors :: Bool,
+    _globalShowNameIds :: Bool,
+    _globalOnlyErrors :: Bool,
+    _globalNoTermination :: Bool
+  }
+  deriving stock (Eq, Show)
+
+makeLenses ''GlobalOptions
 
 parseGlobalOptions :: Parser GlobalOptions
 parseGlobalOptions = do

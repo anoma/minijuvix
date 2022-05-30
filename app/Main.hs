@@ -69,37 +69,59 @@ class HasEntryPoint a where
   getEntryPoint :: FilePath -> GlobalOptions -> a -> EntryPoint
 
 instance HasEntryPoint ScopeOptions where
-  getEntryPoint x y = EntryPoint x y . (^. scopeInputFiles)
+  getEntryPoint x opts = EntryPoint x nT . (^. scopeInputFiles)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint ParseOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. parseInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. parseInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint HighlightOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. highlightInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. highlightInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint HtmlOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. htmlInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. htmlInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint MicroJuvixTypeOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. microJuvixTypeInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. microJuvixTypeInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint MicroJuvixPrettyOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. microJuvixPrettyInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. microJuvixPrettyInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint MonoJuvixOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. monoJuvixInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. monoJuvixInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint MiniHaskellOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. miniHaskellInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. miniHaskellInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint MiniCOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. miniCInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. miniCInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint CallsOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. callsInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. callsInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 instance HasEntryPoint CallGraphOptions where
-  getEntryPoint x y = EntryPoint x y . pure . (^. graphInputFile)
+  getEntryPoint x opts = EntryPoint x nT . pure . (^. graphInputFile)
+    where
+      nT = opts ^. globalNoTermination
 
 runCLI :: Members '[Embed IO, App] r => CLI -> Sem r ()
 runCLI cli = do
@@ -128,7 +150,9 @@ runCLI cli = do
                     }
           say (Highlight.go hinput)
     Parse opts -> do
-      m <- head . (^. Parser.resultModules) <$> runPipeline (upToParsing (getEntryPoint root globalOptions opts))
+      m <-
+        head . (^. Parser.resultModules)
+          <$> runPipeline (upToParsing (getEntryPoint root globalOptions opts))
       if opts ^. parseNoPrettyShow then say (show m) else say (pack (ppShow m))
     Scope opts -> do
       l <- (^. Scoper.resultModules) <$> runPipeline (upToScoping (getEntryPoint root globalOptions opts))

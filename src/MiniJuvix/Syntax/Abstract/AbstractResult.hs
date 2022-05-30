@@ -21,6 +21,3 @@ makeLenses ''AbstractResult
 
 getEntryPoint :: Lens' AbstractResult E.EntryPoint
 getEntryPoint = resultScoper . resultParserResult . resultEntry
-
-getEntryPointOptions :: Lens' AbstractResult E.GlobalOptions
-getEntryPointOptions = getEntryPoint . E.entryPointOptions

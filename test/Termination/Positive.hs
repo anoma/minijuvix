@@ -20,7 +20,7 @@ testDescr PosTest {..} =
         { _testName = _name,
           _testRoot = tRoot,
           _testAssertion = Single $ do
-            let entryPoint = EntryPoint "." defaultGlobalOptions (pure _file)
+            let entryPoint = defaultEntryPoint _file
             (void . runIO) (upToMicroJuvix entryPoint)
         }
 
@@ -38,8 +38,7 @@ testDescrFlag N.NegTest {..} =
         { _testName = _name,
           _testRoot = tRoot,
           _testAssertion = Single $ do
-            let nonTerminationOn = defaultGlobalOptions {_globalNoTermination = True}
-                entryPoint = EntryPoint "." nonTerminationOn (pure _file)
+            let entryPoint = EntryPoint "." True (pure _file)
             (void . runIO) (upToMicroJuvix entryPoint)
         }
 

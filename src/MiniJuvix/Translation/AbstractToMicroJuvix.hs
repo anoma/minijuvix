@@ -51,7 +51,7 @@ entryMicroJuvix abstractResults = do
     infoTable = abstractResults ^. Abstract.resultTable
     noTerminationOption =
       abstractResults
-        ^. (Abstract.getEntryPointOptions . E.globalNoTermination)
+        ^. (Abstract.getEntryPoint . E.entryPointNoTermination)
 
 goModule ::
   Member (State TranslationState) r =>
