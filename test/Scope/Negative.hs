@@ -10,7 +10,7 @@ data NegTest = NegTest
   { _name :: String,
     _relDir :: FilePath,
     _file :: FilePath,
-    _checkErr :: ScopeError -> Maybe FailMsg
+    _checkErr :: ScoperError -> Maybe FailMsg
   }
 
 root :: FilePath
@@ -23,9 +23,9 @@ testDescr NegTest {..} =
         { _testName = _name,
           _testRoot = tRoot,
           _testAssertion = Single $ do
-            let entryPoint = EntryPoint "." (pure _file)
+            let entryPoint = defaultEntryPoint _file
             res <- runIOEither (upToScoping entryPoint)
-            case mapLeft fromAJuvixError res of
+            case mapLeft fromMiniJuvixError res of
               Left (Just err) -> whenJust (_checkErr err) assertFailure
               Left Nothing -> assertFailure "The scope checker did not find an error."
               Right _ -> assertFailure "An error ocurred but it was not in the scoper."
