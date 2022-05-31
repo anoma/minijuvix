@@ -11,9 +11,6 @@ typedef struct juvix_function {
     uintptr_t fun;
 } juvix_function_t;
 
-
-#define juvix_function_call(ret_t,arg_ts,f,args) ((ret_t(*)arg_ts)(f->fun))args
-
 /**
  * Allocator
  */
