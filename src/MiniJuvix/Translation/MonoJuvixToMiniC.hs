@@ -81,14 +81,11 @@ asTypeDef n = n <> "_t"
 asTag :: Text -> Text
 asTag n = n <> "_tag"
 
-asNew :: Text -> Text
-asNew n = "new_" <> n
+asField :: Text -> Text
+asField n = n <> "_field"
 
 asNullary :: Text -> Text
 asNullary n = n <> "_nullary"
-
-asNewNullary :: Text -> Text
-asNewNullary n = asNullary (asNew n)
 
 asCast :: Text -> Text
 asCast n = "as_" <> n
@@ -437,7 +434,7 @@ getName = \case
 goIden :: Members '[Reader PatternBindings, Reader Mono.InfoTable] r => Mono.Iden -> Sem r Expression
 goIden = \case
   Mono.IdenFunction n -> return (ExpressionVar (mkName n))
-  Mono.IdenConstructor n -> return (ExpressionVar (asNew (mkName n)))
+  Mono.IdenConstructor n -> return (ExpressionVar (mkName n))
   Mono.IdenVar n -> do
     p :: PatternBindings <- ask
     return $ fst (HashMap.lookupDefault impossible (n ^. Mono.nameText) p)
@@ -618,7 +615,7 @@ goInductiveDef i =
         ( StructUnion
             { _structUnionTag = UnionTag,
               _structUnionName = Nothing,
-              _structMembers = Just (map (\ctorName -> typeDefType (asTypeDef ctorName) ctorName) constructorNames)
+              _structMembers = Just (map (\ctorName -> typeDefType (asTypeDef ctorName) (asField ctorName)) constructorNames)
             }
         )
 
@@ -652,7 +649,7 @@ goInductiveDef i =
           _funcArgs = [ptrType (DeclTypeDefType (asTypeDef baseName)) funcArg],
           _funcBody =
             [ returnStatement
-                (memberAccess Object (memberAccess Pointer (ExpressionVar funcArg) Str.data_) ctorName)
+                (memberAccess Object (memberAccess Pointer (ExpressionVar funcArg) Str.data_) (asField ctorName))
             ]
         }
       where
@@ -681,7 +678,7 @@ goInductiveConstructorNew i ctor = ctorNewFun
     ctorNewNullary =
       [ ExternalFunc $
           commonFunctionDeclr
-            (asNewNullary baseName)
+            (asNullary baseName)
             []
             [ BodyDecl allocInductive,
               BodyDecl (commonInitDecl (dataInit Str.true_)),
@@ -691,8 +688,8 @@ goInductiveConstructorNew i ctor = ctorNewFun
         ExternalMacro
           ( CppDefineParens
               ( Define
-                  { _defineName = asNew baseName,
-                    _defineBody = functionCall (ExpressionVar (asNewNullary baseName)) []
+                  { _defineName = baseName,
+                    _defineBody = functionCall (ExpressionVar (asNullary baseName)) []
                   }
               )
           )
@@ -702,7 +699,7 @@ goInductiveConstructorNew i ctor = ctorNewFun
     ctorNewNary =
       [ ExternalFunc $
           commonFunctionDeclr
-            (asNew baseName)
+            baseName
             ctorDecls
             [ BodyDecl allocInductive,
               BodyDecl ctorStructInit,
@@ -791,7 +788,7 @@ goInductiveConstructorNew i ctor = ctorNewFun
     dataInit varName =
       DesignatorInitializer
         [ DesigInit
-            { _desigDesignator = baseName,
+            { _desigDesignator = asField baseName,
               _desigInitializer = ExprInitializer (ExpressionVar varName)
             }
         ]
