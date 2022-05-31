@@ -127,5 +127,5 @@ tests =
     PosTest "Multiple modules" "MultiModules",
     PosTest "Higher Order Functions" "HigherOrder",
     PosTest "Higher Order Functions and explicit holes" "PolymorphismHoles",
-    PosTest "Curry2" "Curry2"
+    PosTest "Closures with no environment" "ClosureNoEnv"
   ]

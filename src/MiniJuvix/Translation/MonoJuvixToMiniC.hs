@@ -70,8 +70,6 @@ goStatement = \case
   Mono.StatementForeign d -> return (goForeign d)
   Mono.StatementAxiom d -> goAxiom d
 
-type CTypeName = Text
-
 asStruct :: Text -> Text
 asStruct n = n <> "_s"
 
@@ -453,29 +451,6 @@ goApplication a = do
       idenExp <- goIden iden
       return $ functionCall idenExp (reverse fArgs)
   where
-    -- let (fName, fArgs) = fun
-    -- e <- case fName of
-    --   Mono.ExpressionIden i -> do
-    --     arity <- getArity i
-    --     traceShowM ("name", Mono.getName i)
-    --     traceShowM ("arity", arity)
-    --     case i of
-    --       Mono.IdenFunction n -> if
-    --         | arity == length fArgs -> return (ExpressionVar (mkName n))
-    --         | otherwise -> undefined
-    --       Mono.IdenConstructor n -> return (ExpressionVar (asNew (mkName n)))
-    --       Mono.IdenVar n -> HashMap.lookupDefault impossible (n ^. Mono.nameText) <$> ask
-    --       Mono.IdenAxiom n -> return (ExpressionVar (mkName n))
-    --   Mono.ExpressionApplication a' -> goApplication a'
-    --   Mono.ExpressionLiteral l -> return (ExpressionLiteral (goLiteral l))
-    -- args <- mapM goExpression (reverse fArgs)
-
-    fun :: (Mono.Expression, [Mono.Expression])
-    fun = unfoldAppFun a
-    unfoldAppFun :: Mono.Application -> (Mono.Expression, [Mono.Expression])
-    unfoldAppFun Mono.Application {..} = case _appLeft of
-      Mono.ExpressionApplication x -> second (_appRight :) (unfoldAppFun x)
-      _ -> (_appLeft, [_appRight])
     f :: Sem r (Mono.Iden, [Expression])
     f = unfoldApp a
     unfoldApp :: Mono.Application -> Sem r (Mono.Iden, [Expression])

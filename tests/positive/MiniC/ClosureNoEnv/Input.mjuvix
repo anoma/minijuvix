@@ -1,0 +1,57 @@
+module Input;
+
+import IO;
+open IO;
+
+import String;
+open String;
+
+axiom Int : Type;
+
+compile Int {
+  c ↦ "int";
+};
+
+axiom int-to-str : Int → String;
+
+compile to-str {
+  c ↦ "intToStr";
+};
+
+foreign c {
+  int cplus(int l, int r) {
+    return l + r;
+  \}
+};
+
+axiom plus : Int → Int → Int;
+
+compile plus {
+  c ↦ "cplus";
+};
+
+apply : (Int → Int → Int) → Int → Int → Int;
+apply f a b ≔ f a b;
+
+inductive Nat {
+  zero : Nat;
+  succ : Nat → Nat;
+};
+
+applyNat : (Nat → Nat) → Nat → Nat;
+applyNat f a ≔ f a;
+
+nat-to-int : Nat → Int;
+nat-to-int zero ≔ 0;
+nat-to-int (succ n) ≔ plus 1 (nat-to-int n);
+
+one : Nat;
+one ≔ succ zero;
+
+two : Nat;
+two ≔ succ one;
+
+main : Action;
+main ≔ (put-str-ln (to-str (apply plus 1 2))) >> (put-str-ln (to-str (nat-to-int (applyNat succ one))));
+
+end;
