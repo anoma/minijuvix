@@ -6,6 +6,7 @@ module MiniJuvix.Syntax.MicroJuvix.TypeChecker
 where
 
 import Data.HashMap.Strict qualified as HashMap
+import MiniJuvix.Syntax.MicroJuvix.TypeChecker.Inference
 import MiniJuvix.Prelude hiding (fromEither)
 import MiniJuvix.Syntax.Concrete.Language (LiteralLoc)
 import MiniJuvix.Syntax.MicroJuvix.Error
@@ -84,14 +85,14 @@ checkFunctionDef FunctionDef {..} = do
       }
 
 checkExpression ::
-  Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars] r =>
+  Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars, Inference] r =>
   Type ->
   Expression ->
   Sem r Expression
 checkExpression t e = do
   e' <- inferExpression' e
   let inferredType = e' ^. typedType
-  unless (matchTypes t inferredType) (throw (err inferredType))
+  unlessM (matchTypes t inferredType) (throw (err inferredType))
   return (ExpressionTyped e')
   where
     err infTy =
@@ -103,26 +104,15 @@ checkExpression t e = do
             }
         )
 
-matchTypes ::
-  Type ->
-  Type ->
-  Bool
-matchTypes a b =
-  isAny a || isAny b || alphaEq a b
-  where
-    isAny = \case
-      TypeAny -> True
-      _ -> False
-
 -- | Alpha equivalence
-alphaEq :: Type -> Type -> Bool
-alphaEq ty = run . runReader ini . go ty
+matchTypes :: Member Inference r => Type -> Type -> Sem r Bool
+matchTypes ty = runReader ini . go ty
   where
     ini :: HashMap VarName VarName
     ini = mempty
     go ::
       forall r.
-      Members '[Reader (HashMap VarName VarName)] r =>
+      Members '[Inference, Reader (HashMap VarName VarName)] r =>
       Type ->
       Type ->
       Sem r Bool
@@ -132,12 +122,20 @@ alphaEq ty = run . runReader ini . go ty
       (TypeAbs a, TypeAbs b) -> goAbs a b
       (TypeFunction a, TypeFunction b) -> goFunction a b
       (TypeUniverse, TypeUniverse) -> return True
-      -- TODO TypeAny should match anything?
-      (TypeAny, TypeAny) -> return True
+      (TypeAny, _) -> return True
+      (_, TypeAny) -> return True
+      (TypeHole h, a) -> goHole h a
+      (a, TypeHole h) -> goHole h a
       -- TODO is the final wildcard bad style?
       -- what if more Type constructors are added
       _ -> return False
       where
+        goHole :: Hole -> Type -> Sem r Bool
+        goHole h t = do
+          r <- queryMetavar h
+          case r of
+            Nothing -> solveMetavar h t $> True
+            Just ht -> matchTypes t ht
         goIden :: TypeIden -> TypeIden -> Sem r Bool
         goIden ia ib = case (ia, ib) of
           (TypeIdenInductive a, TypeIdenInductive b) -> return (a == b)
@@ -155,7 +153,7 @@ alphaEq ty = run . runReader ini . go ty
           local (HashMap.insert v1 v2) (go r r')
 
 inferExpression ::
-  Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars] r =>
+  Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars, Inference] r =>
   Expression ->
   Sem r Expression
 inferExpression = fmap ExpressionTyped . inferExpression'
@@ -190,6 +188,12 @@ constructorArgTypes i =
     i ^. constructorInfoArgs
   )
 
+checkFunctionClauseBody ::
+  Members '[Reader InfoTable, Error TypeCheckerError] r =>
+  LocalVars -> Type -> Expression -> Sem r Expression
+checkFunctionClauseBody locals expectedTy body =
+   runInference (runReader locals (checkExpression expectedTy body))
+
 checkFunctionClause ::
   Members '[Reader InfoTable, Error TypeCheckerError] r =>
   FunctionInfo ->
@@ -210,8 +214,7 @@ checkFunctionClause info clause@FunctionClause {..} = do
                       (locals ^. localTyMap)
                   )
                   bodyTy
-          _clauseBody' <-
-            runReader locals (checkExpression bodyTy' _clauseBody)
+          _clauseBody' <- checkFunctionClauseBody locals bodyTy' _clauseBody
           return
             FunctionClause
               { _clauseBody = _clauseBody',
@@ -310,7 +313,7 @@ checkPattern funName = go
 
 inferExpression' ::
   forall r.
-  Members '[Reader InfoTable, Reader LocalVars, Error TypeCheckerError] r =>
+  Members '[Reader InfoTable, Reader LocalVars, Error TypeCheckerError, Inference] r =>
   Expression ->
   Sem r TypedExpression
 inferExpression' e = case e of
@@ -319,6 +322,7 @@ inferExpression' e = case e of
   ExpressionTyped t -> return t
   ExpressionLiteral l -> goLiteral l
   ExpressionFunction f -> goExpressionFunction f
+  ExpressionHole h -> freshMetavar h
   where
     goExpressionFunction :: FunctionExpression -> Sem r TypedExpression
     goExpressionFunction (FunctionExpression l r) = do
@@ -412,8 +416,4 @@ viewTypeApp :: Type -> (Type, [Type])
 viewTypeApp t = case t of
   TypeApp (TypeApplication l r) ->
     second (`snoc` r) (viewTypeApp l)
-  TypeAny {} -> (t, [])
-  TypeUniverse {} -> (t, [])
-  TypeAbs {} -> (t, [])
-  TypeFunction {} -> (t, [])
-  TypeIden {} -> (t, [])
+  _ -> (t, [])

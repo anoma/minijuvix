@@ -8,9 +8,15 @@ data Hole = Hole
   { _holeId :: NameId,
     _holeLoc :: Interval
   }
-  deriving stock (Show, Eq, Ord)
+  deriving stock (Show)
 
 makeLenses ''Hole
+
+instance Eq Hole where
+  (==) = (==) `on` (^. holeId)
+
+instance Ord Hole where
+  compare = compare `on` (^. holeId)
 
 instance Hashable Hole where
   hashWithSalt s = hashWithSalt s . (^. holeId)

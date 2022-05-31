@@ -1,0 +1,47 @@
+#+title: Inference
+#+author: Jan Mas Rovira
+
+* Overview
+The goal is to introduce holes to MiniJuvix, allowing the users to omit some
+types.
+
+The typechecker should be able to infer and fill the contents of some holes.
+For instance, consider this example:
+#+begin_example
+mkPair Nat Nat zero zero
+#+end_example
+It would be desirable to be able to write:
+#+begin_example
+mkPair _ _ zero zero
+#+end_example
+
+We will restrict wildcards to work *only* on expressions of type =TypeUniverse=.
+
+* First approach
+** Effect
+The effect has the following operations:
+1. Introduce a new metavariable.
+2. Query a metavariable.
+3. Merge metavariables =x= and =y=.
+4. Solve metavariable =x= with type =t=. Note that =t= *must not* contain
+   any metavariable. This restriction is supposed to be relaxed later.
+
+Running the effect has two possible outputs.
+1. There is at least one unsolved metavariable.
+2. There is a total substitution from the set of generated metavariables to
+   solved types.
+
+This effect should be scoped to function clauses.
+
+** Algorithm
+Metavariables range over types but can appear in MicroJuvix expressions as well.
+Assume that we have some order on metavariables.
+
+When we match two types for equality we proceed as expected with the following
+observations.
+1. Alpha equivalence is handled as usual with type abstractions.
+2. If we match a solved metavariable, we use its solution type instead.
+3. When we match two unsolved metavariables =x= and =y=, we merge them. (When
+   does this happen?)
+4. When we match an unsolved metavariable =x= against a type =t= we solve that
+   metavariable using =t= as the solution.
