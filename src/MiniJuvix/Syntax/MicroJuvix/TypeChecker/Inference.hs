@@ -38,7 +38,7 @@ closeState = \case
       where
         goHole :: Hole -> MetavarState -> Sem r' Type
         goHole h = \case
-          Fresh -> throw @TypeCheckerError (error "unsolved meta")
+          Fresh -> throw (ErrUnsolvedMeta (UnsolvedMeta h))
           Refined t -> do
             s <- gets @(HashMap Hole Type) (^. at h)
             case s of
@@ -68,7 +68,7 @@ closeState = \case
 getMetavar :: Member (State InferenceState) r => Hole -> Sem r MetavarState
 getMetavar h = gets (fromJust . (^. inferenceMap . at h))
 
-re :: Member (Error TypeCheckerError) r => Sem (Inference ': r) Expression -> Sem (State InferenceState ': r) Expression
+re :: Member (Error TypeCheckerError) r => Sem (Inference ': r) a -> Sem (State InferenceState ': r) a
 re = reinterpret $ \case
   FreshMetavar h -> freshMetavar' h
   MatchTypes a b -> matchTypes' a b
@@ -158,3 +158,8 @@ runInference :: Member (Error TypeCheckerError) r => Sem (Inference ': r) Expres
 runInference a = do
   (subs, expr) <- runState iniState (re a) >>= firstM closeState
   return (fillHoles subs expr)
+
+runInferenceDef :: Member (Error TypeCheckerError) r => Sem (Inference ': r) FunctionDef -> Sem r FunctionDef
+runInferenceDef a = do
+  (subs, expr) <- runState iniState (re a) >>= firstM closeState
+  return (fillHolesFunctionDef subs expr)
