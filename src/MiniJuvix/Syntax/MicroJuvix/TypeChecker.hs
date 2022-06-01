@@ -6,7 +6,6 @@ module MiniJuvix.Syntax.MicroJuvix.TypeChecker
 where
 
 import Data.HashMap.Strict qualified as HashMap
-import MiniJuvix.Syntax.MicroJuvix.TypeChecker.Inference
 import MiniJuvix.Prelude hiding (fromEither)
 import MiniJuvix.Syntax.Concrete.Language (LiteralLoc)
 import MiniJuvix.Syntax.MicroJuvix.Error
@@ -15,6 +14,7 @@ import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.LocalVars
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
+import MiniJuvix.Syntax.MicroJuvix.TypeChecker.Inference
 
 entryMicroJuvixTyped ::
   Member (Error TypeCheckerError) r =>
@@ -104,54 +104,6 @@ checkExpression t e = do
             }
         )
 
--- | Alpha equivalence
-matchTypes :: Member Inference r => Type -> Type -> Sem r Bool
-matchTypes ty = runReader ini . go ty
-  where
-    ini :: HashMap VarName VarName
-    ini = mempty
-    go ::
-      forall r.
-      Members '[Inference, Reader (HashMap VarName VarName)] r =>
-      Type ->
-      Type ->
-      Sem r Bool
-    go a' b' = case (a', b') of
-      (TypeIden a, TypeIden b) -> goIden a b
-      (TypeApp a, TypeApp b) -> goApp a b
-      (TypeAbs a, TypeAbs b) -> goAbs a b
-      (TypeFunction a, TypeFunction b) -> goFunction a b
-      (TypeUniverse, TypeUniverse) -> return True
-      (TypeAny, _) -> return True
-      (_, TypeAny) -> return True
-      (TypeHole h, a) -> goHole h a
-      (a, TypeHole h) -> goHole h a
-      -- TODO is the final wildcard bad style?
-      -- what if more Type constructors are added
-      _ -> return False
-      where
-        goHole :: Hole -> Type -> Sem r Bool
-        goHole h t = do
-          r <- queryMetavar h
-          case r of
-            Nothing -> solveMetavar h t $> True
-            Just ht -> matchTypes t ht
-        goIden :: TypeIden -> TypeIden -> Sem r Bool
-        goIden ia ib = case (ia, ib) of
-          (TypeIdenInductive a, TypeIdenInductive b) -> return (a == b)
-          (TypeIdenAxiom a, TypeIdenAxiom b) -> return (a == b)
-          (TypeIdenVariable a, TypeIdenVariable b) -> do
-            mappedEq <- (== Just b) . HashMap.lookup a <$> ask
-            return (a == b || mappedEq)
-          _ -> return False
-        goApp :: TypeApplication -> TypeApplication -> Sem r Bool
-        goApp (TypeApplication f x) (TypeApplication f' x') = andM [go f f', go x x']
-        goFunction :: Function -> Function -> Sem r Bool
-        goFunction (Function l r) (Function l' r') = andM [go l l', go r r']
-        goAbs :: TypeAbstraction -> TypeAbstraction -> Sem r Bool
-        goAbs (TypeAbstraction v1 r) (TypeAbstraction v2 r') =
-          local (HashMap.insert v1 v2) (go r r')
-
 inferExpression ::
   Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars, Inference] r =>
   Expression ->
@@ -190,9 +142,12 @@ constructorArgTypes i =
 
 checkFunctionClauseBody ::
   Members '[Reader InfoTable, Error TypeCheckerError] r =>
-  LocalVars -> Type -> Expression -> Sem r Expression
+  LocalVars ->
+  Type ->
+  Expression ->
+  Sem r Expression
 checkFunctionClauseBody locals expectedTy body =
-   runInference (runReader locals (checkExpression expectedTy body))
+  runInference (runReader locals (checkExpression expectedTy body))
 
 checkFunctionClause ::
   Members '[Reader InfoTable, Error TypeCheckerError] r =>

@@ -2,20 +2,19 @@ module MiniJuvix.Syntax.MicroJuvix.TypeChecker.Inference where
 
 import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Prelude hiding (fromEither)
-import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.Error
+import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 
 data MetavarState
   = Fresh
-  | -- | MergedWith Hole
-    Solved Type
+  | -- | Type may contain holes
+    Refined Type
 
 data Inference m a where
   FreshMetavar :: Hole -> Inference m TypedExpression
   QueryMetavar :: Hole -> Inference m (Maybe Type)
-  -- MergeMetavars :: Hole -> Hole -> Inference m ()
-  -- QueryMetavar :: Hole -> Inference m MetavarState
-  SolveMetavar :: Hole -> Type -> Inference m ()
+  RefineMetavar :: Hole -> Type -> Inference m ()
+  MatchTypes :: Type -> Type -> Inference m Bool
 
 makeSem ''Inference
 
@@ -30,40 +29,136 @@ iniState = InferenceState mempty
 
 closeState :: Member (Error TypeCheckerError) r => InferenceState -> Sem r (HashMap Hole Type)
 closeState = \case
-  InferenceState m ->
-    case zip (HashMap.keys m) <$> mapM (uncurry getSolved) (HashMap.toList m) of
-      Left {} -> throw @TypeCheckerError (error "unsolved meta")
-      Right r -> return (HashMap.fromList r)
+  InferenceState m -> execState mempty (f m)
   where
-    getSolved :: Hole -> MetavarState -> Either Hole Type
-    getSolved h = \case
-      Solved t -> return t
-      Fresh -> Left h
+    f ::
+      forall r'.
+      Members '[Error TypeCheckerError, State (HashMap Hole Type)] r' =>
+      HashMap Hole MetavarState ->
+      Sem r' ()
+    f m = mapM_ (uncurry goHole) (HashMap.toList m)
+      where
+        goHole :: Hole -> MetavarState -> Sem r' Type
+        goHole h = \case
+          Fresh -> throw @TypeCheckerError (error "unsolved meta")
+          Refined t -> do
+            s <- gets @(HashMap Hole Type) (^. at h)
+            case s of
+              Just noHolesTy -> return noHolesTy
+              Nothing -> do
+                x <- goType t
+                modify (HashMap.insert h x)
+                return x
+        goType :: Type -> Sem r' Type
+        goType t = case t of
+          TypeIden {} -> return t
+          TypeApp (TypeApplication a b) -> do
+            a' <- goType a
+            b' <- goType b
+            return (TypeApp (TypeApplication a' b'))
+          TypeFunction (Function a b) -> do
+            a' <- goType a
+            b' <- goType b
+            return (TypeFunction (Function a' b'))
+          TypeAbs (TypeAbstraction v b) -> TypeAbs . TypeAbstraction v <$> goType b
+          TypeUniverse -> return TypeUniverse
+          TypeAny -> return TypeAny
+          TypeHole h' ->
+            let st = fromJust (m ^. at h')
+             in goHole h' st
 
 getMetavar :: Member (State InferenceState) r => Hole -> Sem r MetavarState
 getMetavar h = gets (fromJust . (^. inferenceMap . at h))
 
-re :: Sem (Inference ': r) Expression -> Sem (State InferenceState ': r) Expression
+re :: Member (Error TypeCheckerError) r => Sem (Inference ': r) Expression -> Sem (State InferenceState ': r) Expression
 re = reinterpret $ \case
-  FreshMetavar h -> do
-    modify (over inferenceMap (HashMap.insert h Fresh))
-    return TypedExpression {
-      _typedExpression = ExpressionHole h,
-      _typedType = TypeUniverse
-      }
-  QueryMetavar h -> getSolved <$> getMetavar h
-  SolveMetavar h t
-   | hasHoles t -> error "unsupported: t has holes"
-   | otherwise -> do
+  FreshMetavar h -> freshMetavar' h
+  QueryMetavar h -> queryMetavar' h
+  RefineMetavar h t -> refineMetavar' h t
+  MatchTypes a b -> matchTypes' a b
+  where
+    queryMetavar' :: Members '[State InferenceState] r => Hole -> Sem r (Maybe Type)
+    queryMetavar' h = metavarType <$> getMetavar h
+
+    freshMetavar' :: Members '[State InferenceState] r => Hole -> Sem r TypedExpression
+    freshMetavar' h = do
+      modify (over inferenceMap (HashMap.insert h Fresh))
+      return
+        TypedExpression
+          { _typedExpression = ExpressionHole h,
+            _typedType = TypeUniverse
+          }
+
+    refineMetavar' ::
+      Members '[Error TypeCheckerError, State InferenceState] r =>
+      Hole ->
+      Type ->
+      Sem r ()
+    refineMetavar' h t = do
       s <- gets (fromJust . (^. inferenceMap . at h))
       case s of
-        Fresh -> modify (over inferenceMap (HashMap.insert h (Solved t)))
-        Solved {} -> error "bug: already solved"
-  where
-  getSolved :: MetavarState -> Maybe Type
-  getSolved = \case
-    Fresh -> Nothing
-    Solved t -> Just t
+        Fresh -> modify (over inferenceMap (HashMap.insert h (Refined t)))
+        Refined r -> goRefine r t
+
+    goRefine :: Members '[Error TypeCheckerError, State InferenceState] r => Type -> Type -> Sem r ()
+    goRefine r t = do
+      eq <- matchTypes' r t
+      if
+          | eq -> return ()
+          | otherwise -> error "type error: cannot match types"
+
+    metavarType :: MetavarState -> Maybe Type
+    metavarType = \case
+      Fresh -> Nothing
+      Refined t -> Just t
+
+    -- Supports alpha equivalence.
+    matchTypes' :: Members '[Error TypeCheckerError, State InferenceState] r => Type -> Type -> Sem r Bool
+    matchTypes' ty = runReader ini . go ty
+      where
+        ini :: HashMap VarName VarName
+        ini = mempty
+        go ::
+          forall r.
+          Members '[Error TypeCheckerError, State InferenceState, Reader (HashMap VarName VarName)] r =>
+          Type ->
+          Type ->
+          Sem r Bool
+        go a' b' = case (a', b') of
+          (TypeIden a, TypeIden b) -> goIden a b
+          (TypeApp a, TypeApp b) -> goApp a b
+          (TypeAbs a, TypeAbs b) -> goAbs a b
+          (TypeFunction a, TypeFunction b) -> goFunction a b
+          (TypeUniverse, TypeUniverse) -> return True
+          (TypeAny, _) -> return True
+          (_, TypeAny) -> return True
+          (TypeHole h, a) -> goHole h a
+          (a, TypeHole h) -> goHole h a
+          -- TODO is the final wildcard bad style?
+          -- what if more Type constructors are added
+          _ -> return False
+          where
+            goHole :: Hole -> Type -> Sem r Bool
+            goHole h t = do
+              r <- queryMetavar' h
+              case r of
+                Nothing -> refineMetavar' h t $> True
+                Just ht -> matchTypes' t ht
+            goIden :: TypeIden -> TypeIden -> Sem r Bool
+            goIden ia ib = case (ia, ib) of
+              (TypeIdenInductive a, TypeIdenInductive b) -> return (a == b)
+              (TypeIdenAxiom a, TypeIdenAxiom b) -> return (a == b)
+              (TypeIdenVariable a, TypeIdenVariable b) -> do
+                mappedEq <- (== Just b) . HashMap.lookup a <$> ask
+                return (a == b || mappedEq)
+              _ -> return False
+            goApp :: TypeApplication -> TypeApplication -> Sem r Bool
+            goApp (TypeApplication f x) (TypeApplication f' x') = andM [go f f', go x x']
+            goFunction :: Function -> Function -> Sem r Bool
+            goFunction (Function l r) (Function l' r') = andM [go l l', go r r']
+            goAbs :: TypeAbstraction -> TypeAbstraction -> Sem r Bool
+            goAbs (TypeAbstraction v1 r) (TypeAbstraction v2 r') =
+              local (HashMap.insert v1 v2) (go r r')
 
 runInference :: Member (Error TypeCheckerError) r => Sem (Inference ': r) Expression -> Sem r Expression
 runInference a = do

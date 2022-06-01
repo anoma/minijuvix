@@ -64,42 +64,42 @@ ite _ true tt _ ≔ tt;
 ite _ false _ ff ≔ ff;
 
 filter : (A : Type) → (A → Bool) → List A → List A;
-filter A f nil ≔ nil A;
-filter A f (cons x xs) ≔ ite _ (f x) (cons A x (filter A f xs)) (filter A f xs);
+filter _ f nil ≔ nil _;
+filter _ f (cons x xs) ≔ ite _ (f x) (cons _ x (filter _ f xs)) (filter _ f xs);
 
--- map : (A : Type) → (B : Type) →
---   (A → B) → List A → List B;
--- map A B f nil ≔ nil B ;
--- map A B f (cons x xs) ≔ cons B (f x) (map A B f xs);
+map : (A : Type) → (B : Type) →
+  (A → B) → List A → List B;
+map _ _ f nil ≔ nil _;
+map _ _ f (cons x xs) ≔ cons _ (f x) (map _ _ f xs);
 
--- zip : (A : Type) → (B : Type)
---     → List A → List B → List (Pair A B);
--- zip A B nil _ ≔ nil (Pair A B);
--- zip A B _ nil ≔ nil (Pair A B);
--- zip A B (cons a as) (cons b bs) ≔ nil (Pair A B);
+zip : (A : Type) → (B : Type)
+    → List A → List B → List (Pair A B);
+zip _ _ nil _ ≔ nil _;
+zip _ _ _ nil ≔ nil _;
+zip _ _ (cons a as) (cons b bs) ≔ nil _;
 
--- zipWith : (A : Type) → (B : Type) → (C : Type)
---   → (A → B → C)
---   → List A → List B → List C;
--- zipWith A B C f nil _ ≔ nil C;
--- zipWith A B C f _ nil ≔ nil C;
--- zipWith A B C f (cons a as) (cons b bs) ≔ cons C (f a b) (zipWith A B C f as bs);
+zipWith : (A : Type) → (B : Type) → (C : Type)
+  → (A → B → C)
+  → List A → List B → List C;
+zipWith _ _ C f nil _ ≔ nil C;
+zipWith _ _ C f _ nil ≔ nil C;
+zipWith _ _ _ f (cons a as) (cons b bs) ≔ cons _ (f a b) (zipWith _ _ _ f as bs);
 
--- rankn : ((A : Type) → A → A) → Bool → Nat → Pair Bool Nat;
--- rankn f b n ≔ mkPair Bool Nat (f Bool b) (f Nat n);
+rankn : ((A : Type) → A → A) → Bool → Nat → Pair Bool Nat;
+rankn f b n ≔ mkPair _ _ (f _ b) (f _ n);
 
--- -- currying
--- trankn : Pair Bool Nat;
--- trankn ≔ rankn id false zero;
+-- currying
+trankn : Pair Bool Nat;
+trankn ≔ rankn id false zero;
 
--- l1 : List Nat;
--- l1 ≔ cons Nat zero (nil Nat);
+l1 : List Nat;
+l1 ≔ cons _ zero (nil _);
 
--- pairEval : (A : Type) → (B : Type) → Pair (A → B) A → B;
--- pairEval _ _ (mkPair f x) ≔ f x;
+pairEval : (A : Type) → (B : Type) → Pair (A → B) A → B;
+pairEval _ _ (mkPair f x) ≔ f x;
 
--- main : Nat;
--- main ≔ headDef Nat (pairEval Nat Nat (mkPair (Nat → Nat) Nat (add zero) zero))
---    (zipWith Nat Nat Nat add l1 l1);
+main : Nat;
+main ≔ headDef _ (pairEval _ _ (mkPair _ _ (add zero) zero))
+   (zipWith _ _ _ add l1 l1);
 
 end;

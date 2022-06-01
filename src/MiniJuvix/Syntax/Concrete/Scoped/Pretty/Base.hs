@@ -451,8 +451,8 @@ nameIdSuffix :: Members '[Reader Options] r => S.NameId -> Sem r (Maybe (Doc Ann
 nameIdSuffix nid = do
   showNameId <- asks (^. optShowNameId)
   if
-    | showNameId -> Just . ("@" <>) <$> ppCode nid
-    | otherwise -> return Nothing
+      | showNameId -> Just . ("@" <>) <$> ppCode nid
+      | otherwise -> return Nothing
 
 instance PrettyCode n => PrettyCode (S.Name' n) where
   ppCode S.Name' {..} = do

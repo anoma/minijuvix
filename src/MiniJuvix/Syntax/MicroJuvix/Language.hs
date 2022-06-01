@@ -10,11 +10,11 @@ where
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Concrete.Language (LiteralLoc)
 import MiniJuvix.Syntax.Concrete.Loc
-import MiniJuvix.Syntax.Hole
 import MiniJuvix.Syntax.Concrete.Scoped.Name (NameId (..))
 import MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
+import MiniJuvix.Syntax.Hole
 import Prettyprinter
 
 type FunctionName = Name

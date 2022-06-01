@@ -1123,10 +1123,11 @@ checkHole ::
   Sem r Hole
 checkHole h = do
   i <- freshNameId
-  return Hole {
-    _holeId = i,
-    _holeLoc = h
-    }
+  return
+    Hole
+      { _holeId = i,
+        _holeLoc = h
+      }
 
 checkParens ::
   Members '[Error ScoperError, State Scope, State ScoperState, Reader LocalVars, InfoTableBuilder, NameIdGen] r =>

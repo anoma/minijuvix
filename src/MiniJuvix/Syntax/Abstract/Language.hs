@@ -1,7 +1,7 @@
 module MiniJuvix.Syntax.Abstract.Language
   ( module MiniJuvix.Syntax.Abstract.Language,
     module MiniJuvix.Syntax.Concrete.Language,
-    module MiniJuvix.Syntax.Hole
+    module MiniJuvix.Syntax.Hole,
   )
 where
 
@@ -10,8 +10,8 @@ import MiniJuvix.Syntax.Concrete.Language (BackendItem, ForeignBlock (..), Liter
 import MiniJuvix.Syntax.Concrete.Name qualified as C
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Fixity
-import MiniJuvix.Syntax.Universe
 import MiniJuvix.Syntax.Hole
+import MiniJuvix.Syntax.Universe
 
 type TopModuleName = S.TopModulePath
 

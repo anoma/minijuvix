@@ -5,6 +5,7 @@ module MiniJuvix.Syntax.MicroJuvix.Language.Extra
 where
 
 import Data.HashMap.Strict qualified as HashMap
+import Data.HashSet qualified as HashSet
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MicroJuvix.Language
 
@@ -108,68 +109,78 @@ mkConcreteType = fmap ConcreteType . go
 expressionAsType' :: Expression -> Type
 expressionAsType' = fromMaybe impossible . expressionAsType
 
+findHoles :: Type -> HashSet Hole
+findHoles = go
+  where
+    go :: Type -> HashSet Hole
+    go = \case
+      TypeIden {} -> mempty
+      TypeApp (TypeApplication a b) -> go a <> go b
+      TypeFunction (Function a b) -> go a <> go b
+      TypeAbs (TypeAbstraction _ t) -> go t
+      TypeHole h -> HashSet.singleton h
+      TypeUniverse -> mempty
+      TypeAny -> mempty
+
 hasHoles :: Type -> Bool
-hasHoles = go
- where
- go :: Type -> Bool
- go = \case
-   TypeIden {} -> False
-   TypeApp (TypeApplication a b) -> go a || go b
-   TypeFunction (Function a b) -> go a || go b
-   TypeAbs (TypeAbstraction _ t) -> go t
-   TypeHole {} -> True
-   TypeUniverse -> False
-   TypeAny -> False
+hasHoles = not . HashSet.null . findHoles
 
 typeAsExpression :: Type -> Expression
 typeAsExpression = go
   where
-  go :: Type -> Expression
-  go =
-    \case
-    TypeIden i -> ExpressionIden (goTypeIden i)
-    TypeApp a -> ExpressionApplication (goApp a)
-    TypeFunction f -> ExpressionFunction (goFunction f)
-    TypeAny -> error "TODO TypeAny"
-    TypeAbs {} -> error "TODO TypeAbs"
-    TypeHole h -> ExpressionHole h
-    TypeUniverse -> error "TODO TypeUniverse"
+    go :: Type -> Expression
+    go =
+      \case
+        TypeIden i -> ExpressionIden (goTypeIden i)
+        TypeApp a -> ExpressionApplication (goApp a)
+        TypeFunction f -> ExpressionFunction (goFunction f)
+        TypeAny -> error "TODO TypeAny"
+        TypeAbs {} -> error "TODO TypeAbs"
+        TypeHole h -> ExpressionHole h
+        TypeUniverse -> error "TODO TypeUniverse"
 
-  goTypeIden :: TypeIden -> Iden
-  goTypeIden = \case
-    TypeIdenInductive i -> IdenInductive i
-    TypeIdenAxiom a -> IdenAxiom a
-    TypeIdenVariable v -> IdenVar v
-  goApp :: TypeApplication -> Application
-  goApp (TypeApplication l r) = Application (go l) (go r)
-  goFunction :: Function -> FunctionExpression
-  goFunction (Function l r) = FunctionExpression (go l) (go r)
+    goTypeIden :: TypeIden -> Iden
+    goTypeIden = \case
+      TypeIdenInductive i -> IdenInductive i
+      TypeIdenAxiom a -> IdenAxiom a
+      TypeIdenVariable v -> IdenVar v
+    goApp :: TypeApplication -> Application
+    goApp (TypeApplication l r) = Application (go l) (go r)
+    goFunction :: Function -> FunctionExpression
+    goFunction (Function l r) = FunctionExpression (go l) (go r)
 
 fillHoles :: HashMap Hole Type -> Expression -> Expression
 fillHoles m = goe
   where
-  goe :: Expression -> Expression
-  goe x = case x of
+    goe :: Expression -> Expression
+    goe x = case x of
       ExpressionIden {} -> x
       ExpressionApplication a -> ExpressionApplication (goApp a)
       ExpressionLiteral {} -> x
       ExpressionHole h -> goHole h
       ExpressionFunction f -> ExpressionFunction (goFunction f)
-      ExpressionTyped t -> ExpressionTyped
-        (over typedType go
-        (over typedExpression goe t))
-    where
-    goApp :: Application -> Application
-    goApp (Application l r) = Application (goe l) (goe r)
-    goFunction :: FunctionExpression -> FunctionExpression
-    goFunction (FunctionExpression l r) = FunctionExpression (goe l) (goe r)
-    goHole :: Hole -> Expression
-    goHole h = case HashMap.lookup h m of
-      Just r -> typeAsExpression r
-      Nothing -> error "bug: open hole"
+      ExpressionTyped t ->
+        ExpressionTyped
+          ( over
+              typedType
+              (fillHolesType m)
+              (over typedExpression goe t)
+          )
+      where
+        goApp :: Application -> Application
+        goApp (Application l r) = Application (goe l) (goe r)
+        goFunction :: FunctionExpression -> FunctionExpression
+        goFunction (FunctionExpression l r) = FunctionExpression (goe l) (goe r)
+        goHole :: Hole -> Expression
+        goHole h = case HashMap.lookup h m of
+          Just r -> typeAsExpression r
+          Nothing -> ExpressionHole h
 
-  go :: Type -> Type
-  go = \case
+fillHolesType :: HashMap Hole Type -> Type -> Type
+fillHolesType m = go
+  where
+    go :: Type -> Type
+    go = \case
       TypeIden i -> TypeIden i
       TypeApp a -> TypeApp (goApp a)
       TypeAbs a -> TypeAbs (goAbs a)
@@ -178,16 +189,16 @@ fillHoles m = goe
       TypeAny -> TypeAny
       TypeHole h -> goHole h
       where
-      goApp :: TypeApplication -> TypeApplication
-      goApp (TypeApplication l r) = TypeApplication (go l) (go r)
-      goAbs :: TypeAbstraction -> TypeAbstraction
-      goAbs (TypeAbstraction v b) = TypeAbstraction v (go b)
-      goFunction :: Function -> Function
-      goFunction (Function l r) = Function (go l) (go r)
-      goHole :: Hole -> Type
-      goHole h = case HashMap.lookup h m of
+        goApp :: TypeApplication -> TypeApplication
+        goApp (TypeApplication l r) = TypeApplication (go l) (go r)
+        goAbs :: TypeAbstraction -> TypeAbstraction
+        goAbs (TypeAbstraction v b) = TypeAbstraction v (go b)
+        goFunction :: Function -> Function
+        goFunction (Function l r) = Function (go l) (go r)
+        goHole :: Hole -> Type
+        goHole h = case HashMap.lookup h m of
           Just ty -> ty
-          Nothing -> error "bug: open hole"
+          Nothing -> TypeHole h
 
 -- | If the expression is of type TypeUniverse it should return Just.
 expressionAsType :: Expression -> Maybe Type
