@@ -12,7 +12,6 @@ data MetavarState
 
 data Inference m a where
   FreshMetavar :: Hole -> Inference m TypedExpression
-  RefineMetavar :: Hole -> Type -> Inference m ()
   MatchTypes :: Type -> Type -> Inference m Bool
 
 makeSem ''Inference
@@ -72,7 +71,6 @@ getMetavar h = gets (fromJust . (^. inferenceMap . at h))
 re :: Member (Error TypeCheckerError) r => Sem (Inference ': r) Expression -> Sem (State InferenceState ': r) Expression
 re = reinterpret $ \case
   FreshMetavar h -> freshMetavar' h
-  RefineMetavar h t -> refineMetavar' h t
   MatchTypes a b -> matchTypes' a b
   where
     queryMetavar' :: Members '[State InferenceState] r => Hole -> Sem r (Maybe Type)
