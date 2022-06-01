@@ -109,10 +109,10 @@ checkExpression ::
   Type ->
   Expression ->
   Sem r Expression
-checkExpression t e = do
+checkExpression expectedTy e = do
   e' <- inferExpression' e
   let inferredType = e' ^. typedType
-  unlessM (matchTypes t inferredType) (throw (err inferredType))
+  unlessM (matchTypes expectedTy inferredType) (throw (err inferredType))
   return (ExpressionTyped e')
   where
     err infTy =
@@ -120,7 +120,7 @@ checkExpression t e = do
         ( WrongType
             { _wrongTypeExpression = e,
               _wrongTypeInferredType = infTy,
-              _wrongTypeExpectedType = t
+              _wrongTypeExpectedType = expectedTy
             }
         )
 

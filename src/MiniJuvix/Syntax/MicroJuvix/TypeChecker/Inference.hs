@@ -85,21 +85,16 @@ re = reinterpret $ \case
             _typedType = TypeUniverse
           }
 
-    refineMetavar' ::
+    refineFreshMetavar ::
       Members '[Error TypeCheckerError, State InferenceState] r =>
       Hole ->
       Type ->
       Sem r ()
-    refineMetavar' h t = do
+    refineFreshMetavar h t = do
       s <- gets (fromJust . (^. inferenceMap . at h))
       case s of
         Fresh -> modify (over inferenceMap (HashMap.insert h (Refined t)))
-        Refined r -> goRefine r t
-
-    goRefine :: Members '[Error TypeCheckerError, State InferenceState] r => Type -> Type -> Sem r ()
-    goRefine r t = do
-      eq <- matchTypes' r t
-      unless eq (error "type error: cannot match types")
+        Refined {} -> impossible
 
     metavarType :: MetavarState -> Maybe Type
     metavarType = \case
@@ -136,7 +131,7 @@ re = reinterpret $ \case
             goHole h t = do
               r <- queryMetavar' h
               case r of
-                Nothing -> refineMetavar' h t $> True
+                Nothing -> refineFreshMetavar h t $> True
                 Just ht -> matchTypes' t ht
             goIden :: TypeIden -> TypeIden -> Sem r Bool
             goIden ia ib = case (ia, ib) of
