@@ -12,7 +12,7 @@ compile Int {
   c ↦ "int";
 };
 
-axiom int-to-str : Int → String;
+axiom to-str : Int → String;
 
 compile to-str {
   c ↦ "intToStr";
@@ -35,7 +35,7 @@ apply f a b ≔ f a b;
 
 inductive Nat {
   zero : Nat;
-  succ : Nat → Nat;
+  suc : Nat → Nat;
 };
 
 applyNat : (Nat → Nat) → Nat → Nat;
@@ -43,15 +43,18 @@ applyNat f a ≔ f a;
 
 nat-to-int : Nat → Int;
 nat-to-int zero ≔ 0;
-nat-to-int (succ n) ≔ plus 1 (nat-to-int n);
+nat-to-int (suc n) ≔ plus 1 (nat-to-int n);
 
 one : Nat;
-one ≔ succ zero;
+one ≔ suc zero;
 
 two : Nat;
-two ≔ succ one;
+two ≔ suc one;
 
 main : Action;
-main ≔ (put-str-ln (to-str (apply plus 1 2))) >> (put-str-ln (to-str (nat-to-int (applyNat succ one))));
+main ≔ put-str "plus 1 2: "
+        >> put-str-ln (to-str (apply plus 1 2))
+        >> put-str "suc one: "
+        >> put-str-ln (to-str (nat-to-int (applyNat suc one)));
 
 end;
