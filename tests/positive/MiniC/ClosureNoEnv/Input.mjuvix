@@ -38,8 +38,15 @@ inductive Nat {
   suc : Nat → Nat;
 };
 
-applyNat : (Nat → Nat) → Nat → Nat;
-applyNat f a ≔ f a;
+plus-nat : Nat → Nat → Nat;
+plus-nat zero n ≔ n;
+plus-nat (suc m) n ≔ suc (plus-nat m n);
+
+apply-nat : (Nat → Nat) → Nat → Nat;
+apply-nat f a ≔ f a;
+
+apply-nat2 : (Nat → Nat → Nat) → Nat → Nat → Nat;
+apply-nat2 f a b ≔ f a b;
 
 nat-to-int : Nat → Int;
 nat-to-int zero ≔ 0;
@@ -55,6 +62,8 @@ main : Action;
 main ≔ put-str "plus 1 2: "
         >> put-str-ln (to-str (apply plus 1 2))
         >> put-str "suc one: "
-        >> put-str-ln (to-str (nat-to-int (applyNat suc one)));
+        >> put-str-ln (to-str (nat-to-int (apply-nat suc one)))
+        >> put-str "plus-nat 1 2: "
+        >> put-str-ln (to-str (nat-to-int (apply-nat2 plus-nat one two)));
 
 end;
