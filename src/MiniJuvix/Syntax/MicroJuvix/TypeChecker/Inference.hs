@@ -12,7 +12,6 @@ data MetavarState
 
 data Inference m a where
   FreshMetavar :: Hole -> Inference m TypedExpression
-  QueryMetavar :: Hole -> Inference m (Maybe Type)
   RefineMetavar :: Hole -> Type -> Inference m ()
   MatchTypes :: Type -> Type -> Inference m Bool
 
@@ -73,7 +72,6 @@ getMetavar h = gets (fromJust . (^. inferenceMap . at h))
 re :: Member (Error TypeCheckerError) r => Sem (Inference ': r) Expression -> Sem (State InferenceState ': r) Expression
 re = reinterpret $ \case
   FreshMetavar h -> freshMetavar' h
-  QueryMetavar h -> queryMetavar' h
   RefineMetavar h t -> refineMetavar' h t
   MatchTypes a b -> matchTypes' a b
   where
@@ -103,9 +101,7 @@ re = reinterpret $ \case
     goRefine :: Members '[Error TypeCheckerError, State InferenceState] r => Type -> Type -> Sem r ()
     goRefine r t = do
       eq <- matchTypes' r t
-      if
-          | eq -> return ()
-          | otherwise -> error "type error: cannot match types"
+      unless eq (error "type error: cannot match types")
 
     metavarType :: MetavarState -> Maybe Type
     metavarType = \case

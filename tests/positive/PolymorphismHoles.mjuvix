@@ -74,7 +74,7 @@ map _ _ f (cons x xs) ≔ cons _ (f x) (map _ _ f xs);
 
 zip : (A : Type) → (B : Type)
     → List A → List B → List (Pair A B);
-zip _ _ nil _ ≔ nil _;
+zip A _ nil _ ≔ nil _;
 zip _ _ _ nil ≔ nil _;
 zip _ _ (cons a as) (cons b bs) ≔ nil _;
 
