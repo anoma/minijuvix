@@ -311,7 +311,7 @@ goFunctionClause argTyps Mono.FunctionClause {..} = do
     patternBindings = HashMap.fromList <$> patternVars
 
     patternVars :: Sem r [(Text, (Expression, FunType))]
-    patternVars = mapM' f (zipWith (curry (second (first ExpressionVar))) _clausePatterns (zip funArgs argTyps))
+    patternVars = concatMapM f (zipWith (curry (second (first ExpressionVar))) _clausePatterns (zip funArgs argTyps))
       where
         f (p, (arg, argTyp)) =
           case p of
@@ -329,7 +329,7 @@ goFunctionClause argTyps Mono.FunctionClause {..} = do
     goConstructorApp :: Expression -> Mono.Name -> [Mono.Pattern] -> Sem r [(Text, (Expression, FunType))]
     goConstructorApp arg n ps = do
       ctorInfo' <- ctorInfo
-      mapM' f (zip ps (zip ctorArgs ctorInfo'))
+      concatMapM f (zip ps (zip ctorArgs ctorInfo'))
       where
         ctorInfo :: Sem r [Mono.Type]
         ctorInfo = do
@@ -350,18 +350,15 @@ goFunctionClause argTyps Mono.FunctionClause {..} = do
             asConstructor :: Expression
             asConstructor = functionCall (ExpressionVar (asCast (mkName n))) [arg]
 
-mapM' :: Monad m => (a -> m [b]) -> [a] -> m [b]
-mapM' f as = concat <$> (mapM f as)
-
 goExpression :: Members '[Reader Mono.InfoTable, Reader PatternBindings, Output Function, State EmittedClosures] r => Mono.Expression -> Sem r Expression
 goExpression = \case
   Mono.ExpressionIden i -> do
     let rootFunMonoName = getName i
-    let rootFunNameId = rootFunMonoName ^. Mono.nameId
-    let rootFunName = mkName rootFunMonoName
-    let funName = asFun rootFunName
-    let newFunName = asNew funName
-    let localName :: Text = "f"
+        rootFunNameId = rootFunMonoName ^. Mono.nameId
+        rootFunName = mkName rootFunMonoName
+        funName = asFun rootFunName
+        newFunName = asNew funName
+        localName :: Text = "f"
 
     case i of
       Mono.IdenVar {} -> goIden i
