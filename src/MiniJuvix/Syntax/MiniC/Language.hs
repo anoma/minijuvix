@@ -9,6 +9,7 @@ newtype CCodeUnit = CCodeUnit
 data CCode
   = ExternalDecl Declaration
   | ExternalFunc Function
+  | ExternalFuncSig FunctionSig
   | ExternalMacro Cpp
   | Verbatim Text
 
@@ -54,12 +55,16 @@ data DesigInit = DesigInit
 -- Function
 --------------------------------------------------------------------------------
 
-data Function = Function
+data FunctionSig = FunctionSig
   { _funcReturnType :: DeclType,
     _funcIsPtr :: Bool,
     _funcQualifier :: Qualifier,
     _funcName :: Text,
-    _funcArgs :: [Declaration],
+    _funcArgs :: [Declaration]
+  }
+
+data Function = Function
+  { _funcSig :: FunctionSig,
     _funcBody :: [BodyItem]
   }
 
@@ -294,11 +299,14 @@ memberAccess op e fieldName =
 staticInlineFunc :: DeclType -> Bool -> Text -> [Declaration] -> [BodyItem] -> Function
 staticInlineFunc t isPtr name args body =
   Function
-    { _funcReturnType = t,
-      _funcIsPtr = isPtr,
-      _funcQualifier = StaticInline,
-      _funcName = name,
-      _funcArgs = args,
+    { _funcSig =
+        FunctionSig
+          { _funcReturnType = t,
+            _funcIsPtr = isPtr,
+            _funcQualifier = StaticInline,
+            _funcName = name,
+            _funcArgs = args
+          },
       _funcBody = body
     }
 
@@ -318,3 +326,5 @@ returnStatement e =
 makeLenses ''CCodeUnit
 makeLenses ''Declaration
 makeLenses ''CDeclType
+makeLenses ''FunctionSig
+makeLenses ''Function

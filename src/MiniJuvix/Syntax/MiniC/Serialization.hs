@@ -29,6 +29,7 @@ prettyCpp = \case
 prettyCCode :: CCode -> HP.Doc
 prettyCCode = \case
   ExternalDecl decl -> P.pretty (CDeclExt (mkCDecl decl))
+  ExternalFuncSig funSig -> P.pretty (CDeclExt (mkCFunSig funSig))
   ExternalFunc fun -> P.pretty (CFDefExt (mkCFunDef fun))
   ExternalMacro m -> prettyCpp m
   Verbatim t -> prettyText t
@@ -87,9 +88,8 @@ mkCInit = \case
     f :: DesigInit -> ([CDesignator], CInit)
     f DesigInit {..} = ([CMemberDesig (mkIdent _desigDesignator) C.undefNode], mkCInit _desigInitializer)
 
-mkCFunDef :: Function -> CFunDef
-mkCFunDef Function {..} =
-  CFunDef declSpec declr [] statement C.undefNode
+mkFunCommon :: FunctionSig -> ([CDeclSpec], CDeclr)
+mkFunCommon FunctionSig {..} = (declSpec, declr)
   where
     declr :: CDeclr
     declr = CDeclr (Just (mkIdent _funcName)) derivedDeclr Nothing [] C.undefNode
@@ -105,6 +105,17 @@ mkCFunDef Function {..} =
     funDerDeclr = [CFunDeclr (Right (funArgs, False)) [] C.undefNode]
     funArgs :: [CDecl]
     funArgs = mkCDecl <$> _funcArgs
+
+mkCFunSig :: FunctionSig -> CDecl
+mkCFunSig s =
+  let (declSpec, declr) = mkFunCommon s
+   in CDecl declSpec [(Just declr, Nothing, Nothing)] C.undefNode
+
+mkCFunDef :: Function -> CFunDef
+mkCFunDef Function {..} =
+  let (declSpec, declr) = mkFunCommon _funcSig in
+    CFunDef declSpec declr [] statement C.undefNode
+  where
     statement :: CStat
     statement = CCompound [] block C.undefNode
     block :: [CBlockItem]
