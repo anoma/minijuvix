@@ -2,6 +2,7 @@ module MiniJuvix.Syntax.Abstract.Language
   ( module MiniJuvix.Syntax.Abstract.Language,
     module MiniJuvix.Syntax.Concrete.Language,
     module MiniJuvix.Syntax.Hole,
+    module MiniJuvix.Syntax.Implicit,
   )
 where
 
@@ -11,6 +12,7 @@ import MiniJuvix.Syntax.Concrete.Name qualified as C
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.Hole
+import MiniJuvix.Syntax.Implicit
 import MiniJuvix.Syntax.Universe
 
 type TopModuleName = S.TopModulePath
@@ -132,7 +134,8 @@ data MatchAlt = MatchAlt
 
 data Application = Application
   { _appLeft :: Expression,
-    _appRight :: Expression
+    _appRight :: Expression,
+    _appImplicit :: Implicit
   }
   deriving stock (Eq, Show)
 
@@ -152,6 +155,7 @@ data LambdaClause = LambdaClause
 data FunctionParameter = FunctionParameter
   { _paramName :: Maybe VarName,
     _paramUsage :: Usage,
+    _paramImplicit :: Implicit,
     _paramType :: Expression
   }
   deriving stock (Eq, Show)

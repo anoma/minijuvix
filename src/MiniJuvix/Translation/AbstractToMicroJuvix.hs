@@ -151,7 +151,14 @@ goFunction (Abstract.Function l r) = do
   l' <- goFunctionParameter l
   r' <- goType r
   return $ case l' of
-    Left tyvar -> TypeAbs (TypeAbstraction tyvar r')
+    Left tyvar ->
+      TypeAbs
+        ( TypeAbstraction
+            { _typeAbsVar = tyvar,
+              _typeAbsImplicit = l ^. Abstract.paramImplicit,
+              _typeAbsBody = r'
+            }
+        )
     Right ty -> TypeFunction (Function ty r')
 
 goFunctionDef :: Abstract.FunctionDef -> Sem r FunctionDef
@@ -218,10 +225,10 @@ goType e = case e of
   Abstract.ExpressionHole h -> return (TypeHole h)
 
 goApplication :: Abstract.Application -> Sem r Application
-goApplication (Abstract.Application f x) = do
+goApplication (Abstract.Application f x i) = do
   f' <- goExpression f
   x' <- goExpression x
-  return (Application f' x')
+  return (Application f' x' i)
 
 goIden :: Abstract.Iden -> Iden
 goIden i = case i of
@@ -291,13 +298,14 @@ goInductiveDef i = case i ^. Abstract.inductiveType of
     goConstructorType = fmap fst . viewConstructorType
 
 goTypeApplication :: Abstract.Application -> Sem r TypeApplication
-goTypeApplication (Abstract.Application l r) = do
+goTypeApplication (Abstract.Application l r i) = do
   l' <- goType l
   r' <- goType r
   return
     TypeApplication
       { _typeAppLeft = l',
-        _typeAppRight = r'
+        _typeAppRight = r',
+        _typeAppImplicit = i
       }
 
 viewConstructorType :: Abstract.Expression -> Sem r ([Type], Type)

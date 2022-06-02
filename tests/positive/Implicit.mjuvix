@@ -1,0 +1,5 @@
+module Implicit;
+
+ f : {A : Type} → A;
+ f A ≔ f {A} (A A) {A};
+end;

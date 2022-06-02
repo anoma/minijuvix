@@ -68,10 +68,29 @@ class HasLoc t where
 instance Semigroup Interval where
   Interval f s e <> Interval _f s' e' = Interval f (min s s') (max e e')
 
+data ALoc a = ALoc {
+  _alocLoc :: Interval,
+  _aLocA :: a
+  }
+  deriving stock (Show)
+
 makeLenses ''Interval
 makeLenses ''FileLoc
 makeLenses ''Loc
 makeLenses ''Pos
+makeLenses ''ALoc
+
+instance HasLoc (ALoc a) where
+  getLoc = (^. alocLoc)
+
+instance Eq a => Eq (ALoc a) where
+  (==) = (==) `on` (^. aLocA)
+
+instance Ord a => Ord (ALoc a) where
+  compare = compare `on` (^. aLocA)
+
+instance Functor ALoc where
+  fmap = over aLocA
 
 singletonInterval :: Loc -> Interval
 singletonInterval l =

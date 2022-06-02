@@ -116,9 +116,10 @@ pipelineScoper ::
 pipelineScoper = mapError (MiniJuvixError @Scoper.ScoperError) . Scoper.entryScoper
 
 pipelineAbstract ::
+  Members '[Error MiniJuvixError] r =>
   Scoper.ScoperResult ->
   Sem r Abstract.AbstractResult
-pipelineAbstract = Abstract.entryAbstract
+pipelineAbstract = mapError (MiniJuvixError @Scoper.ScoperError) . Abstract.entryAbstract
 
 pipelineMicroJuvix ::
   Members '[Error MiniJuvixError] r =>

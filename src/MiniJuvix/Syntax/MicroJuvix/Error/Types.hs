@@ -13,7 +13,6 @@ data WrongConstructorType = WrongConstructorType
     _wrongCtorTypeActual :: InductiveName,
     _wrongCtorTypeFunName :: Name
   }
-  deriving stock (Show)
 
 makeLenses ''WrongConstructorType
 
@@ -60,7 +59,6 @@ data WrongConstructorAppArgs = WrongConstructorAppArgs
     _wrongCtorAppTypes :: [FunctionArgType],
     _wrongCtorAppName :: Name
   }
-  deriving stock (Show)
 
 makeLenses ''WrongConstructorAppArgs
 
@@ -98,7 +96,6 @@ data WrongType = WrongType
     _wrongTypeExpectedType :: Type,
     _wrongTypeInferredType :: Type
   }
-  deriving stock (Show)
 
 makeLenses ''WrongType
 
@@ -132,7 +129,6 @@ data ExpectedFunctionType = ExpectedFunctionType
     _expectedFunctionTypeApp :: Expression,
     _expectedFunctionTypeType :: Type
   }
-  deriving stock (Show)
 
 makeLenses ''ExpectedFunctionType
 
@@ -163,7 +159,6 @@ data TooManyPatterns = TooManyPatterns
   { _tooManyPatternsClause :: FunctionClause,
     _tooManyPatternsTypes :: [FunctionArgType]
   }
-  deriving stock (Show)
 
 makeLenses ''TooManyPatterns
 

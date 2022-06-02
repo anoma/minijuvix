@@ -7,6 +7,7 @@ module MiniJuvix.Syntax.Concrete.Language
     module MiniJuvix.Syntax.Concrete.Loc,
     module MiniJuvix.Syntax.Hole,
     module MiniJuvix.Syntax.Concrete.LiteralLoc,
+    module MiniJuvix.Syntax.Implicit,
     module MiniJuvix.Syntax.Backends,
     module MiniJuvix.Syntax.ForeignBlock,
     module MiniJuvix.Syntax.Concrete.Scoped.VisibilityAnn,
@@ -36,6 +37,7 @@ import MiniJuvix.Syntax.Concrete.Scoped.VisibilityAnn
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.Hole
+import MiniJuvix.Syntax.Implicit
 import MiniJuvix.Syntax.Universe
 import MiniJuvix.Syntax.Usage
 import Prelude (show)
@@ -308,6 +310,7 @@ data PatternAtom (s :: Stage)
   | PatternAtomWildcard
   | PatternAtomEmpty
   | PatternAtomParens (PatternAtoms s)
+  | PatternAtomBraces (PatternAtoms s)
 
 data PatternAtoms (s :: Stage) = PatternAtoms
   { _patternAtoms :: NonEmpty (PatternAtom s),
@@ -542,6 +545,7 @@ data Expression
   | ExpressionLiteral LiteralLoc
   | ExpressionFunction (Function 'Scoped)
   | ExpressionHole (HoleType 'Scoped)
+  | ExpressionBraces (ALoc Expression)
   deriving stock (Show, Eq, Ord)
 
 instance HasAtomicity Expression where
@@ -556,6 +560,7 @@ instance HasAtomicity Expression where
     ExpressionLiteral {} -> Atom
     ExpressionMatch {} -> Atom
     ExpressionLetBlock {} -> Atom
+    ExpressionBraces {} -> Atom
     ExpressionUniverse {} -> Atom
     ExpressionFunction {} -> Aggregate funFixity
 
@@ -616,6 +621,7 @@ deriving stock instance
 data FunctionParameter (s :: Stage) = FunctionParameter
   { _paramName :: Maybe (SymbolType s),
     _paramUsage :: Maybe Usage,
+    _paramImplicit :: Implicit,
     _paramType :: ExpressionType s
   }
 
@@ -912,6 +918,7 @@ data ExpressionAtom (s :: Stage)
   = AtomIdentifier (IdentifierType s)
   | AtomLambda (Lambda s)
   | AtomHole (HoleType s)
+  | AtomBraces (ALoc (ExpressionType s))
   | AtomLetBlock (LetBlock s)
   | AtomUniverse Universe
   | AtomFunction (Function s)

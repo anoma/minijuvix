@@ -26,7 +26,7 @@ smallerPatternVariables = \case
 
 viewApp :: Expression -> (Expression, [Expression])
 viewApp e = case e of
-  ExpressionApplication (Application l r) ->
+  ExpressionApplication (Application l r _) ->
     second (`snoc` r) (viewApp l)
   _ -> (e, [])
 

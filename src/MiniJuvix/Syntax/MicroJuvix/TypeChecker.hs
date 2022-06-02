@@ -7,7 +7,6 @@ where
 
 import Data.HashMap.Strict qualified as HashMap
 import MiniJuvix.Prelude hiding (fromEither)
-import MiniJuvix.Syntax.Concrete.Language (LiteralLoc)
 import MiniJuvix.Syntax.MicroJuvix.Error
 import MiniJuvix.Syntax.MicroJuvix.InfoTable
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
@@ -98,11 +97,13 @@ checkFunctionDefType = go
       TypeAny -> return ()
       TypeUniverse -> return ()
     goApp :: TypeApplication -> Sem r ()
-    goApp (TypeApplication a b) = go a >> go b
+    goApp (TypeApplication a b _) = go a >> go b
     goFunction :: Function -> Sem r ()
     goFunction (Function a b) = go a >> go b
     goAbs :: TypeAbstraction -> Sem r ()
-    goAbs (TypeAbstraction _ b) = go b
+    goAbs (TypeAbstraction _ i b)
+      | Explicit <- i = go b
+      | otherwise = impossible
 
 checkExpression ::
   Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars, Inference] r =>
@@ -133,6 +134,16 @@ inferExpression = fmap ExpressionTyped . inferExpression'
 lookupVar :: Member (Reader LocalVars) r => Name -> Sem r Type
 lookupVar v = HashMap.lookupDefault impossible v <$> asks (^. localTypes)
 
+inductiveType :: Member (Reader InfoTable) r => Name -> Sem r Type
+inductiveType v = do
+  info <- lookupInductive v
+  let ps = info ^. inductiveInfoDef . inductiveParameters
+  return $
+    foldr
+      (\p k -> TypeAbs (TypeAbstraction (p ^. inductiveParamName) Explicit k))
+      TypeUniverse
+      ps
+
 constructorType :: Member (Reader InfoTable) r => Name -> Sem r Type
 constructorType c = do
   info <- lookupConstructor c
@@ -145,9 +156,11 @@ constructorType c = do
         foldl'
           ( \t v ->
               TypeApp
-                ( TypeApplication
-                    t
-                    (TypeIden (TypeIdenVariable v))
+                ( TypeApplication {
+                    _typeAppLeft = t,
+                    _typeAppRight = TypeIden (TypeIdenVariable v),
+                    _typeAppImplicit = Explicit
+                    }
                 )
           )
           ind
@@ -321,17 +334,12 @@ inferExpression' e = case e of
         info <- lookupAxiom v
         return (TypedExpression (info ^. axiomInfoType) (ExpressionIden i))
       IdenInductive v -> do
-        info <- lookupInductive v
-        let ps = info ^. inductiveInfoDef . inductiveParameters
-            kind =
-              foldr
-                (\p k -> TypeAbs (TypeAbstraction (p ^. inductiveParamName) k))
-                TypeUniverse
-                ps
+        kind <- inductiveType v
         return (TypedExpression kind (ExpressionIden i))
     inferApplication :: Application -> Sem r TypedExpression
     inferApplication a = do
       let leftExp = a ^. appLeft
+          i = a ^. appImplicit
       l <- inferExpression' leftExp
       fun <- getFunctionType leftExp (l ^. typedType)
       case fun of
@@ -344,7 +352,8 @@ inferExpression' e = case e of
                   ExpressionApplication
                     Application
                       { _appLeft = ExpressionTyped l,
-                        _appRight = r
+                        _appRight = r,
+                        _appImplicit = i
                       },
                 _typedType = substituteType1 (ta ^. typeAbsVar, tr) (ta ^. typeAbsBody)
               }
@@ -356,7 +365,8 @@ inferExpression' e = case e of
                   ExpressionApplication
                     Application
                       { _appLeft = ExpressionTyped l,
-                        _appRight = r
+                        _appRight = r,
+                        _appImplicit = i
                       },
                 _typedType = f ^. funRight
               }
@@ -389,6 +399,6 @@ viewInductiveApp ty = case t of
 
 viewTypeApp :: Type -> (Type, [Type])
 viewTypeApp t = case t of
-  TypeApp (TypeApplication l r) ->
+  TypeApp (TypeApplication l r _) ->
     second (`snoc` r) (viewTypeApp l)
   _ -> (t, [])

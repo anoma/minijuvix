@@ -3,18 +3,21 @@ module MiniJuvix.Syntax.MicroJuvix.Language
     module MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind,
     module MiniJuvix.Syntax.Concrete.Scoped.Name,
     module MiniJuvix.Syntax.Concrete.Loc,
+    module MiniJuvix.Syntax.Implicit,
     module MiniJuvix.Syntax.Hole,
+    module MiniJuvix.Syntax.Concrete.LiteralLoc,
   )
 where
 
 import MiniJuvix.Prelude
-import MiniJuvix.Syntax.Concrete.Language (LiteralLoc)
+import MiniJuvix.Syntax.Concrete.LiteralLoc
 import MiniJuvix.Syntax.Concrete.Loc
 import MiniJuvix.Syntax.Concrete.Scoped.Name (NameId (..))
 import MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.Hole
+import MiniJuvix.Syntax.Implicit
 import Prettyprinter
 
 type FunctionName = Name
@@ -97,7 +100,6 @@ data FunctionClause = FunctionClause
     _clausePatterns :: [Pattern],
     _clauseBody :: Expression
   }
-  deriving stock (Show)
 
 data Iden
   = IdenFunction Name
@@ -105,19 +107,16 @@ data Iden
   | IdenVar VarName
   | IdenAxiom Name
   | IdenInductive Name
-  deriving stock (Show)
 
 data TypedExpression = TypedExpression
   { _typedType :: Type,
     _typedExpression :: Expression
   }
-  deriving stock (Show)
 
 data FunctionExpression = FunctionExpression
   { _functionExpressionLeft :: Expression,
     _functionExpressionRight :: Expression
   }
-  deriving stock (Show)
 
 data Expression
   = ExpressionIden Iden
@@ -126,19 +125,18 @@ data Expression
   | ExpressionLiteral LiteralLoc
   | ExpressionHole Hole
   | ExpressionTyped TypedExpression
-  deriving stock (Show)
 
 data Application = Application
   { _appLeft :: Expression,
-    _appRight :: Expression
+    _appRight :: Expression,
+    _appImplicit :: Implicit
   }
-  deriving stock (Show)
 
 data Function = Function
   { _funLeft :: Type,
     _funRight :: Type
   }
-  deriving stock (Show, Generic, Eq)
+  deriving stock (Eq, Generic)
 
 instance Hashable Function
 
@@ -147,18 +145,16 @@ data ConstructorApp = ConstructorApp
   { _constrAppConstructor :: Name,
     _constrAppParameters :: [Pattern]
   }
-  deriving stock (Show)
 
 data Pattern
   = PatternVariable VarName
   | PatternConstructorApp ConstructorApp
   | PatternWildcard
-  deriving stock (Show)
 
 newtype InductiveParameter = InductiveParameter
   { _inductiveParamName :: VarName
   }
-  deriving stock (Show, Eq)
+  deriving stock (Eq)
 
 data InductiveDef = InductiveDef
   { _inductiveName :: InductiveName,
@@ -175,23 +171,25 @@ data TypeIden
   = TypeIdenInductive InductiveName
   | TypeIdenAxiom AxiomName
   | TypeIdenVariable VarName
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Eq, Generic)
 
 instance Hashable TypeIden
 
 data TypeApplication = TypeApplication
   { _typeAppLeft :: Type,
-    _typeAppRight :: Type
+    _typeAppRight :: Type,
+    _typeAppImplicit :: Implicit
   }
-  deriving stock (Show, Generic, Eq)
+  deriving stock (Generic, Eq)
 
 instance Hashable TypeApplication
 
 data TypeAbstraction = TypeAbstraction
   { _typeAbsVar :: VarName,
+    _typeAbsImplicit :: Implicit,
     _typeAbsBody :: Type
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Eq, Generic)
 
 instance Hashable TypeAbstraction
 
@@ -203,14 +201,13 @@ data Type
   | TypeHole Hole
   | TypeUniverse
   | TypeAny
-  deriving stock (Eq, Show, Generic)
+  deriving stock (Eq, Generic)
 
 instance Hashable Type
 
 data FunctionArgType
   = FunctionArgTypeAbstraction VarName
   | FunctionArgTypeType Type
-  deriving stock (Show)
 
 makeLenses ''Module
 makeLenses ''Include

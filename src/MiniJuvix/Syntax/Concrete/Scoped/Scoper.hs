@@ -911,6 +911,7 @@ checkFunction Function {..} = do
         FunctionParameter
           { _paramName = paramName',
             _paramUsage = _paramUsage,
+            _paramImplicit = _paramImplicit,
             _paramType = paramType'
           }
       where
@@ -1092,6 +1093,7 @@ checkPatternAtom p = case p of
   PatternAtomEmpty -> return PatternAtomEmpty
   PatternAtomParens e -> PatternAtomParens <$> checkPatternAtoms e
   PatternAtomIden n -> PatternAtomIden <$> checkPatternName n
+  PatternAtomBraces n -> PatternAtomBraces <$> checkPatternAtoms n
 
 checkName ::
   Members '[Error ScoperError, State Scope, Reader LocalVars, State ScoperState, InfoTableBuilder] r =>
@@ -1112,6 +1114,7 @@ checkExpressionAtom e = case e of
   AtomUniverse uni -> return (AtomUniverse uni)
   AtomFunction fun -> AtomFunction <$> checkFunction fun
   AtomParens par -> AtomParens <$> checkParens par
+  AtomBraces br -> AtomBraces <$> traverseOf aLocA checkParseExpressionAtoms br
   AtomFunArrow -> return AtomFunArrow
   AtomHole h -> AtomHole <$> checkHole h
   AtomLiteral l -> return (AtomLiteral l)
@@ -1178,6 +1181,24 @@ checkParseExpressionAtoms ::
   ExpressionAtoms 'Parsed ->
   Sem r Expression
 checkParseExpressionAtoms = checkExpressionAtoms >=> parseExpressionAtoms
+  -- checkImplicit e
+  -- return e
+
+-- checkImplicit :: forall r. Members '[Error ScoperError] r =>
+--   Expression ->
+--   Sem r ()
+-- checkImplicit = go
+--  where
+--    go :: Expression -> Sem r ()
+--    go = \case
+--      ExpressionIdentifier {} -> return ()
+--      ExpressionParensIdentifier {} -> return ()
+--      ExpressionInfixApplication a -> goIndix a
+--      ExpressionPostfixApplication a -> goPostfix a
+--      ExpressionLambda {} -> return ()
+--      ExpressionMatch {} -> return ()
+--      ExpressionLetBlock {} -> return ()
+--      ExpressionFunction {} -> return ()
 
 checkParsePatternAtom ::
   Members '[Error ScoperError, State Scope, State ScoperState, InfoTableBuilder, NameIdGen] r =>
@@ -1208,7 +1229,7 @@ checkStatement s = case s of
 -------------------------------------------------------------------------------
 makeExpressionTable2 ::
   ExpressionAtoms 'Scoped -> [[P.Operator Parse Expression]]
-makeExpressionTable2 (ExpressionAtoms atoms _) = [appOp] : operators ++ [[functionOp]]
+makeExpressionTable2 (ExpressionAtoms atoms _) = [appOpExplicit] : operators ++ [[functionOp]]
   where
     operators = mkSymbolTable idens
     idens :: [ScopedIden]
@@ -1253,16 +1274,17 @@ makeExpressionTable2 (ExpressionAtoms atoms _) = [appOp] : operators ++ [[functi
               _ -> Nothing
 
     -- Application by juxtaposition.
-    appOp :: P.Operator Parse Expression
-    appOp = P.InfixL (return app)
+    appOpExplicit :: P.Operator Parse Expression
+    appOpExplicit = P.InfixL (return app)
       where
-        app :: Expression -> Expression -> Expression
-        app f x =
-          ExpressionApplication
-            Application
-              { _applicationFunction = f,
-                _applicationParameter = x
-              }
+      app :: Expression -> Expression -> Expression
+      app f x =
+        ExpressionApplication
+          Application
+            { _applicationFunction = f,
+              _applicationParameter = x
+            }
+
     -- Non-dependent function type: A → B
     functionOp :: P.Operator Parse Expression
     functionOp = P.InfixR (nonDepFun <$ P.single AtomFunArrow)
@@ -1279,6 +1301,7 @@ makeExpressionTable2 (ExpressionAtoms atoms _) = [appOp] : operators ++ [[functi
               FunctionParameter
                 { _paramName = Nothing,
                   _paramUsage = Nothing,
+                  _paramImplicit = Explicit,
                   _paramType = a
                 }
 
@@ -1313,6 +1336,10 @@ mkExpressionParser table = embed @Parse pExpression
     pExpression :: Parse Expression
     pExpression = P.makeExprParser (runM parseTerm) table
 
+data Expression' =
+  Expression' Expression
+  | ImplicitArg Expression
+
 parseTerm :: Members '[Embed Parse] r => Sem r Expression
 parseTerm =
   embed @Parse $
@@ -1325,6 +1352,7 @@ parseTerm =
       <|> parseLiteral
       <|> parseMatch
       <|> parseLetBlock
+      <|> parseBraces
   where
     parseHole :: Parse Expression
     parseHole = ExpressionHole <$> P.token lit mempty
@@ -1389,6 +1417,14 @@ parseTerm =
         identifierNoFixity s = case s of
           AtomIdentifier iden
             | not (S.hasFixity (identifierName iden)) -> Just iden
+          _ -> Nothing
+
+    parseBraces :: Parse Expression
+    parseBraces = ExpressionBraces <$> P.token bracedExpr mempty
+      where
+        bracedExpr :: ExpressionAtom 'Scoped -> Maybe (ALoc Expression)
+        bracedExpr s = case s of
+          AtomBraces l -> Just l
           _ -> Nothing
 
     parseParens :: Parse Expression
@@ -1457,7 +1493,13 @@ makePatternTable atom = [appOp] : operators
     appOp = P.InfixL (return app)
       where
         app :: Pattern -> Pattern -> Pattern
-        app l = PatternApplication . PatternApp l
+        app l r =
+          PatternApplication
+            ( PatternApp
+                { _patAppLeft = l,
+                  _patAppRight = r
+                }
+            )
 
 parsePatternTerm ::
   forall r.
