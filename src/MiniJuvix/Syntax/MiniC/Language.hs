@@ -37,15 +37,18 @@ data Declaration = Declaration
     _declName :: Maybe Text,
     _declInitializer :: Maybe Initializer
   }
+  deriving stock (Show, Eq)
 
 data Initializer
   = ExprInitializer Expression
   | DesignatorInitializer [DesigInit]
+  deriving stock (Show, Eq)
 
 data DesigInit = DesigInit
   { _desigDesignator :: Text,
     _desigInitializer :: Initializer
   }
+  deriving stock (Show, Eq)
 
 --------------------------------------------------------------------------------
 -- Function
@@ -81,32 +84,38 @@ data DeclType
   | DeclFunPtr FunPtr
   | DeclJuvixClosure
   | BoolType
+  deriving stock (Show, Eq)
 
 data StructUnion = StructUnion
   { _structUnionTag :: StructUnionTag,
     _structUnionName :: Maybe Text,
     _structMembers :: Maybe [Declaration]
   }
+  deriving stock (Show, Eq)
 
 data StructUnionTag
   = StructTag
   | UnionTag
+  deriving stock (Show, Eq)
 
 data Enum = Enum
   { _enumName :: Maybe Text,
     _enumMembers :: Maybe [Text]
   }
+  deriving stock (Show, Eq)
 
 data FunPtr = FunPtr
   { _funPtrReturnType :: DeclType,
     _funPtrIsPtr :: Bool,
     _funPtrArgs :: [CDeclType]
   }
+  deriving stock (Show, Eq)
 
 data CDeclType = CDeclType
   { _typeDeclType :: DeclType,
     _typeIsPtr :: Bool
   }
+  deriving stock (Show, Eq)
 
 uIntPtrType :: DeclType
 uIntPtrType = DeclTypeDefType "uintptr_t"
@@ -124,16 +133,19 @@ data Expression
   | ExpressionBinary Binary
   | ExpressionUnary Unary
   | ExpressionMember MemberAccess
+  deriving stock (Show, Eq)
 
 data Assign = Assign
   { _assignLeft :: Expression,
     _assignRight :: Expression
   }
+  deriving stock (Show, Eq)
 
 data Cast = Cast
   { _castDecl :: Declaration,
     _castExpression :: Expression
   }
+  deriving stock (Show, Eq)
 
 castToType :: CDeclType -> Expression -> Expression
 castToType cDecl e =
@@ -146,55 +158,62 @@ castToType cDecl e =
 
 cDeclToDecl :: CDeclType -> Declaration
 cDeclToDecl CDeclType {..} =
-      Declaration
-        { _declType = _typeDeclType,
-          _declIsPtr = _typeIsPtr,
-          _declName = Nothing,
-          _declInitializer = Nothing
-        }
+  Declaration
+    { _declType = _typeDeclType,
+      _declIsPtr = _typeIsPtr,
+      _declName = Nothing,
+      _declInitializer = Nothing
+    }
 
 data Call = Call
   { _callCallee :: Expression,
     _callArgs :: [Expression]
   }
+  deriving stock (Show, Eq)
 
 data Literal
   = LiteralInt Integer
   | LiteralChar Char
   | LiteralString Text
+  deriving stock (Show, Eq)
 
 data BinaryOp
   = Eq
   | Neq
   | And
   | Or
+  deriving stock (Show, Eq)
 
 data Binary = Binary
   { _binaryOp :: BinaryOp,
     _binaryLeft :: Expression,
     _binaryRight :: Expression
   }
+  deriving stock (Show, Eq)
 
 data UnaryOp
   = Address
   | Indirection
   | Negation
+  deriving stock (Show, Eq)
 
 data Unary = Unary
   { _unaryOp :: UnaryOp,
     _unarySubject :: Expression
   }
+  deriving stock (Show, Eq)
 
 data MemberAccessOp
   = Object
   | Pointer
-  deriving stock (Eq)
+  deriving stock (Show, Eq)
 
 data MemberAccess = MemberAccess
   { _memberSubject :: Expression,
     _memberField :: Text,
     _memberOp :: MemberAccessOp
   }
+  deriving stock (Show, Eq)
 
 --------------------------------------------------------------------------------
 -- Statements
