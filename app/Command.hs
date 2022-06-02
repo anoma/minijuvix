@@ -23,30 +23,17 @@ import MiniJuvix.Syntax.Concrete.Scoped.Pretty qualified as Scoper
 import Options.Applicative
 
 data Command
-  = Scope ScopeOptions
-  | Parse ParseOptions
-  | Html HtmlOptions
-  | Termination TerminationCommand
-  | MiniHaskell
-  | MiniC
-  | Compile CompileOptions
-  | MicroJuvix MicroJuvixCommand
-  | MonoJuvix
-  | DisplayVersion
+  = Compile CompileOptions
   | DisplayRoot
   | Highlight
-
-parseDisplayVersion :: Parser Command
-parseDisplayVersion =
-  flag'
-    DisplayVersion
-    (long "version" <> short 'v' <> help "Print the version and exit")
-
-parseDisplayRoot :: Parser Command
-parseDisplayRoot =
-  flag'
-    DisplayRoot
-    (long "show-root" <> help "Print the detected root of the project")
+  | Html HtmlOptions
+  | MicroJuvix MicroJuvixCommand
+  | MiniC
+  | MiniHaskell
+  | MonoJuvix
+  | Parse ParseOptions
+  | Scope ScopeOptions
+  | Termination TerminationCommand
 
 mkScopePrettyOptions :: GlobalOptions -> ScopeOptions -> Scoper.Options
 mkScopePrettyOptions g ScopeOptions {..} =
@@ -57,109 +44,95 @@ mkScopePrettyOptions g ScopeOptions {..} =
 
 parseCommand :: Parser Command
 parseCommand =
-  parseDisplayVersion
-    <|> parseDisplayRoot
-    <|> hsubparser
-      ( mconcat
-          [ commandParse,
-            commandScope,
-            commandHtml,
-            commandTermination,
-            commandMonoJuvix,
-            commandMicroJuvix,
-            commandMiniHaskell,
-            commandMiniC,
-            commandCompile,
-            commandHighlight
-          ]
-      )
-  where
-    commandMicroJuvix :: Mod CommandFields Command
-    commandMicroJuvix = command "microjuvix" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (MicroJuvix <$> parseMicroJuvixCommand)
-            (progDesc "Subcommands related to MicroJuvix")
+  hsubparser
+    ( mconcat
+        [ commandCompile,
+          commandHighlight,
+          commandHtml,
+          commandMicroJuvix,
+          commandMiniC,
+          commandMiniHaskell,
+          commandMonoJuvix,
+          commandParse,
+          commandScope,
+          commandShowRoot,
+          commandTermination
+        ]
+    )
 
-    commandMonoJuvix :: Mod CommandFields Command
-    commandMonoJuvix = command "monojuvix" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (pure MonoJuvix)
-            (progDesc "Translate a MiniJuvix file to MonoJuvix")
+commandShowRoot :: Mod CommandFields Command
+commandShowRoot =
+  command "root" $
+    info
+      (pure DisplayRoot)
+      (progDesc "Show the root path of a MiniJuvix file")
 
-    commandMiniHaskell :: Mod CommandFields Command
-    commandMiniHaskell = command "minihaskell" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (pure MiniHaskell)
-            (progDesc "Translate a MiniJuvix file to MiniHaskell")
+commandMicroJuvix :: Mod CommandFields Command
+commandMicroJuvix =
+  command "microjuvix" $
+    info
+      (MicroJuvix <$> parseMicroJuvixCommand)
+      (progDesc "Subcommands related to MicroJuvix")
 
-    commandMiniC :: Mod CommandFields Command
-    commandMiniC = command "minic" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (pure MiniC)
-            (progDesc "Translate a MiniJuvix file to MiniC")
+commandMonoJuvix :: Mod CommandFields Command
+commandMonoJuvix =
+  command "monojuvix" $
+    info
+      (pure MonoJuvix)
+      (progDesc "Translate a MiniJuvix file to MonoJuvix")
 
-    commandCompile :: Mod CommandFields Command
-    commandCompile = command "compile" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Compile <$> parseCompile)
-            (progDesc "Compile a MiniJuvix file")
+commandMiniHaskell :: Mod CommandFields Command
+commandMiniHaskell =
+  command "minihaskell" $
+    info
+      (pure MiniHaskell)
+      (progDesc "Translate a MiniJuvix file to MiniHaskell")
 
-    commandHighlight :: Mod CommandFields Command
-    commandHighlight = command "highlight" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (pure Highlight)
-            (progDesc "Highlight a MiniJuvix file")
+commandMiniC :: Mod CommandFields Command
+commandMiniC =
+  command "minic" $
+    info
+      (pure MiniC)
+      (progDesc "Translate a MiniJuvix file to MiniC")
 
-    commandParse :: Mod CommandFields Command
-    commandParse = command "parse" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Parse <$> parseParse)
-            (progDesc "Parse a MiniJuvix file")
+commandCompile :: Mod CommandFields Command
+commandCompile =
+  command "compile" $
+    info
+      (Compile <$> parseCompile)
+      (progDesc "Compile a MiniJuvix file")
 
-    commandHtml :: Mod CommandFields Command
-    commandHtml = command "html" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Html <$> parseHtml)
-            (progDesc "Generate HTML for a MiniJuvix file")
+commandHighlight :: Mod CommandFields Command
+commandHighlight =
+  command "highlight" $
+    info
+      (pure Highlight)
+      (progDesc "Highlight a MiniJuvix file")
 
-    commandScope :: Mod CommandFields Command
-    commandScope = command "scope" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Scope <$> parseScope)
-            (progDesc "Parse and scope a MiniJuvix file")
+commandParse :: Mod CommandFields Command
+commandParse =
+  command "parse" $
+    info
+      (Parse <$> parseParse)
+      (progDesc "Parse a MiniJuvix file")
 
-    commandTermination :: Mod CommandFields Command
-    commandTermination = command "termination" minfo
-      where
-        minfo :: ParserInfo Command
-        minfo =
-          info
-            (Termination <$> parseTerminationCommand)
-            (progDesc "Subcommands related to termination checking")
+commandHtml :: Mod CommandFields Command
+commandHtml =
+  command "html" $
+    info
+      (Html <$> parseHtml)
+      (progDesc "Generate HTML for a MiniJuvix file")
+
+commandScope :: Mod CommandFields Command
+commandScope =
+  command "scope" $
+    info
+      (Scope <$> parseScope)
+      (progDesc "Parse and scope a MiniJuvix file")
+
+commandTermination :: Mod CommandFields Command
+commandTermination =
+  command "termination" $
+    info
+      (Termination <$> parseTerminationCommand)
+      (progDesc "Subcommands related to termination checking")

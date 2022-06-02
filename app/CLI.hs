@@ -11,15 +11,35 @@ import MiniJuvix.Prelude hiding (Doc)
 import Options.Applicative
 import Options.Applicative.Help.Pretty
 
-data CLI = CLI
-  { _cliGlobalOptions :: GlobalOptions,
-    _cliCommand :: Command
+data CLI
+  = -- Available options
+    DisplayVersion
+  | DisplayHelp
+  | -- Available commands
+    Command CommandGlobalOptions
+
+parseDisplayVersion :: Parser CLI
+parseDisplayVersion =
+  flag'
+    DisplayVersion
+    (long "version" <> short 'v' <> help "Print the version and exit")
+
+parseDisplayHelp :: Parser CLI
+parseDisplayHelp =
+  flag'
+    DisplayHelp
+    (long "help" <> short 'h' <> help "Show the help text")
+
+data CommandGlobalOptions = CommandGlobalOptions
+  { _cliCommand :: Command,
+    _cliGlobalOptions :: GlobalOptions
   }
 
-makeLenses ''CLI
+makeLenses ''CommandGlobalOptions
 
-parseCLI :: Parser CLI
-parseCLI = do
+parseCommandGlobalOptions :: Parser CLI
+parseCommandGlobalOptions = do
+  _cliCommand <- parseCommand
   _globalNoColors <-
     switch
       ( long "no-colors"
@@ -40,22 +60,27 @@ parseCLI = do
       ( long "no-termination"
           <> help "Disable the termination checker"
       )
-  _cliCommand <- parseCommand
   _globalInputFiles <- parseInputFiles
-  pure CLI {_cliGlobalOptions = GlobalOptions {..}, ..}
+  pure (Command (CommandGlobalOptions {_cliGlobalOptions = GlobalOptions {..}, ..}))
 
-cliMainFile :: CLI -> FilePath
-cliMainFile CLI {_cliGlobalOptions = GlobalOptions {..}} = head _globalInputFiles
+parseCLI :: Parser CLI
+parseCLI = parseDisplayVersion <|> parseDisplayHelp <|> parseCommandGlobalOptions
+
+commandMainFile :: CommandGlobalOptions -> FilePath
+commandMainFile CommandGlobalOptions {_cliGlobalOptions = GlobalOptions {..}} =
+  head _globalInputFiles
 
 makeAbsPaths :: CLI -> IO CLI
-makeAbsPaths cli = do
-  nOpts <- traverseOf globalInputFiles (mapM makeAbsolute) (cli ^. cliGlobalOptions)
-  return (set cliGlobalOptions nOpts cli)
+makeAbsPaths cli = case cli of
+  Command cmd -> do
+    nOpts <- traverseOf globalInputFiles (mapM makeAbsolute) (cmd ^. cliGlobalOptions)
+    return (Command (set cliGlobalOptions nOpts cmd))
+  _ -> return cli
 
 descr :: ParserInfo CLI
 descr =
   info
-    (parseCLI <**> helper)
+    parseCLI
     ( fullDesc
         <> progDesc "The MiniJuvix compiler."
         <> headerDoc (Just headDoc)

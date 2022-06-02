@@ -31,14 +31,15 @@ import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 import MiniJuvix.Utils.Version (runDisplayVersion)
 import Options.Applicative
+import System.Environment (getProgName)
 import Text.Show.Pretty hiding (Html)
 
 minijuvixYamlFile :: FilePath
 minijuvixYamlFile = "minijuvix.yaml"
 
-findRoot :: CLI -> IO FilePath
-findRoot cli = do
-  setCurrentDirectory (takeDirectory (cliMainFile cli))
+findRoot :: CommandGlobalOptions -> IO FilePath
+findRoot copts = do
+  setCurrentDirectory (takeDirectory (commandMainFile copts))
   r <- IO.try go :: IO (Either IO.SomeException FilePath)
   case r of
     Left err -> do
@@ -70,16 +71,15 @@ getEntryPoint r opts =
       _entryPointModulePaths = opts ^. globalInputFiles
     }
 
-runCLI :: Members '[Embed IO, App] r => CLI -> Sem r ()
-runCLI cli = do
-  let globalOptions = cli ^. cliGlobalOptions
-      inputFile = cliMainFile cli
+runCommand :: Members '[Embed IO, App] r => CommandGlobalOptions -> Sem r ()
+runCommand cmd = do
+  let globalOptions = cmd ^. cliGlobalOptions
+      inputFile = commandMainFile cmd
       toAnsiText' :: forall a. (HasAnsiBackend a, HasTextBackend a) => a -> Text
       toAnsiText' = toAnsiText (not (globalOptions ^. globalNoColors))
-  root <- embed (findRoot cli)
+  root <- embed (findRoot cmd)
   let entryPoint = getEntryPoint root globalOptions
-  case cli ^. cliCommand of
-    DisplayVersion -> embed runDisplayVersion
+  case cmd ^. cliCommand of
     DisplayRoot -> say (pack root)
     Highlight -> do
       res <- runPipelineEither (upToScoping (getEntryPoint root globalOptions))
@@ -104,7 +104,10 @@ runCLI cli = do
           <$> runPipeline (upToParsing (getEntryPoint root globalOptions))
       if opts ^. parseNoPrettyShow then say (show m) else say (pack (ppShow m))
     Scope opts -> do
-      l <- (^. Scoper.resultModules) <$> runPipeline (upToScoping (getEntryPoint root globalOptions))
+      l <-
+        (^. Scoper.resultModules)
+          <$> runPipeline
+            (upToScoping (getEntryPoint root globalOptions))
       forM_ l $ \s -> do
         renderStdOut (Scoper.ppOut (mkScopePrettyOptions globalOptions opts) s)
     Html HtmlOptions {..} -> do
@@ -142,7 +145,9 @@ runCLI cli = do
       monojuvix <- head . (^. Mono.resultModules) <$> runPipeline (upToMonoJuvix entryPoint)
       renderStdOut (Mono.ppOut ppOpts monojuvix)
     MiniHaskell -> do
-      minihaskell <- head . (^. MiniHaskell.resultModules) <$> runPipeline (upToMiniHaskell entryPoint)
+      minihaskell <-
+        head . (^. MiniHaskell.resultModules)
+          <$> runPipeline (upToMiniHaskell entryPoint)
       renderStdOut (MiniHaskell.ppOutDefault minihaskell)
     MiniC -> do
       miniC <- (^. MiniC.resultCCode) <$> runPipeline (upToMiniC entryPoint)
@@ -174,7 +179,11 @@ runCLI cli = do
               { Abstract._optShowNameId = globalOptions ^. globalShowNameIds
               }
           completeGraph = Termination.completeCallGraph callMap
-          filteredGraph = maybe completeGraph (`Termination.unsafeFilterGraph` completeGraph) _graphFunctionNameFilter
+          filteredGraph =
+            maybe
+              completeGraph
+              (`Termination.unsafeFilterGraph` completeGraph)
+              _graphFunctionNameFilter
           rEdges = Termination.reflexiveEdges filteredGraph
           recBehav = map Termination.recursiveBehaviour rEdges
       App.renderStdOut (Abstract.ppOut opts' filteredGraph)
@@ -182,7 +191,11 @@ runCLI cli = do
       forM_ recBehav $ \r -> do
         let funName = r ^. Termination.recursiveBehaviourFun
             funRef = Abstract.FunctionRef (Scoper.unqualifiedSymbol funName)
-            funInfo = HashMap.lookupDefault impossible funRef (infotable ^. Abstract.infoFunctions)
+            funInfo =
+              HashMap.lookupDefault
+                impossible
+                funRef
+                (infotable ^. Abstract.infoFunctions)
             markedTerminating = funInfo ^. (Abstract.functionInfoDef . Abstract.funDefTerminating)
             sopts =
               Scoper.defaultOptions
@@ -196,10 +209,22 @@ runCLI cli = do
             | otherwise ->
                 case Termination.findOrder r of
                   Nothing -> say (n <> " Fails the termination checking") >> embed exitFailure
-                  Just (Termination.LexOrder k) -> say (n <> " Terminates with order " <> show (toList k))
+                  Just (Termination.LexOrder k) ->
+                    say (n <> " Terminates with order " <> show (toList k))
         newline
+
+showHelpText :: ParserPrefs -> IO ()
+showHelpText p = do
+  progn <- getProgName
+  let helpText = parserFailure p descr (ShowHelpText Nothing) []
+  let (msg, _) = renderFailure helpText progn
+  putStrLn (pack msg)
 
 main :: IO ()
 main = do
-  cli <- execParser descr >>= makeAbsPaths
-  runM (runAppIO (cli ^. cliGlobalOptions) (runCLI cli))
+  let p = prefs showHelpOnEmpty
+  cli <- customExecParser p descr >>= makeAbsPaths
+  case cli of
+    DisplayVersion -> runDisplayVersion
+    DisplayHelp -> showHelpText p
+    Command cmd -> runM (runAppIO (cmd ^. cliGlobalOptions) (runCommand cmd))
