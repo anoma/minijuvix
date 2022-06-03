@@ -10,7 +10,7 @@ data GlobalOptions = GlobalOptions
     _globalShowNameIds :: Bool,
     _globalOnlyErrors :: Bool,
     _globalNoTermination :: Bool,
-    _globalInputFiles :: NonEmpty FilePath
+    _globalInputFiles :: [FilePath]
   }
   deriving stock (Eq, Show)
 

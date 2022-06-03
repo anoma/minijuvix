@@ -65,7 +65,7 @@ commandShowRoot =
   command "root" $
     info
       (pure DisplayRoot)
-      (progDesc "Show the root path of a MiniJuvix file")
+      (progDesc "Show the root path for a Minijuvix project")
 
 commandMicroJuvix :: Mod CommandFields Command
 commandMicroJuvix =

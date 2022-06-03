@@ -66,9 +66,9 @@ parseCommandGlobalOptions = do
 parseCLI :: Parser CLI
 parseCLI = parseDisplayVersion <|> parseDisplayHelp <|> parseCommandGlobalOptions
 
-commandMainFile :: CommandGlobalOptions -> FilePath
-commandMainFile CommandGlobalOptions {_cliGlobalOptions = GlobalOptions {..}} =
-  head _globalInputFiles
+commandFirstFile :: CommandGlobalOptions -> Maybe FilePath
+commandFirstFile CommandGlobalOptions {_cliGlobalOptions = GlobalOptions {..}} =
+  listToMaybe _globalInputFiles
 
 makeAbsPaths :: CLI -> IO CLI
 makeAbsPaths cli = case cli of

@@ -12,5 +12,5 @@ parserInputFile =
         <> action "file"
     )
 
-parseInputFiles :: Parser (NonEmpty FilePath)
-parseInputFiles = some1 parserInputFile
+parseInputFiles :: Parser [FilePath]
+parseInputFiles = many parserInputFile

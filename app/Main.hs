@@ -39,7 +39,9 @@ minijuvixYamlFile = "minijuvix.yaml"
 
 findRoot :: CommandGlobalOptions -> IO FilePath
 findRoot copts = do
-  setCurrentDirectory (takeDirectory (commandMainFile copts))
+  let dir :: Maybe FilePath
+      dir = takeDirectory <$> commandFirstFile copts
+  whenJust dir setCurrentDirectory
   r <- IO.try go :: IO (Either IO.SomeException FilePath)
   case r of
     Left err -> do
@@ -68,13 +70,17 @@ getEntryPoint r opts =
   EntryPoint
     { _entryPointRoot = r,
       _entryPointNoTermination = opts ^. globalNoTermination,
-      _entryPointModulePaths = opts ^. globalInputFiles
+      _entryPointModulePaths = fromList (opts ^. globalInputFiles)
     }
+  where
+    fromList :: [FilePath] -> NonEmpty FilePath
+    fromList = \case
+      [] -> error "At least one filepath is required to run this command"
+      (x : xs) -> x :| xs
 
 runCommand :: Members '[Embed IO, App] r => CommandGlobalOptions -> Sem r ()
 runCommand cmd = do
   let globalOptions = cmd ^. cliGlobalOptions
-      inputFile = commandMainFile cmd
       toAnsiText' :: forall a. (HasAnsiBackend a, HasTextBackend a) => a -> Text
       toAnsiText' = toAnsiText (not (globalOptions ^. globalNoColors))
   root <- embed (findRoot cmd)
@@ -82,17 +88,17 @@ runCommand cmd = do
   case cmd ^. cliCommand of
     DisplayRoot -> say (pack root)
     Highlight -> do
-      res <- runPipelineEither (upToScoping (getEntryPoint root globalOptions))
-      absP <- embed (makeAbsolute inputFile)
+      res <- runPipelineEither (upToScoping entryPoint)
       case res of
         Left err -> say (Highlight.goError (errorIntervals err))
         Right r -> do
           let tbl = r ^. Scoper.resultParserTable
               items = tbl ^. Parser.infoParsedItems
               names = r ^. (Scoper.resultScoperTable . Scoper.infoNames)
+              inputFile = entryPoint ^. mainModulePath
               hinput =
                 Highlight.filterInput
-                  absP
+                  inputFile
                   Highlight.HighlightInput
                     { _highlightNames = names,
                       _highlightParsed = items
@@ -101,17 +107,17 @@ runCommand cmd = do
     Parse opts -> do
       m <-
         head . (^. Parser.resultModules)
-          <$> runPipeline (upToParsing (getEntryPoint root globalOptions))
+          <$> runPipeline (upToParsing entryPoint)
       if opts ^. parseNoPrettyShow then say (show m) else say (pack (ppShow m))
     Scope opts -> do
       l <-
         (^. Scoper.resultModules)
           <$> runPipeline
-            (upToScoping (getEntryPoint root globalOptions))
+            (upToScoping entryPoint)
       forM_ l $ \s -> do
         renderStdOut (Scoper.ppOut (mkScopePrettyOptions globalOptions opts) s)
     Html HtmlOptions {..} -> do
-      res <- runPipeline (upToScoping (getEntryPoint root globalOptions))
+      res <- runPipeline (upToScoping entryPoint)
       let m = head (res ^. Scoper.resultModules)
       embed (genHtml Scoper.defaultOptions _htmlRecursive _htmlTheme m)
     MicroJuvix Pretty -> do
@@ -154,6 +160,7 @@ runCommand cmd = do
       say miniC
     Compile o -> do
       miniC <- (^. MiniC.resultCCode) <$> runPipeline (upToMiniC entryPoint)
+      let inputFile = entryPoint ^. mainModulePath
       result <- embed (runCompile root inputFile o miniC)
       case result of
         Left err -> say ("Error: " <> err)
