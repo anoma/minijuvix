@@ -113,8 +113,8 @@ mkCFunSig s =
 
 mkCFunDef :: Function -> CFunDef
 mkCFunDef Function {..} =
-  let (declSpec, declr) = mkFunCommon _funcSig in
-    CFunDef declSpec declr [] statement C.undefNode
+  let (declSpec, declr) = mkFunCommon _funcSig
+   in CFunDef declSpec declr [] statement C.undefNode
   where
     statement :: CStat
     statement = CCompound [] block C.undefNode

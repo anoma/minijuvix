@@ -72,7 +72,7 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
       run (runReader compileInfo (genCTypes m))
         <> genFunctionSigs m
         <> run (runReader buildTable (genClosures m))
-        <> run (runReader buildTable (goModule m))
+        <> run (runReader buildTable (genFunctionDefs m))
 
 unsupported :: Text -> a
 unsupported msg = error (msg <> " Mono to C: not yet supported")
@@ -107,7 +107,7 @@ genClosures ::
 genClosures Mono.Module {..} = do
   closureInfos <- concatMapM go (_moduleBody ^. Mono.moduleStatements)
   let cs :: [Function] = genClosure =<< nub closureInfos
-  let ecs :: [CCode] = ExternalFunc <$> cs
+      ecs :: [CCode] = ExternalFunc <$> cs
   return ecs
   where
     go :: Mono.Statement -> Sem r [ClosureInfo]
@@ -117,24 +117,24 @@ genClosures Mono.Module {..} = do
       Mono.StatementAxiom {} -> return []
       Mono.StatementInductive {} -> return []
 
-goModule ::
+genFunctionDefs ::
   Members '[Reader Mono.InfoTable] r =>
   Mono.Module ->
   Sem r [CCode]
-goModule Mono.Module {..} = goModuleBody _moduleBody
+genFunctionDefs Mono.Module {..} = genFunctionDefsBody _moduleBody
 
-goModuleBody ::
+genFunctionDefsBody ::
   Members '[Reader Mono.InfoTable] r =>
   Mono.ModuleBody ->
   Sem r [CCode]
-goModuleBody Mono.ModuleBody {..} =
-  concatMapM goStatement _moduleStatements
+genFunctionDefsBody Mono.ModuleBody {..} =
+  concatMapM genFunctionDefsStatement _moduleStatements
 
-goStatement ::
+genFunctionDefsStatement ::
   Members '[Reader Mono.InfoTable] r =>
   Mono.Statement ->
   Sem r [CCode]
-goStatement = \case
+genFunctionDefsStatement = \case
   Mono.StatementFunction d -> goFunctionDef d
   Mono.StatementForeign {} -> return []
   Mono.StatementAxiom {} -> return []
@@ -350,7 +350,7 @@ clauseClosures ::
   Sem r [ClosureInfo]
 clauseClosures argTyps clause = do
   bindings <- buildPatternInfoTable argTyps clause
-  runReader bindings (exprClosure (clause ^. Mono.clauseBody))
+  runReader bindings (genClosureExpression (clause ^. Mono.clauseBody))
 
 goFunctionClause ::
   forall r.
@@ -475,12 +475,12 @@ genClosure ClosureInfo {..} =
     funName :: Text
     funName = asFun _closureRootName
 
-exprClosure ::
+genClosureExpression ::
   forall r.
   Members '[Reader Mono.InfoTable, Reader PatternInfoTable] r =>
   Mono.Expression ->
   Sem r [ClosureInfo]
-exprClosure = \case
+genClosureExpression = \case
   Mono.ExpressionIden i -> do
     let rootFunMonoName = getName i
         rootFunNameId = rootFunMonoName ^. Mono.nameId
@@ -506,10 +506,10 @@ exprClosure = \case
     exprApplication :: Mono.Application -> Sem r [ClosureInfo]
     exprApplication Mono.Application {..} = case _appLeft of
       Mono.ExpressionApplication x -> do
-        rightClosures <- exprClosure _appRight
+        rightClosures <- genClosureExpression _appRight
         uf <- exprApplication x
         return (rightClosures <> uf)
-      Mono.ExpressionIden {} -> exprClosure _appRight
+      Mono.ExpressionIden {} -> genClosureExpression _appRight
       Mono.ExpressionLiteral {} -> impossible
 
 goExpression :: Members '[Reader Mono.InfoTable, Reader PatternInfoTable] r => Mono.Expression -> Sem r Expression
@@ -584,6 +584,7 @@ goApplication a = do
   where
     f :: Sem r (Mono.Iden, [Expression])
     f = unfoldApp a
+
     unfoldApp :: Mono.Application -> Sem r (Mono.Iden, [Expression])
     unfoldApp Mono.Application {..} = case _appLeft of
       Mono.ExpressionApplication x -> do
@@ -1000,10 +1001,13 @@ buildPatternInfoTable argTyps Mono.FunctionClause {..} =
   where
     funArgBindings :: [(Expression, CFunType)]
     funArgBindings = bimap ExpressionVar typeToFunType <$> zip funArgs argTyps
+
     patArgBindings :: [(Mono.Pattern, (Expression, CFunType))]
     patArgBindings = zip _clausePatterns funArgBindings
+
     patBindings :: Sem r [(Text, BindingInfo)]
     patBindings = concatMapM go patArgBindings
+
     go :: (Mono.Pattern, (Expression, CFunType)) -> Sem r [(Text, BindingInfo)]
     go (p, (exp, typ)) = case p of
       Mono.PatternVariable v ->
@@ -1012,6 +1016,7 @@ buildPatternInfoTable argTyps Mono.FunctionClause {..} =
       Mono.PatternConstructorApp Mono.ConstructorApp {..} ->
         goConstructorApp exp _constrAppConstructor _constrAppParameters
       Mono.PatternWildcard {} -> return []
+
     goConstructorApp :: Expression -> Mono.Name -> [Mono.Pattern] -> Sem r [(Text, BindingInfo)]
     goConstructorApp exp constructorName ps = do
       ctorInfo' <- ctorInfo
@@ -1025,6 +1030,7 @@ buildPatternInfoTable argTyps Mono.FunctionClause {..} =
           p' :: HashMap Mono.Name Mono.ConstructorInfo <- asks (^. Mono.infoConstructors)
           let fInfo = HashMap.lookupDefault impossible constructorName p'
           return $ fInfo ^. Mono.constructorInfoArgs
+
         asConstructor :: Expression
         asConstructor = functionCall (ExpressionVar (asCast (mkName constructorName))) [exp]
 
