@@ -65,29 +65,31 @@ findRoot copts = do
         Nothing -> return c
         Just yaml -> return (takeDirectory yaml)
 
-getEntryPoint :: FilePath -> GlobalOptions -> EntryPoint
-getEntryPoint r opts =
-  EntryPoint
-    { _entryPointRoot = r,
-      _entryPointNoTermination = opts ^. globalNoTermination,
-      _entryPointModulePaths = fromList (opts ^. globalInputFiles)
-    }
+getEntryPoint :: FilePath -> GlobalOptions -> Maybe EntryPoint
+getEntryPoint r opts = nonEmpty (opts ^. globalInputFiles) >>= Just <$> entryPoint
   where
-    fromList :: [FilePath] -> NonEmpty FilePath
-    fromList = \case
-      [] -> error "At least one filepath is required to run this command"
-      (x : xs) -> x :| xs
+    entryPoint :: NonEmpty FilePath -> EntryPoint
+    entryPoint l = 
+      EntryPoint
+        { _entryPointRoot = r,
+          _entryPointNoTermination = opts ^. globalNoTermination,
+          _entryPointModulePaths = l
+        }
 
 runCommand :: Members '[Embed IO, App] r => CommandGlobalOptions -> Sem r ()
 runCommand cmd = do
   let globalOptions = cmd ^. cliGlobalOptions
+      inputFiles = globalOptions ^. globalInputFiles
       toAnsiText' :: forall a. (HasAnsiBackend a, HasTextBackend a) => a -> Text
       toAnsiText' = toAnsiText (not (globalOptions ^. globalNoColors))
   root <- embed (findRoot cmd)
-  let entryPoint = getEntryPoint root globalOptions
+  let tmpEntryPoint = getEntryPoint root globalOptions
   case cmd ^. cliCommand of
     DisplayRoot -> say (pack root)
     Highlight -> do
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       res <- runPipelineEither (upToScoping entryPoint)
       case res of
         Left err -> say (Highlight.goError (errorIntervals err))
@@ -105,11 +107,19 @@ runCommand cmd = do
                     }
           say (Highlight.go hinput)
     Parse opts -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       m <-
         head . (^. Parser.resultModules)
           <$> runPipeline (upToParsing entryPoint)
       if opts ^. parseNoPrettyShow then say (show m) else say (pack (ppShow m))
     Scope opts -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       l <-
         (^. Scoper.resultModules)
           <$> runPipeline
@@ -117,17 +127,31 @@ runCommand cmd = do
       forM_ l $ \s -> do
         renderStdOut (Scoper.ppOut (mkScopePrettyOptions globalOptions opts) s)
     Html HtmlOptions {..} -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       res <- runPipeline (upToScoping entryPoint)
       let m = head (res ^. Scoper.resultModules)
       embed (genHtml Scoper.defaultOptions _htmlRecursive _htmlTheme m)
     MicroJuvix Pretty -> do
-      micro <- head . (^. Micro.resultModules) <$> runPipeline (upToMicroJuvix entryPoint)
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
+      micro <-
+        head . (^. Micro.resultModules)
+          <$> runPipeline (upToMicroJuvix entryPoint)
       let ppOpts =
             Micro.defaultOptions
               { Micro._optShowNameId = globalOptions ^. globalShowNameIds
               }
       App.renderStdOut (Micro.ppOut ppOpts micro)
     MicroJuvix (TypeCheck opts) -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       res <- runPipeline (upToMicroJuvixTyped entryPoint)
       say "Well done! It type checks"
       when (opts ^. microJuvixTypePrint) $ do
@@ -144,6 +168,10 @@ runCommand cmd = do
         let concreteTypeCalls = Mono.collectTypeCalls res
         renderStdOut (Micro.ppOut ppOpts concreteTypeCalls)
     MonoJuvix -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       let ppOpts =
             Mono.defaultOptions
               { Mono._optShowNameIds = globalOptions ^. globalShowNameIds
@@ -151,21 +179,37 @@ runCommand cmd = do
       monojuvix <- head . (^. Mono.resultModules) <$> runPipeline (upToMonoJuvix entryPoint)
       renderStdOut (Mono.ppOut ppOpts monojuvix)
     MiniHaskell -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       minihaskell <-
         head . (^. MiniHaskell.resultModules)
           <$> runPipeline (upToMiniHaskell entryPoint)
       renderStdOut (MiniHaskell.ppOutDefault minihaskell)
     MiniC -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       miniC <- (^. MiniC.resultCCode) <$> runPipeline (upToMiniC entryPoint)
       say miniC
     Compile o -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       miniC <- (^. MiniC.resultCCode) <$> runPipeline (upToMiniC entryPoint)
       let inputFile = entryPoint ^. mainModulePath
       result <- embed (runCompile root inputFile o miniC)
       case result of
-        Left err -> say ("Error: " <> err)
+        Left err -> printFailureExit err
         _ -> return ()
     Termination (Calls opts@CallsOptions {..}) -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       results <- runPipeline (upToAbstract entryPoint)
       let topModule = head (results ^. Abstract.resultModules)
           infotable = results ^. Abstract.resultTable
@@ -177,6 +221,10 @@ runCommand cmd = do
       renderStdOut (Abstract.ppOut opts' callMap)
       newline
     Termination (CallGraph CallGraphOptions {..}) -> do
+
+      when (isNothing tmpEntryPoint) (printFailureExit "Missing a file")
+      let entryPoint = fromJust (getEntryPoint root globalOptions)
+
       results <- runPipeline (upToAbstract entryPoint)
       let topModule = head (results ^. Abstract.resultModules)
           infotable = results ^. Abstract.resultTable
@@ -212,13 +260,14 @@ runCommand cmd = do
         App.renderStdOut (Abstract.ppOut opts' r)
         newline
         if
-            | markedTerminating -> say (n <> " Terminates by assumption")
+            | markedTerminating ->
+                printSuccessExit (n <> " Terminates by assumption")
             | otherwise ->
                 case Termination.findOrder r of
-                  Nothing -> say (n <> " Fails the termination checking") >> embed exitFailure
+                  Nothing ->
+                    printFailureExit (n <> " Fails the termination checking")
                   Just (Termination.LexOrder k) ->
-                    say (n <> " Terminates with order " <> show (toList k))
-        newline
+                    printSuccessExit (n <> " Terminates with order " <> show (toList k))
 
 showHelpText :: ParserPrefs -> IO ()
 showHelpText p = do
@@ -229,7 +278,7 @@ showHelpText p = do
 
 main :: IO ()
 main = do
-  let p = prefs showHelpOnEmpty
+  let p = prefs (showHelpOnEmpty <> helpShowGlobals)
   cli <- customExecParser p descr >>= makeAbsPaths
   case cli of
     DisplayVersion -> runDisplayVersion

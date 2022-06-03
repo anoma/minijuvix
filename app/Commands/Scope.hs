@@ -16,9 +16,4 @@ parseScope = do
       ( long "inline-imports"
           <> help "Show the code of imported modules next to the import statement"
       )
-  _scopeNoColors <-
-    switch
-      ( long "no-colors"
-          <> help "Disable ANSI formatting"
-      )
   pure ScopeOptions {..}

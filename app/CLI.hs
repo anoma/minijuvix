@@ -9,62 +9,34 @@ import Command
 import GlobalOptions
 import MiniJuvix.Prelude hiding (Doc)
 import Options.Applicative
+import Options.Applicative.Builder.Internal
 import Options.Applicative.Help.Pretty
 
 data CLI
-  = -- Available options
-    DisplayVersion
+  = DisplayVersion
   | DisplayHelp
-  | -- Available commands
-    Command CommandGlobalOptions
+  | Command CommandGlobalOptions
 
 parseDisplayVersion :: Parser CLI
 parseDisplayVersion =
   flag'
     DisplayVersion
-    (long "version" <> short 'v' <> help "Print the version and exit")
+    (long "version" <> short 'v' <> help "Show the version" <> noGlobal)
 
 parseDisplayHelp :: Parser CLI
 parseDisplayHelp =
   flag'
     DisplayHelp
-    (long "help" <> short 'h' <> help "Show the help text")
-
-data CommandGlobalOptions = CommandGlobalOptions
-  { _cliCommand :: Command,
-    _cliGlobalOptions :: GlobalOptions
-  }
-
-makeLenses ''CommandGlobalOptions
+    (long "help" <> short 'h' <> help "Show the help text" <> noGlobal)
 
 parseCommandGlobalOptions :: Parser CLI
-parseCommandGlobalOptions = do
-  _cliCommand <- parseCommand
-  _globalNoColors <-
-    switch
-      ( long "no-colors"
-          <> help "Disable globally ANSI formatting"
-      )
-  _globalShowNameIds <-
-    switch
-      ( long "show-name-ids"
-          <> help "Show the unique number of each identifier when pretty printing"
-      )
-  _globalOnlyErrors <-
-    switch
-      ( long "only-errors"
-          <> help "Only print errors in a uniform format (used by minijuvix-mode)"
-      )
-  _globalNoTermination <-
-    switch
-      ( long "no-termination"
-          <> help "Disable the termination checker"
-      )
-  _globalInputFiles <- parseInputFiles
-  pure (Command (CommandGlobalOptions {_cliGlobalOptions = GlobalOptions {..}, ..}))
+parseCommandGlobalOptions = Command <$> parseCommand
 
 parseCLI :: Parser CLI
-parseCLI = parseDisplayVersion <|> parseDisplayHelp <|> parseCommandGlobalOptions
+parseCLI =
+  parseDisplayVersion
+    <|> parseDisplayHelp
+    <|> parseCommandGlobalOptions
 
 commandFirstFile :: CommandGlobalOptions -> Maybe FilePath
 commandFirstFile CommandGlobalOptions {_cliGlobalOptions = GlobalOptions {..}} =

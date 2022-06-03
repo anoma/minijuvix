@@ -42,7 +42,14 @@ mkScopePrettyOptions g ScopeOptions {..} =
       Scoper._optInlineImports = _scopeInlineImports
     }
 
-parseCommand :: Parser Command
+data CommandGlobalOptions = CommandGlobalOptions
+  { _cliCommand :: Command,
+    _cliGlobalOptions :: GlobalOptions
+  }
+
+makeLenses ''CommandGlobalOptions
+
+parseCommand :: Parser CommandGlobalOptions
 parseCommand =
   hsubparser
     ( mconcat
@@ -60,79 +67,90 @@ parseCommand =
         ]
     )
 
-commandShowRoot :: Mod CommandFields Command
+withoutGlobalOptions :: Parser Command -> Parser CommandGlobalOptions
+withoutGlobalOptions cmd = do
+  _cliCommand <- cmd
+  return CommandGlobalOptions {_cliGlobalOptions = defaultGlobalOptions, ..}
+
+withGlobalOptions :: Parser Command -> Parser CommandGlobalOptions
+withGlobalOptions cmd = do
+  _cliCommand <- cmd
+  _cliGlobalOptions <- parseGlobalOptions
+  return CommandGlobalOptions {..}
+
+commandShowRoot :: Mod CommandFields CommandGlobalOptions
 commandShowRoot =
   command "root" $
     info
-      (pure DisplayRoot)
+      (withoutGlobalOptions (pure DisplayRoot))
       (progDesc "Show the root path for a Minijuvix project")
 
-commandMicroJuvix :: Mod CommandFields Command
+commandMicroJuvix :: Mod CommandFields CommandGlobalOptions
 commandMicroJuvix =
   command "microjuvix" $
     info
-      (MicroJuvix <$> parseMicroJuvixCommand)
+      (withGlobalOptions (MicroJuvix <$> parseMicroJuvixCommand))
       (progDesc "Subcommands related to MicroJuvix")
 
-commandMonoJuvix :: Mod CommandFields Command
+commandMonoJuvix :: Mod CommandFields CommandGlobalOptions
 commandMonoJuvix =
   command "monojuvix" $
     info
-      (pure MonoJuvix)
+      (withGlobalOptions (pure MonoJuvix))
       (progDesc "Translate a MiniJuvix file to MonoJuvix")
 
-commandMiniHaskell :: Mod CommandFields Command
+commandMiniHaskell :: Mod CommandFields CommandGlobalOptions
 commandMiniHaskell =
   command "minihaskell" $
     info
-      (pure MiniHaskell)
+      (withGlobalOptions (pure MiniHaskell))
       (progDesc "Translate a MiniJuvix file to MiniHaskell")
 
-commandMiniC :: Mod CommandFields Command
+commandMiniC :: Mod CommandFields CommandGlobalOptions
 commandMiniC =
   command "minic" $
     info
-      (pure MiniC)
+      (withGlobalOptions (pure MiniC))
       (progDesc "Translate a MiniJuvix file to MiniC")
 
-commandCompile :: Mod CommandFields Command
+commandCompile :: Mod CommandFields CommandGlobalOptions
 commandCompile =
   command "compile" $
     info
-      (Compile <$> parseCompile)
+      (withGlobalOptions (Compile <$> parseCompile))
       (progDesc "Compile a MiniJuvix file")
 
-commandHighlight :: Mod CommandFields Command
+commandHighlight :: Mod CommandFields CommandGlobalOptions
 commandHighlight =
   command "highlight" $
     info
-      (pure Highlight)
+      (withGlobalOptions (pure Highlight))
       (progDesc "Highlight a MiniJuvix file")
 
-commandParse :: Mod CommandFields Command
+commandParse :: Mod CommandFields CommandGlobalOptions
 commandParse =
   command "parse" $
     info
-      (Parse <$> parseParse)
+      (withGlobalOptions (Parse <$> parseParse))
       (progDesc "Parse a MiniJuvix file")
 
-commandHtml :: Mod CommandFields Command
+commandHtml :: Mod CommandFields CommandGlobalOptions
 commandHtml =
   command "html" $
     info
-      (Html <$> parseHtml)
+      (withGlobalOptions (Html <$> parseHtml))
       (progDesc "Generate HTML for a MiniJuvix file")
 
-commandScope :: Mod CommandFields Command
+commandScope :: Mod CommandFields CommandGlobalOptions
 commandScope =
   command "scope" $
     info
-      (Scope <$> parseScope)
+      (withGlobalOptions (Scope <$> parseScope))
       (progDesc "Parse and scope a MiniJuvix file")
 
-commandTermination :: Mod CommandFields Command
+commandTermination :: Mod CommandFields CommandGlobalOptions
 commandTermination =
   command "termination" $
     info
-      (Termination <$> parseTerminationCommand)
+      (withGlobalOptions (Termination <$> parseTerminationCommand))
       (progDesc "Subcommands related to termination checking")
