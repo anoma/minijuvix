@@ -12,6 +12,7 @@ patternVariables pat = case pat of
   PatternVariable v -> [v]
   PatternWildcard {} -> []
   PatternEmpty {} -> []
+  PatternBraces b -> patternVariables b
   PatternConstructorApp app -> appVariables app
 
 appVariables :: ConstructorApp -> [VarName]
@@ -20,6 +21,7 @@ appVariables (ConstructorApp _ ps) = concatMap patternVariables ps
 smallerPatternVariables :: Pattern -> [VarName]
 smallerPatternVariables = \case
   PatternVariable {} -> []
+  PatternBraces b -> smallerPatternVariables b
   PatternWildcard {} -> []
   PatternEmpty {} -> []
   PatternConstructorApp app -> appVariables app

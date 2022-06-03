@@ -1,5 +1,35 @@
 module Implicit;
 
- f : {A : Type} → A;
- f A ≔ f {A} (A A) {A};
+inductive Nat {
+  zero : Nat;
+  suc : Nat → Nat;
+};
+
+infixr 5 ∷;
+inductive List (A : Type) {
+  nil  : List A;
+  ∷ : A → List A → List A;
+};
+
+upToTwo : _;
+upToTwo ≔ zero ∷ suc zero ∷ suc (suc zero) ∷ nil;
+
+infixr 4 ,;
+inductive Pair (A : Type) (B : Type) {
+  , : A → B → Pair A B;
+};
+
+ p1 : Nat → Nat → Pair Nat Nat;
+ p1 a b ≔ a , b ;
+
+inductive Proxy (A : Type) {
+ proxy : Proxy A;
+};
+
+ t : {A : Type} → Proxy A;
+ t {_} ≔ proxy;
+
+ f : {A : Type} → {B : Type} → A → B → _;
+ f a b ≔ a;
+
 end;

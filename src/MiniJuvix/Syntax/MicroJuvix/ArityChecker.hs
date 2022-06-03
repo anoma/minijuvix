@@ -5,16 +5,20 @@ module MiniJuvix.Syntax.MicroJuvix.ArityChecker
   )
 where
 
-import Data.HashMap.Strict qualified as HashMap
+-- import Data.HashMap.Strict qualified as HashMap
+
+import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Prelude hiding (fromEither)
+import MiniJuvix.Syntax.MicroJuvix.ArityChecker.Arity
 import MiniJuvix.Syntax.MicroJuvix.ArityChecker.Error
+import MiniJuvix.Syntax.MicroJuvix.ArityChecker.LocalVars
 import MiniJuvix.Syntax.MicroJuvix.InfoTable
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
-import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixArityResult
+import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
 
 entryMicroJuvixArity ::
-  Member (Error ArityCheckerError) r =>
+  Members '[Error ArityCheckerError, NameIdGen] r =>
   MicroJuvixResult ->
   Sem r MicroJuvixArityResult
 entryMicroJuvixArity res@MicroJuvixResult {..} = do
@@ -29,7 +33,7 @@ entryMicroJuvixArity res@MicroJuvixResult {..} = do
     table = buildTable _resultModules
 
 checkModule ::
-  Members '[Reader InfoTable, Error ArityCheckerError] r =>
+  Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError] r =>
   Module ->
   Sem r Module
 checkModule Module {..} = do
@@ -41,7 +45,7 @@ checkModule Module {..} = do
       }
 
 checkModuleBody ::
-  Members '[Reader InfoTable, Error ArityCheckerError] r =>
+  Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError] r =>
   ModuleBody ->
   Sem r ModuleBody
 checkModuleBody ModuleBody {..} = do
@@ -52,13 +56,13 @@ checkModuleBody ModuleBody {..} = do
       }
 
 checkInclude ::
-  Members '[Reader InfoTable, Error ArityCheckerError] r =>
+  Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError] r =>
   Include ->
   Sem r Include
 checkInclude = traverseOf includeModule checkModule
 
 checkStatement ::
-  Members '[Reader InfoTable, Error ArityCheckerError] r =>
+  Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError] r =>
   Statement ->
   Sem r Statement
 checkStatement s = case s of
@@ -69,20 +73,146 @@ checkStatement s = case s of
   StatementAxiom {} -> return s
 
 checkFunctionDef ::
-  Members '[Reader InfoTable, Error ArityCheckerError] r =>
+  Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError] r =>
   FunctionDef ->
   Sem r FunctionDef
 checkFunctionDef FunctionDef {..} = do
-  info <- lookupFunction _funDefName
-  _funDefClauses' <- mapM (checkFunctionClause info) _funDefClauses
+  let arity = typeArity _funDefType
+  _funDefClauses' <- mapM (checkFunctionClause arity) _funDefClauses
   return
     FunctionDef
       { _funDefClauses = _funDefClauses',
         ..
       }
 
-checkFunctionClause :: Members '[Reader InfoTable, Error ArityCheckerError] r =>
-  FunctionInfo ->
+checkFunctionClause ::
+  Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError] r =>
+  Arity ->
   FunctionClause ->
   Sem r FunctionClause
-checkFunctionClause = undefined
+checkFunctionClause ari cl = do
+  (patterns', locals, _) <- checkLhs ari (cl ^. clausePatterns)
+  body' <- runReader locals (checkExpression (cl ^. clauseBody))
+  return
+    FunctionClause
+      { _clauseName = cl ^. clauseName,
+        _clausePatterns = patterns',
+        _clauseBody = body'
+      }
+
+checkLhs ::
+  forall r.
+  Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError] r =>
+  Arity ->
+  [Pattern] ->
+  Sem r ([Pattern], LocalVars, Arity)
+checkLhs aris pats = do
+  (locals, (pats', bodyAri)) <- runState emptyLocalVars (goLhs aris pats)
+  return (pats', locals, bodyAri)
+  where
+    -- returns the expanded patterns and the rest of the Arity (the arity of the
+    -- body once all the patterns have been processed).
+    goLhs :: Arity -> [Pattern] -> Sem (State LocalVars ': r) ([Pattern], Arity)
+    goLhs a = \case
+      [] -> return ([], a)
+      (p : ps) -> case a of
+        ArityUnit -> throw @ArityCheckerError (error "too many patterns")
+        ArityFunction (FunctionArity l r) ->
+          case (getPatternBraces p, l) of
+            (Just b, ParamImplicit) -> first (b :) <$> goLhs r ps
+            (Just {}, ParamExplicit {}) -> error "expected an explicit argument"
+            (Nothing, ParamImplicit) ->
+              first (PatternBraces PatternWildcard :) <$> goLhs r (p : ps)
+            (Nothing, ParamExplicit pa) -> do
+              p' <- checkPattern pa p
+              first (p' :) <$> goLhs r ps
+
+    getPatternBraces :: Pattern -> Maybe Pattern
+    getPatternBraces p = case p of
+      PatternBraces {} -> Just p
+      _ -> Nothing
+
+checkPattern ::
+  Members '[Reader InfoTable, Error ArityCheckerError, State LocalVars] r =>
+  Arity ->
+  Pattern ->
+  Sem r Pattern
+checkPattern ari = \case
+  PatternBraces {} -> impossible
+  PatternVariable v -> addArity v ari $> PatternVariable v
+  PatternWildcard -> return PatternWildcard
+  PatternConstructorApp c -> case ari of
+    ArityUnit -> PatternConstructorApp <$> checkConstructorApp c
+    ArityFunction {} -> error "Function types cannot be pattern matched"
+
+checkConstructorApp ::
+  forall r.
+  Members '[Reader InfoTable, Error ArityCheckerError, State LocalVars] r =>
+  ConstructorApp ->
+  Sem r ConstructorApp
+checkConstructorApp (ConstructorApp c ps) = do
+  arities <- map typeArity . (^. constructorInfoArgs) <$> lookupConstructor c
+  let n = length arities
+      lps = length ps
+  when (n /= lps) (throw @ArityCheckerError (error "wrong number of args in constructor app"))
+  ps' <- zipWithM checkPattern arities ps
+  return (ConstructorApp c ps')
+
+data Arg a = ArgExplicit
+
+idenArity :: Members '[Reader LocalVars, NameIdGen, Reader InfoTable] r => Iden -> Sem r Arity
+idenArity = \case
+  IdenFunction f -> typeArity . (^. functionInfoDef . funDefType) <$> lookupFunction f
+  IdenConstructor c -> typeArity <$> constructorType c
+  IdenVar v -> getLocalArity v
+  IdenAxiom a -> typeArity . (^. axiomInfoType) <$> lookupAxiom a
+  IdenInductive i -> typeArity <$> inductiveType i
+
+checkExpression ::
+  forall r.
+  Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError, Reader LocalVars] r =>
+  Expression ->
+  Sem r Expression
+checkExpression expr = case expr of
+  ExpressionIden iden -> do
+    ari <- idenArity iden
+    args' <- addHoles (getLoc iden) ari []
+    return (foldApplication (ExpressionIden iden) args')
+  ExpressionApplication a -> goApp a
+  ExpressionTyped {} -> impossible
+  ExpressionLiteral {} -> return expr
+  ExpressionFunction {} -> return expr
+  ExpressionHole {} -> return expr
+  where
+    goApp :: Application -> Sem r Expression
+    goApp a = uncurry go (second toList (unfoldApplication' a))
+      where
+        go :: Expression -> [(IsImplicit, Expression)] -> Sem r Expression
+        go e args = do
+          args' :: [(IsImplicit, Expression)] <- case e of
+            ExpressionFunction {} -> throw ErrFutureTypeCheckerError
+            ExpressionLiteral {} -> error "TODO literals on the left of an application"
+            ExpressionHole {} -> mapM (secondM checkExpression) args
+            ExpressionIden i -> do
+              ai <- idenArity i
+              mapM (secondM checkExpression) args >>= addHoles (getLoc i) ai
+            ExpressionApplication {} -> impossible
+            ExpressionTyped {} -> impossible
+          return (foldApplication e args')
+    addHoles :: Interval -> Arity -> [(IsImplicit, Expression)] -> Sem r [(IsImplicit, Expression)]
+    addHoles loc ari args = case (ari, args) of
+      (ArityFunction (FunctionArity ParamImplicit r), (Implicit, e) : rest) ->
+        ((Implicit, e) :) <$> addHoles loc r rest
+      (ArityFunction (FunctionArity (ParamExplicit {}) r), (Explicit, e) : rest) ->
+        ((Explicit, e) :) <$> addHoles loc r rest
+      (ArityFunction (FunctionArity ParamImplicit r), _) -> do
+        h <- newHole loc
+        ((Implicit, ExpressionHole h) :) <$> addHoles loc r args
+      (ArityFunction (FunctionArity (ParamExplicit {}) _), (Implicit, _) : _) ->
+        throw @ArityCheckerError (error "expected explicit but got implicit argument")
+      (ArityUnit, []) -> return []
+      (ArityFunction (FunctionArity (ParamExplicit _) _), []) -> return []
+      (ArityUnit, _ : _) -> error "too many patterns"
+
+newHole :: Member NameIdGen r => Interval -> Sem r Hole
+newHole loc = (`Hole` loc) <$> freshNameId

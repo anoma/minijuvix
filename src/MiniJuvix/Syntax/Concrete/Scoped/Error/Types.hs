@@ -293,8 +293,10 @@ instance ToGenericError AppLeftImplicit where
       }
     where
       i = getLoc (e ^. appLeftImplicit)
-      msg = "The expression" <+> ppCode (e ^. appLeftImplicit) <+> "cannot appear by itself."
-       <> line <> "It needs to be the argument to a function expecting an implicit argument."
+      msg =
+        "The expression" <+> ppCode (e ^. appLeftImplicit) <+> "cannot appear by itself."
+          <> line
+          <> "It needs to be the argument to a function expecting an implicit argument."
 
 newtype ModuleNotInScope = ModuleNotInScope
   { _moduleNotInScopeName :: Name

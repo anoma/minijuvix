@@ -320,6 +320,7 @@ verifiers ≔ cons String owner-address (nil String);
 
 keys-changed : List String;
 keys-changed ≔ cons String change1-key (cons String change2-key (nil String));
+keys-changed ≔ [change1-key , change2-key]
 
 main : Action;
 main ≔

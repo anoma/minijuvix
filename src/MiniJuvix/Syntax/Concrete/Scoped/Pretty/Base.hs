@@ -173,7 +173,7 @@ braces = enclose kwBraceL kwBraceR
 parens :: Doc Ann -> Doc Ann
 parens = enclose kwParenL kwParenR
 
-implicitDelim :: Implicit -> Doc Ann -> Doc Ann
+implicitDelim :: IsImplicit -> Doc Ann -> Doc Ann
 implicitDelim = \case
   Implicit -> braces
   Explicit -> parens
@@ -747,6 +747,7 @@ instance PrettyCode Pattern where
       return $ l' <+> r'
     PatternWildcard -> return kwWildcard
     PatternEmpty -> return $ parens mempty
+    PatternBraces p -> braces <$> ppCode p
     PatternConstructor constr -> ppCode constr
     PatternInfixApplication i -> ppPatternInfixApp i
     PatternPostfixApplication i -> ppPatternPostfixApp i

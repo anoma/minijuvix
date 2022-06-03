@@ -73,7 +73,7 @@ kwColonOmega = keyword Str.colonOmegaUnicode
 parensCond :: Bool -> Doc Ann -> Doc Ann
 parensCond t d = if t then parens d else d
 
-implicitDelim :: Implicit -> Doc Ann -> Doc Ann
+implicitDelim :: IsImplicit -> Doc Ann -> Doc Ann
 implicitDelim = \case
   Implicit -> braces
   Explicit -> parens

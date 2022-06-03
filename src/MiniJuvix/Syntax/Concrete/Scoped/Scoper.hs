@@ -1181,8 +1181,9 @@ checkParseExpressionAtoms ::
   ExpressionAtoms 'Parsed ->
   Sem r Expression
 checkParseExpressionAtoms = checkExpressionAtoms >=> parseExpressionAtoms
-  -- checkImplicit e
-  -- return e
+
+-- checkImplicit e
+-- return e
 
 -- checkImplicit :: forall r. Members '[Error ScoperError] r =>
 --   Expression ->
@@ -1277,13 +1278,13 @@ makeExpressionTable2 (ExpressionAtoms atoms _) = [appOpExplicit] : operators ++ 
     appOpExplicit :: P.Operator Parse Expression
     appOpExplicit = P.InfixL (return app)
       where
-      app :: Expression -> Expression -> Expression
-      app f x =
-        ExpressionApplication
-          Application
-            { _applicationFunction = f,
-              _applicationParameter = x
-            }
+        app :: Expression -> Expression -> Expression
+        app f x =
+          ExpressionApplication
+            Application
+              { _applicationFunction = f,
+                _applicationParameter = x
+              }
 
     -- Non-dependent function type: A → B
     functionOp :: P.Operator Parse Expression
@@ -1335,10 +1336,6 @@ mkExpressionParser table = embed @Parse pExpression
   where
     pExpression :: Parse Expression
     pExpression = P.makeExprParser (runM parseTerm) table
-
-data Expression' =
-  Expression' Expression
-  | ImplicitArg Expression
 
 parseTerm :: Members '[Embed Parse] r => Sem r Expression
 parseTerm =
@@ -1511,6 +1508,7 @@ parsePatternTerm = do
     parseNoInfixConstructor
       <|> parseVariable
       <|> parseParens pPat
+      <|> parseBraces pPat
       <|> parseWildcard
       <|> parseEmpty
   where
@@ -1551,15 +1549,25 @@ parsePatternTerm = do
           PatternAtomIden (PatternScopedVar sym) -> Just sym
           _ -> Nothing
 
+    parseBraces :: ParsePat Pattern -> ParsePat Pattern
+    parseBraces patternParser = do
+      exprs <- P.token bracesPat mempty
+      case P.parse patternParser "" exprs of
+        Right r -> return (PatternBraces r)
+        Left {} -> mzero
+      where
+        bracesPat :: PatternAtom 'Scoped -> Maybe [PatternAtom 'Scoped]
+        bracesPat s = case s of
+          PatternAtomBraces (PatternAtoms ss _) -> Just (toList ss)
+          _ -> Nothing
+
     parseParens :: ParsePat Pattern -> ParsePat Pattern
     parseParens patternParser = do
       exprs <- P.token parenPat mempty
-      case P.parse patternParser strPath exprs of
+      case P.parse patternParser "" exprs of
         Right r -> return r
         Left {} -> mzero
       where
-        strPath :: FilePath
-        strPath = "inner parens"
         parenPat :: PatternAtom 'Scoped -> Maybe [PatternAtom 'Scoped]
         parenPat s = case s of
           PatternAtomParens (PatternAtoms ss _) -> Just (toList ss)

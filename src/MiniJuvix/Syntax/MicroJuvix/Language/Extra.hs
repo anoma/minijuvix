@@ -263,6 +263,7 @@ patternVariables :: Pattern -> [VarName]
 patternVariables = \case
   PatternVariable v -> [v]
   PatternConstructorApp a -> goApp a
+  PatternBraces b -> patternVariables b
   PatternWildcard -> []
   where
     goApp :: ConstructorApp -> [VarName]
@@ -394,14 +395,14 @@ foldFunType l r = case l of
   (a : as) ->
     let r' = foldFunType as r
      in case a of
-          FunctionArgTypeAbstraction v -> TypeAbs (TypeAbstraction v Explicit r')
+          FunctionArgTypeAbstraction (i, v) -> TypeAbs (TypeAbstraction v i r')
           FunctionArgTypeType t -> TypeFunction (Function t r')
 
 -- | a -> (b -> c)  ==> ([a, b], c)
 unfoldFunType :: Type -> ([FunctionArgType], Type)
 unfoldFunType t = case t of
   TypeFunction (Function l r) -> first (FunctionArgTypeType l :) (unfoldFunType r)
-  TypeAbs (TypeAbstraction var _ r) -> first (FunctionArgTypeAbstraction var :) (unfoldFunType r)
+  TypeAbs (TypeAbstraction var i r) -> first (FunctionArgTypeAbstraction (i, var) :) (unfoldFunType r)
   _ -> ([], t)
 
 unfoldFunConcreteType :: ConcreteType -> ([ConcreteType], ConcreteType)
@@ -417,20 +418,26 @@ unfoldTypeAbsType t = case t of
   TypeAbs (TypeAbstraction var _ r) -> first (var :) (unfoldTypeAbsType r)
   _ -> ([], t)
 
-foldApplication :: Implicit -> Expression -> [Expression] -> Expression
-foldApplication i f args = case args of
-  [] -> f
-  (a : as) -> foldApplication i (ExpressionApplication (Application f a i)) as
+foldExplicitApplication :: Expression -> [Expression] -> Expression
+foldExplicitApplication f = foldApplication f . zip (repeat Explicit)
 
-unfoldApplication :: Application -> (Expression, NonEmpty Expression)
-unfoldApplication (Application l' r' _) = second (|: r') (unfoldExpression l')
+foldApplication :: Expression -> [(IsImplicit, Expression)] -> Expression
+foldApplication f args = case args of
+  [] -> f
+  ((i, a) : as) -> foldApplication (ExpressionApplication (Application f a i)) as
+
+unfoldApplication' :: Application -> (Expression, NonEmpty (IsImplicit, Expression))
+unfoldApplication' (Application l' r' i') = second (|: (i', r')) (unfoldExpression l')
   where
-    unfoldExpression :: Expression -> (Expression, [Expression])
+    unfoldExpression :: Expression -> (Expression, [(IsImplicit, Expression)])
     unfoldExpression e = case e of
-      ExpressionApplication (Application l r _) ->
-        second (`snoc` r) (unfoldExpression l)
+      ExpressionApplication (Application l r i) ->
+        second (`snoc` (i, r)) (unfoldExpression l)
       ExpressionTyped t -> unfoldExpression (t ^. typedExpression)
       _ -> (e, [])
+
+unfoldApplication :: Application -> (Expression, NonEmpty Expression)
+unfoldApplication = fmap (fmap snd) . unfoldApplication'
 
 unfoldTypeApplication :: TypeApplication -> (Type, NonEmpty Type)
 unfoldTypeApplication (TypeApplication l' r' _) = second (|: r') (unfoldType l')

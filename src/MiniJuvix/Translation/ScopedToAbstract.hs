@@ -7,10 +7,10 @@ where
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.AbstractResult
 import MiniJuvix.Syntax.Abstract.InfoTableBuilder
-import MiniJuvix.Syntax.Concrete.Scoped.Error
 import MiniJuvix.Syntax.Abstract.Language (FunctionDef (_funDefTypeSig))
 import MiniJuvix.Syntax.Abstract.Language qualified as A
 import MiniJuvix.Syntax.Concrete.Language qualified as C
+import MiniJuvix.Syntax.Concrete.Scoped.Error
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
 
@@ -169,13 +169,16 @@ goInductive InductiveDef {..} = do
   forM_ _inductiveConstructors' (registerConstructor inductiveInfo)
   return (inductiveInfo ^. inductiveInfoDef)
 
-goConstructorDef :: Member (Error ScoperError) r =>
+goConstructorDef ::
+  Member (Error ScoperError) r =>
   InductiveConstructorDef 'Scoped ->
   Sem r A.InductiveConstructorDef
 goConstructorDef (InductiveConstructorDef c ty) =
   A.InductiveConstructorDef c <$> goExpression ty
 
-goExpression :: forall r. Member (Error ScoperError) r =>
+goExpression ::
+  forall r.
+  Member (Error ScoperError) r =>
   Expression ->
   Sem r A.Expression
 goExpression = \case
@@ -207,9 +210,9 @@ goExpression = \case
       r' <- goExpression r
       return (A.Application l' r' i)
       where
-      (r, i) = case arg of
-        ExpressionBraces b -> (b ^. aLocA, Implicit)
-        _  -> (arg, Explicit)
+        (r, i) = case arg of
+          ExpressionBraces b -> (b ^. aLocA, Implicit)
+          _ -> (arg, Explicit)
 
     goPostfix :: PostfixApplication -> Sem r A.Application
     goPostfix (PostfixApplication l op) = do
@@ -289,6 +292,7 @@ viewApp = \case
     return (goConstructorRef c, [l'])
   PatternVariable {} -> err
   PatternWildcard {} -> err
+  PatternBraces {} -> err
   PatternEmpty {} -> err
   where
     err :: a
@@ -306,6 +310,7 @@ goPattern p = case p of
   PatternPostfixApplication a -> A.PatternConstructorApp <$> goPostfixPatternApplication a
   PatternWildcard -> return A.PatternWildcard
   PatternEmpty -> return A.PatternEmpty
+  PatternBraces b -> A.PatternBraces <$> goPattern b
 
 goAxiom :: Members '[InfoTableBuilder, Error ScoperError] r => AxiomDef 'Scoped -> Sem r A.AxiomDef
 goAxiom AxiomDef {..} = do

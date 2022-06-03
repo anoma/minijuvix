@@ -2,7 +2,7 @@ module MiniJuvix.Syntax.Abstract.Language
   ( module MiniJuvix.Syntax.Abstract.Language,
     module MiniJuvix.Syntax.Concrete.Language,
     module MiniJuvix.Syntax.Hole,
-    module MiniJuvix.Syntax.Implicit,
+    module MiniJuvix.Syntax.IsImplicit,
   )
 where
 
@@ -12,7 +12,7 @@ import MiniJuvix.Syntax.Concrete.Name qualified as C
 import MiniJuvix.Syntax.Concrete.Scoped.Name qualified as S
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.Hole
-import MiniJuvix.Syntax.Implicit
+import MiniJuvix.Syntax.IsImplicit
 import MiniJuvix.Syntax.Universe
 
 type TopModuleName = S.TopModulePath
@@ -135,7 +135,7 @@ data MatchAlt = MatchAlt
 data Application = Application
   { _appLeft :: Expression,
     _appRight :: Expression,
-    _appImplicit :: Implicit
+    _appImplicit :: IsImplicit
   }
   deriving stock (Eq, Show)
 
@@ -155,7 +155,7 @@ data LambdaClause = LambdaClause
 data FunctionParameter = FunctionParameter
   { _paramName :: Maybe VarName,
     _paramUsage :: Usage,
-    _paramImplicit :: Implicit,
+    _paramImplicit :: IsImplicit,
     _paramType :: Expression
   }
   deriving stock (Eq, Show)
@@ -181,6 +181,7 @@ data Pattern
   | PatternConstructorApp ConstructorApp
   | PatternWildcard
   | PatternEmpty
+  | PatternBraces Pattern
   deriving stock (Eq, Show)
 
 data InductiveDef = InductiveDef

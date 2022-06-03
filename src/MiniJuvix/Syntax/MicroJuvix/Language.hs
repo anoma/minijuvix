@@ -3,7 +3,7 @@ module MiniJuvix.Syntax.MicroJuvix.Language
     module MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind,
     module MiniJuvix.Syntax.Concrete.Scoped.Name,
     module MiniJuvix.Syntax.Concrete.Loc,
-    module MiniJuvix.Syntax.Implicit,
+    module MiniJuvix.Syntax.IsImplicit,
     module MiniJuvix.Syntax.Hole,
     module MiniJuvix.Syntax.Concrete.LiteralLoc,
   )
@@ -17,7 +17,7 @@ import MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.Hole
-import MiniJuvix.Syntax.Implicit
+import MiniJuvix.Syntax.IsImplicit
 import Prettyprinter
 
 type FunctionName = Name
@@ -129,7 +129,7 @@ data Expression
 data Application = Application
   { _appLeft :: Expression,
     _appRight :: Expression,
-    _appImplicit :: Implicit
+    _appImplicit :: IsImplicit
   }
 
 data Function = Function
@@ -150,6 +150,7 @@ data Pattern
   = PatternVariable VarName
   | PatternConstructorApp ConstructorApp
   | PatternWildcard
+  | PatternBraces Pattern
 
 newtype InductiveParameter = InductiveParameter
   { _inductiveParamName :: VarName
@@ -178,7 +179,7 @@ instance Hashable TypeIden
 data TypeApplication = TypeApplication
   { _typeAppLeft :: Type,
     _typeAppRight :: Type,
-    _typeAppImplicit :: Implicit
+    _typeAppImplicit :: IsImplicit
   }
   deriving stock (Generic, Eq)
 
@@ -186,7 +187,7 @@ instance Hashable TypeApplication
 
 data TypeAbstraction = TypeAbstraction
   { _typeAbsVar :: VarName,
-    _typeAbsImplicit :: Implicit,
+    _typeAbsImplicit :: IsImplicit,
     _typeAbsBody :: Type
   }
   deriving stock (Eq, Generic)
@@ -206,7 +207,7 @@ data Type
 instance Hashable Type
 
 data FunctionArgType
-  = FunctionArgTypeAbstraction VarName
+  = FunctionArgTypeAbstraction (IsImplicit, VarName)
   | FunctionArgTypeType Type
 
 makeLenses ''Module
@@ -273,6 +274,7 @@ instance HasAtomicity Pattern where
     PatternConstructorApp a -> atomicity a
     PatternVariable {} -> Atom
     PatternWildcard {} -> Atom
+    PatternBraces {} -> Atom
 
 instance HasLoc FunctionExpression where
   getLoc (FunctionExpression l r) = getLoc l <> getLoc r

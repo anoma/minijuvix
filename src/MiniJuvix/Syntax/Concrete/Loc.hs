@@ -68,9 +68,9 @@ class HasLoc t where
 instance Semigroup Interval where
   Interval f s e <> Interval _f s' e' = Interval f (min s s') (max e e')
 
-data ALoc a = ALoc {
-  _alocLoc :: Interval,
-  _aLocA :: a
+data ALoc a = ALoc
+  { _alocLoc :: Interval,
+    _aLocA :: a
   }
   deriving stock (Show)
 

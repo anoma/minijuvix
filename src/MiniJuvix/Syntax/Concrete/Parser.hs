@@ -311,12 +311,12 @@ axiomDef = do
 -- Function expression
 --------------------------------------------------------------------------------
 
-implicitOpen :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r Implicit
+implicitOpen :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r IsImplicit
 implicitOpen =
   lbrace $> Implicit
     <|> lparen $> Explicit
 
-implicitClose :: Members '[Reader ParserParams, InfoTableBuilder] r => Implicit -> ParsecS r ()
+implicitClose :: Members '[Reader ParserParams, InfoTableBuilder] r => IsImplicit -> ParsecS r ()
 implicitClose = \case
   Implicit -> rbrace
   Explicit -> rparen
@@ -420,6 +420,7 @@ patternAtom =
   PatternAtomIden <$> name
     <|> PatternAtomWildcard <$ kwWildcard
     <|> (PatternAtomParens <$> parens parsePatternAtoms)
+    <|> (PatternAtomBraces <$> braces parsePatternAtoms)
 
 parsePatternAtoms :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (PatternAtoms 'Parsed)
 parsePatternAtoms = do

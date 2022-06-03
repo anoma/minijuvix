@@ -7,7 +7,7 @@ module MiniJuvix.Syntax.Concrete.Language
     module MiniJuvix.Syntax.Concrete.Loc,
     module MiniJuvix.Syntax.Hole,
     module MiniJuvix.Syntax.Concrete.LiteralLoc,
-    module MiniJuvix.Syntax.Implicit,
+    module MiniJuvix.Syntax.IsImplicit,
     module MiniJuvix.Syntax.Backends,
     module MiniJuvix.Syntax.ForeignBlock,
     module MiniJuvix.Syntax.Concrete.Scoped.VisibilityAnn,
@@ -37,7 +37,7 @@ import MiniJuvix.Syntax.Concrete.Scoped.VisibilityAnn
 import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.Hole
-import MiniJuvix.Syntax.Implicit
+import MiniJuvix.Syntax.IsImplicit
 import MiniJuvix.Syntax.Universe
 import MiniJuvix.Syntax.Usage
 import Prelude (show)
@@ -282,6 +282,7 @@ data Pattern
   | PatternApplication PatternApp
   | PatternInfixApplication PatternInfixApp
   | PatternPostfixApplication PatternPostfixApp
+  | PatternBraces Pattern
   | PatternWildcard
   | PatternEmpty
   deriving stock (Show, Eq, Ord)
@@ -294,6 +295,7 @@ instance HasAtomicity Pattern where
     PatternInfixApplication a -> Aggregate (getFixity a)
     PatternPostfixApplication p -> Aggregate (getFixity p)
     PatternWildcard -> Atom
+    PatternBraces {} -> Atom
     PatternEmpty -> Atom
 
 --------------------------------------------------------------------------------
@@ -621,7 +623,7 @@ deriving stock instance
 data FunctionParameter (s :: Stage) = FunctionParameter
   { _paramName :: Maybe (SymbolType s),
     _paramUsage :: Maybe Usage,
-    _paramImplicit :: Implicit,
+    _paramImplicit :: IsImplicit,
     _paramType :: ExpressionType s
   }
 

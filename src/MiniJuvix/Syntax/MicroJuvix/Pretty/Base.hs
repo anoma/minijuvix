@@ -173,7 +173,7 @@ instance PrettyCode TypeIden where
 instance PrettyCode FunctionArgType where
   ppCode = \case
     FunctionArgTypeType t -> ppCode t
-    FunctionArgTypeAbstraction v -> ppCode v
+    FunctionArgTypeAbstraction (_, v) -> ppCode v
 
 instance PrettyCode Hole where
   ppCode _ = return kwHole
@@ -205,7 +205,7 @@ ppBlock ::
   Sem r (Doc Ann)
 ppBlock items = mapM ppCode items >>= bracesIndent . vsep . toList
 
-implicitDelim :: Implicit -> Doc Ann -> Doc Ann
+implicitDelim :: IsImplicit -> Doc Ann -> Doc Ann
 implicitDelim = \case
   Implicit -> braces
   Explicit -> parens
@@ -239,6 +239,7 @@ instance PrettyCode Pattern where
     PatternVariable v -> ppCode v
     PatternConstructorApp a -> ppCode a
     PatternWildcard -> return kwWildcard
+    PatternBraces b -> braces <$> ppCode b
 
 instance PrettyCode FunctionDef where
   ppCode f = do

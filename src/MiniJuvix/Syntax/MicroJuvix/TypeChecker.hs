@@ -11,19 +11,19 @@ import MiniJuvix.Syntax.MicroJuvix.Error
 import MiniJuvix.Syntax.MicroJuvix.InfoTable
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.LocalVars
-import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
+import MiniJuvix.Syntax.MicroJuvix.MicroJuvixArityResult
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult
 import MiniJuvix.Syntax.MicroJuvix.TypeChecker.Inference
 
 entryMicroJuvixTyped ::
   Member (Error TypeCheckerError) r =>
-  MicroJuvixResult ->
+  MicroJuvixArityResult ->
   Sem r MicroJuvixTypedResult
-entryMicroJuvixTyped res@MicroJuvixResult {..} = do
+entryMicroJuvixTyped res@MicroJuvixArityResult {..} = do
   r <- runReader table (mapM checkModule _resultModules)
   return
     MicroJuvixTypedResult
-      { _resultMicroJuvixResult = res,
+      { _resultMicroJuvixArityResult = res,
         _resultModules = r
       }
   where
@@ -101,9 +101,7 @@ checkFunctionDefType = go
     goFunction :: Function -> Sem r ()
     goFunction (Function a b) = go a >> go b
     goAbs :: TypeAbstraction -> Sem r ()
-    goAbs (TypeAbstraction _ i b)
-      | Explicit <- i = go b
-      | otherwise = impossible
+    goAbs (TypeAbstraction _ _ b) = go b
 
 checkExpression ::
   Members '[Reader InfoTable, Error TypeCheckerError, Reader LocalVars, Inference] r =>
@@ -133,45 +131,6 @@ inferExpression = fmap ExpressionTyped . inferExpression'
 
 lookupVar :: Member (Reader LocalVars) r => Name -> Sem r Type
 lookupVar v = HashMap.lookupDefault impossible v <$> asks (^. localTypes)
-
-inductiveType :: Member (Reader InfoTable) r => Name -> Sem r Type
-inductiveType v = do
-  info <- lookupInductive v
-  let ps = info ^. inductiveInfoDef . inductiveParameters
-  return $
-    foldr
-      (\p k -> TypeAbs (TypeAbstraction (p ^. inductiveParamName) Explicit k))
-      TypeUniverse
-      ps
-
-constructorType :: Member (Reader InfoTable) r => Name -> Sem r Type
-constructorType c = do
-  info <- lookupConstructor c
-  let (as, bs) = constructorArgTypes info
-      args =
-        map FunctionArgTypeAbstraction as
-          ++ map FunctionArgTypeType bs
-      ind = TypeIden (TypeIdenInductive (info ^. constructorInfoInductive))
-      saturatedTy =
-        foldl'
-          ( \t v ->
-              TypeApp
-                ( TypeApplication {
-                    _typeAppLeft = t,
-                    _typeAppRight = TypeIden (TypeIdenVariable v),
-                    _typeAppImplicit = Explicit
-                    }
-                )
-          )
-          ind
-          as
-  return (foldFunType args saturatedTy)
-
-constructorArgTypes :: ConstructorInfo -> ([VarName], [Type])
-constructorArgTypes i =
-  ( map (^. inductiveParamName) (i ^. constructorInfoInductiveParameters),
-    i ^. constructorInfoArgs
-  )
 
 checkFunctionClauseBody ::
   Members '[Reader InfoTable, Error TypeCheckerError, Inference] r =>
@@ -223,13 +182,7 @@ checkPatterns ::
   FunctionName ->
   [(FunctionArgType, Pattern)] ->
   Sem r LocalVars
-checkPatterns name = execState emptyLocalVars . go
-  where
-    go ::
-      Members '[Error TypeCheckerError, Reader InfoTable, State LocalVars] r =>
-      [(FunctionArgType, Pattern)] ->
-      Sem r ()
-    go = mapM_ (uncurry (checkPattern name))
+checkPatterns name = execState emptyLocalVars . mapM_ (uncurry (checkPattern name))
 
 typeOfArg :: FunctionArgType -> Type
 typeOfArg a = case a of
@@ -249,12 +202,16 @@ checkPattern funName = go
     go argTy p = do
       tyVarMap <- fmap (TypeIden . TypeIdenVariable) . (^. localTyMap) <$> get
       let ty = substitution tyVarMap (typeOfArg argTy)
-      case p of
+          unbrace = \case
+            PatternBraces b -> b
+            x -> x
+      case unbrace p of
         PatternWildcard -> return ()
+        PatternBraces {} -> impossible
         PatternVariable v -> do
           modify (addType v ty)
           case argTy of
-            FunctionArgTypeAbstraction v' -> do
+            FunctionArgTypeAbstraction (_, v') -> do
               modify (over localTyMap (HashMap.insert v' v))
             _ -> return ()
         PatternConstructorApp a -> do
