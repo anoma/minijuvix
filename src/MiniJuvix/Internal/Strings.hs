@@ -218,5 +218,5 @@ minicRuntime = "minic-runtime.h"
 putStrLn_ :: IsString s => s
 putStrLn_ = "putStrLn"
 
-juvixFunctionT :: IsString s => s
-juvixFunctionT = "juvix_function_t"
+minijuvixFunctionT :: IsString s => s
+minijuvixFunctionT = "minijuvix_function_t"

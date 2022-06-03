@@ -6,9 +6,9 @@
 
 typedef __UINTPTR_TYPE__ uintptr_t;
 
-typedef struct juvix_function {
+typedef struct minijuvix_function {
     uintptr_t fun;
-} juvix_function_t;
+} minijuvix_function_t;
 
 char* intToStr(int i) {
     int length = snprintf(NULL, 0, "%d", i);

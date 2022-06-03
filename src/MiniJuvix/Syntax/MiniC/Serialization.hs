@@ -4,6 +4,7 @@ import Language.C qualified as C
 import Language.C.Data.Ident qualified as C
 import Language.C.Pretty qualified as P
 import Language.C.Syntax
+import MiniJuvix.Internal.Strings qualified as Str
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.MiniC.Language
 import Text.PrettyPrint.HughesPJ qualified as HP
@@ -170,7 +171,7 @@ mkDeclSpecifier = \case
   DeclTypeDef typ -> CStorageSpec (CTypedef C.undefNode) : mkDeclSpecifier typ
   DeclStructUnion StructUnion {..} -> mkStructUnionTypeSpec _structUnionTag _structUnionName _structMembers
   DeclEnum Enum {..} -> mkEnumSpec _enumName _enumMembers
-  DeclJuvixClosure -> mkTypeDefTypeSpec "juvix_function_t"
+  DeclJuvixClosure -> mkTypeDefTypeSpec Str.minijuvixFunctionT
   BoolType -> [CTypeSpec (CBoolType C.undefNode)]
   DeclFunPtr {} -> []
 

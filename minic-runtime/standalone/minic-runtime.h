@@ -7,9 +7,9 @@ typedef __UINT16_TYPE__ uint16_t;
 typedef __UINT32_TYPE__ uint32_t;
 typedef __UINTPTR_TYPE__ uintptr_t;
 
-typedef struct juvix_function {
+typedef struct minijuvix_function {
     uintptr_t fun;
-} juvix_function_t;
+} minijuvix_function_t;
 
 /**
  * Allocator

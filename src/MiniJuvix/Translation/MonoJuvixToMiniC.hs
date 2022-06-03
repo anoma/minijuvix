@@ -441,7 +441,7 @@ genClosure ClosureInfo {..} =
                   { _declType = declFunctionType,
                     _declIsPtr = True,
                     _declName = Just localName,
-                    _declInitializer = Just $ ExprInitializer (mallocSizeOf Str.juvixFunctionT)
+                    _declInitializer = Just $ ExprInitializer (mallocSizeOf Str.minijuvixFunctionT)
                   }
               ),
             BodyStatement
@@ -1057,7 +1057,7 @@ mallocSizeOf typeName =
   functionCall (ExpressionVar Str.malloc) [functionCall (ExpressionVar Str.sizeof) [ExpressionVar typeName]]
 
 declFunctionType :: DeclType
-declFunctionType = DeclTypeDefType Str.juvixFunctionT
+declFunctionType = DeclTypeDefType Str.minijuvixFunctionT
 
 declFunctionPtrType :: CDeclType
 declFunctionPtrType =
