@@ -91,8 +91,8 @@ checkFunctionClause ::
   FunctionClause ->
   Sem r FunctionClause
 checkFunctionClause ari cl = do
-  (patterns', locals, _) <- checkLhs ari (cl ^. clausePatterns)
-  body' <- runReader locals (checkExpression (cl ^. clauseBody))
+  (patterns', locals, bodyAri) <- checkLhs ari (cl ^. clausePatterns)
+  body' <- runReader locals (checkExpression (Just bodyAri) (cl ^. clauseBody))
   return
     FunctionClause
       { _clauseName = cl ^. clauseName,
@@ -112,6 +112,8 @@ checkLhs aris pats = do
   where
     -- returns the expanded patterns and the rest of the Arity (the arity of the
     -- body once all the patterns have been processed).
+    -- Does not insert holes greedily. I.e. implicit wildcards are only inserted
+    -- between explicit parameters already in the pattern.
     goLhs :: Arity -> [Pattern] -> Sem (State LocalVars ': r) ([Pattern], Arity)
     goLhs a = \case
       [] -> return ([], a)
@@ -171,43 +173,58 @@ idenArity = \case
 checkExpression ::
   forall r.
   Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError, Reader LocalVars] r =>
+  Maybe Arity ->
   Expression ->
   Sem r Expression
-checkExpression expr = case expr of
-  ExpressionIden iden -> do
-    ari <- idenArity iden
-    args' <- addHoles (getLoc iden) ari []
-    return (foldApplication (ExpressionIden iden) args')
+checkExpression hintArity expr = case expr of
+  ExpressionIden {} -> appHelper expr []
   ExpressionApplication a -> goApp a
-  ExpressionTyped {} -> impossible
   ExpressionLiteral {} -> return expr
   ExpressionFunction {} -> return expr
   ExpressionHole {} -> return expr
+  ExpressionTyped {} -> impossible
   where
     goApp :: Application -> Sem r Expression
-    goApp a = uncurry go (second toList (unfoldApplication' a))
-      where
-        go :: Expression -> [(IsImplicit, Expression)] -> Sem r Expression
-        go e args = do
-          args' :: [(IsImplicit, Expression)] <- case e of
-            ExpressionFunction {} -> throw ErrFutureTypeCheckerError
-            ExpressionLiteral {} -> error "TODO literals on the left of an application"
-            ExpressionHole {} -> mapM (secondM checkExpression) args
-            ExpressionIden i -> do
-              ai <- idenArity i
-              mapM (secondM checkExpression) args >>= addHoles (getLoc i) ai
-            ExpressionApplication {} -> impossible
-            ExpressionTyped {} -> impossible
-          return (foldApplication e args')
-    addHoles :: Interval -> Arity -> [(IsImplicit, Expression)] -> Sem r [(IsImplicit, Expression)]
-    addHoles loc ari args = case (ari, args) of
+    goApp a = uncurry appHelper (second toList (unfoldApplication' a))
+    appHelper :: Expression -> [(IsImplicit, Expression)] -> Sem r Expression
+    appHelper e args = do
+      args' :: [(IsImplicit, Expression)] <- case e of
+        ExpressionHole {} -> mapM (secondM (checkExpression Nothing)) args
+        ExpressionIden i -> do
+          ari <- idenArity i
+          let argsAris :: [Arity]
+              argsAris = map toArity (unfoldArity ari)
+              toArity :: ArityParameter -> Arity
+              toArity = \case
+                ParamExplicit a -> a
+                ParamImplicit -> ArityUnit
+          mapM
+            (secondM (uncurry checkExpression))
+            [(i', (Just a, e')) | (a, (i', e')) <- zip argsAris args]
+            >>= addHoles (getLoc i) hintArity ari
+        ExpressionLiteral {} -> error "TODO literals on the left of an application"
+        ExpressionFunction {} -> throw ErrFutureTypeCheckerError
+        ExpressionApplication {} -> impossible
+        ExpressionTyped {} -> impossible
+      return (foldApplication e args')
+    addHoles ::
+      Interval ->
+      Maybe Arity ->
+      Arity ->
+      [(IsImplicit, Expression)] ->
+      Sem r [(IsImplicit, Expression)]
+    addHoles loc hint ari args = case (ari, args) of
       (ArityFunction (FunctionArity ParamImplicit r), (Implicit, e) : rest) ->
-        ((Implicit, e) :) <$> addHoles loc r rest
+        ((Implicit, e) :) <$> addHoles loc hint r rest
       (ArityFunction (FunctionArity (ParamExplicit {}) r), (Explicit, e) : rest) ->
-        ((Explicit, e) :) <$> addHoles loc r rest
+        ((Explicit, e) :) <$> addHoles loc hint r rest
+      (ArityFunction (FunctionArity ParamImplicit _), [])
+        -- When there are no remaining arguments and the expected arity of the
+        -- expression matches the current arity we should *not* insert a hole.
+        | Just ari == hint -> return []
       (ArityFunction (FunctionArity ParamImplicit r), _) -> do
         h <- newHole loc
-        ((Implicit, ExpressionHole h) :) <$> addHoles loc r args
+        ((Implicit, ExpressionHole h) :) <$> addHoles loc hint r args
       (ArityFunction (FunctionArity (ParamExplicit {}) _), (Implicit, _) : _) ->
         throw @ArityCheckerError (error "expected explicit but got implicit argument")
       (ArityUnit, []) -> return []

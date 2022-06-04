@@ -26,10 +26,26 @@ inductive Proxy (A : Type) {
  proxy : Proxy A;
 };
 
- t : {A : Type} → Proxy A;
- t {_} ≔ proxy;
+t2 : {A : Type} → Proxy A;
+t2 ≔ proxy;
 
- f : {A : Type} → {B : Type} → A → B → _;
- f a b ≔ a;
+t3 : ({A : Type} → Proxy A) → {B : Type} → Proxy B → Proxy B;
+t3 _ _ ≔ proxy;
+
+t4 : {B : Type} → Proxy B;
+t4 {_} ≔ t3 proxy proxy ;
+
+t4' : {B : Type} → Proxy B;
+t4' ≔ t3 proxy proxy ;
+
+map : {A : Type} → {B : Type} → (A → B) → List A → List B;
+map f nil ≔ nil;
+map f (x ∷ xs) ≔ f x ∷ map f xs;
+
+t : {A : Type} → Proxy A;
+t {_} ≔ proxy;
+
+f : {A : Type} → {B : Type} → A → B → _;
+f a b ≔ a;
 
 end;

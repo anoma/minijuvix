@@ -6,15 +6,18 @@ import MiniJuvix.Syntax.MicroJuvix.Language
 data Arity
   = ArityUnit
   | ArityFunction FunctionArity
+  deriving stock (Eq)
 
 data FunctionArity = FunctionArity
   { _functionArityLeft :: ArityParameter,
     _functionArityRight :: Arity
   }
+  deriving stock (Eq)
 
 data ArityParameter
   = ParamExplicit Arity
   | ParamImplicit
+  deriving stock (Eq)
 
 typeArity :: Type -> Arity
 typeArity = go
@@ -43,3 +46,11 @@ typeArity = go
         l = case t ^. typeAbsImplicit of
           Implicit -> ParamImplicit
           Explicit -> ParamExplicit ArityUnit
+
+unfoldArity :: Arity -> [ArityParameter]
+unfoldArity = go
+  where
+    go :: Arity -> [ArityParameter]
+    go = \case
+      ArityUnit -> []
+      ArityFunction (FunctionArity l r) -> l : unfoldArity r
