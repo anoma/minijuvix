@@ -14,7 +14,6 @@ import MiniJuvix.Syntax.Abstract.AbstractResult qualified as Abstract
 import MiniJuvix.Syntax.Concrete.Parser qualified as Parser
 import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
 import MiniJuvix.Syntax.MicroJuvix.ArityChecker qualified as MicroJuvix
-import MiniJuvix.Syntax.MicroJuvix.MicroJuvixArityResult qualified as MicroJuvix
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult qualified as MicroJuvix
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixTypedResult qualified as MicroJuvix
 import MiniJuvix.Syntax.MicroJuvix.TypeChecker qualified as MicroJuvix

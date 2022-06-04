@@ -45,6 +45,12 @@ map f (x ∷ xs) ≔ f x ∷ map f xs;
 t : {A : Type} → Proxy A;
 t {_} ≔ proxy;
 
+t5 : {A : Type} → Proxy A → Proxy A;
+t5 p ≔ p;
+
+t5' : {A : Type} → Proxy A → Proxy A;
+t5' proxy ≔ proxy;
+
 f : {A : Type} → {B : Type} → A → B → _;
 f a b ≔ a;
 

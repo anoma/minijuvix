@@ -118,7 +118,7 @@ checkLhs aris pats = do
     goLhs a = \case
       [] -> return ([], a)
       (p : ps) -> case a of
-        ArityUnit -> throw @ArityCheckerError (error "too many patterns")
+        ArityUnit -> throw @ArityCheckerError (error "too many patterns in Lhs")
         ArityFunction (FunctionArity l r) ->
           case (getPatternBraces p, l) of
             (Just b, ParamImplicit) -> first (b :) <$> goLhs r ps
@@ -229,7 +229,7 @@ checkExpression hintArity expr = case expr of
         throw @ArityCheckerError (error "expected explicit but got implicit argument")
       (ArityUnit, []) -> return []
       (ArityFunction (FunctionArity (ParamExplicit _) _), []) -> return []
-      (ArityUnit, _ : _) -> error "too many patterns"
+      (ArityUnit, _ : _) -> error "too many arguments"
 
 newHole :: Member NameIdGen r => Interval -> Sem r Hole
 newHole loc = (`Hole` loc) <$> freshNameId
