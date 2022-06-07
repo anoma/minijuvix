@@ -54,3 +54,14 @@ unfoldArity = go
     go = \case
       ArityUnit -> []
       ArityFunction (FunctionArity l r) -> l : unfoldArity r
+
+foldArity :: [ArityParameter] -> Arity
+foldArity = go
+  where
+  go = \case
+    [] -> ArityUnit
+    (a : as) -> ArityFunction (FunctionArity l (go as))
+      where
+      l = case a of
+        ParamExplicit e -> ParamExplicit e
+        ParamImplicit -> ParamImplicit

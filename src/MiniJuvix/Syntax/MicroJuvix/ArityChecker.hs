@@ -91,7 +91,8 @@ checkFunctionClause ::
   FunctionClause ->
   Sem r FunctionClause
 checkFunctionClause ari cl = do
-  (patterns', locals, bodyAri) <- checkLhs ari (cl ^. clausePatterns)
+  hint <- guessArity (cl ^. clauseBody)
+  (patterns', locals, bodyAri) <- checkLhs hint ari (cl ^. clausePatterns)
   body' <- runReader locals (checkExpression (Just bodyAri) (cl ^. clauseBody))
   return
     FunctionClause
@@ -100,14 +101,57 @@ checkFunctionClause ari cl = do
         _clauseBody = body'
       }
 
+guessArity :: forall r.
+  Members '[Reader InfoTable] r =>
+  Expression ->
+  Sem r (Maybe Arity)
+guessArity = \case
+  ExpressionTyped {} -> impossible
+  ExpressionHole {} -> return Nothing
+  ExpressionFunction {} -> return (Just ArityUnit)
+  ExpressionLiteral {} -> return (Just arityLiteral)
+  ExpressionApplication a -> appHelper a
+  ExpressionIden i -> idenHelper i
+  where
+  idenHelper :: Iden -> Sem r (Maybe Arity)
+  idenHelper i = case i of
+    IdenVar {} -> return Nothing
+    _ -> Just <$> runReader (LocalVars mempty) (idenArity i)
+  appHelper :: Application -> Sem r (Maybe Arity)
+  appHelper a = do
+    f' <- arif
+    return (f' >>= \f'' -> foldArity <$> refine (unfoldArity f'') args)
+    where
+    refine :: [ArityParameter] -> [IsImplicit] -> Maybe [ArityParameter]
+    refine ps as = case (ps, as) of
+      (ParamExplicit {} : ps', Explicit : as') -> refine ps' as'
+      (ParamImplicit {} : ps', Implicit : as') -> refine ps' as'
+      (ParamImplicit {} : ps', as'@(Explicit : _)) -> refine ps' as'
+      (ParamExplicit {} : _, Implicit : _) -> Nothing
+      (ps', []) -> Just ps'
+      ([], _:_) -> Nothing
+    (f, args) = second (map fst. toList) (unfoldApplication' a)
+    arif :: Sem r (Maybe Arity)
+    arif = case f of
+      ExpressionHole {} -> return Nothing
+      ExpressionApplication {} -> impossible
+      ExpressionFunction {} -> return (Just ArityUnit)
+      ExpressionLiteral {} -> return (Just arityLiteral)
+      ExpressionTyped {} -> impossible
+      ExpressionIden i -> idenHelper i
+
+arityLiteral :: Arity
+arityLiteral = ArityUnit
+
 checkLhs ::
   forall r.
   Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError] r =>
+  Maybe Arity ->
   Arity ->
   [Pattern] ->
   Sem r ([Pattern], LocalVars, Arity)
-checkLhs aris pats = do
-  (locals, (pats', bodyAri)) <- runState emptyLocalVars (goLhs aris pats)
+checkLhs hint ariSignature pats = do
+  (locals, (pats', bodyAri)) <- runState emptyLocalVars (goLhs ariSignature pats)
   return (pats', locals, bodyAri)
   where
     -- returns the expanded patterns and the rest of the Arity (the arity of the
@@ -116,18 +160,30 @@ checkLhs aris pats = do
     -- between explicit parameters already in the pattern.
     goLhs :: Arity -> [Pattern] -> Sem (State LocalVars ': r) ([Pattern], Arity)
     goLhs a = \case
-      [] -> return ([], a)
-      (p : ps) -> case a of
+      [] -> return $ case hint >>= tailHelper a of
+        Nothing -> ([], a)
+        Just tailUnderscores ->
+          let a' = foldArity (drop tailUnderscores (unfoldArity a)) in
+          (replicate tailUnderscores (PatternBraces PatternWildcard), a')
+      lhs@(p : ps) -> case a of
         ArityUnit -> throw @ArityCheckerError (error "too many patterns in Lhs")
         ArityFunction (FunctionArity l r) ->
           case (getPatternBraces p, l) of
             (Just b, ParamImplicit) -> first (b :) <$> goLhs r ps
             (Just {}, ParamExplicit {}) -> error "expected an explicit argument"
             (Nothing, ParamImplicit) ->
-              first (PatternBraces PatternWildcard :) <$> goLhs r (p : ps)
+              first (PatternBraces PatternWildcard :) <$> goLhs r lhs
             (Nothing, ParamExplicit pa) -> do
               p' <- checkPattern pa p
               first (p' :) <$> goLhs r ps
+
+    tailHelper :: Arity -> Arity -> Maybe Int
+    tailHelper a target
+      | notNull a' && all (== ParamImplicit) a' = Just (length a')
+      | otherwise = Nothing
+      where
+      a' = dropSuffix target' (unfoldArity a)
+      target' = unfoldArity target
 
     getPatternBraces :: Pattern -> Maybe Pattern
     getPatternBraces p = case p of
@@ -160,9 +216,7 @@ checkConstructorApp (ConstructorApp c ps) = do
   ps' <- zipWithM checkPattern arities ps
   return (ConstructorApp c ps')
 
-data Arg a = ArgExplicit
-
-idenArity :: Members '[Reader LocalVars, NameIdGen, Reader InfoTable] r => Iden -> Sem r Arity
+idenArity :: Members '[Reader LocalVars, Reader InfoTable] r => Iden -> Sem r Arity
 idenArity = \case
   IdenFunction f -> typeArity . (^. functionInfoDef . funDefType) <$> lookupFunction f
   IdenConstructor c -> typeArity <$> constructorType c
