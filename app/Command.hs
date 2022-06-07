@@ -67,14 +67,14 @@ parseCommand =
         ]
     )
 
-withoutGlobalOptions :: Parser Command -> Parser CommandGlobalOptions
-withoutGlobalOptions cmd = do
-  _cliCommand <- cmd
-  return CommandGlobalOptions {_cliGlobalOptions = defaultGlobalOptions, ..}
+noGlobals :: Parser Command -> Parser CommandGlobalOptions
+noGlobals parseCmd = do
+  _cliCommand <- parseCmd
+  return CommandGlobalOptions {_cliGlobalOptions = mempty, ..}
 
-withGlobalOptions :: Parser Command -> Parser CommandGlobalOptions
-withGlobalOptions cmd = do
-  _cliCommand <- cmd
+addGlobals :: Parser Command -> Parser CommandGlobalOptions
+addGlobals parseCmd = do
+  _cliCommand <- parseCmd
   _cliGlobalOptions <- parseGlobalOptions
   return CommandGlobalOptions {..}
 
@@ -82,75 +82,75 @@ commandShowRoot :: Mod CommandFields CommandGlobalOptions
 commandShowRoot =
   command "root" $
     info
-      (withoutGlobalOptions (pure DisplayRoot))
+      (noGlobals (pure DisplayRoot))
       (progDesc "Show the root path for a Minijuvix project")
 
 commandMicroJuvix :: Mod CommandFields CommandGlobalOptions
 commandMicroJuvix =
   command "microjuvix" $
     info
-      (withGlobalOptions (MicroJuvix <$> parseMicroJuvixCommand))
+      (addGlobals (MicroJuvix <$> parseMicroJuvixCommand))
       (progDesc "Subcommands related to MicroJuvix")
 
 commandMonoJuvix :: Mod CommandFields CommandGlobalOptions
 commandMonoJuvix =
   command "monojuvix" $
     info
-      (withGlobalOptions (pure MonoJuvix))
+      (addGlobals (pure MonoJuvix))
       (progDesc "Translate a MiniJuvix file to MonoJuvix")
 
 commandMiniHaskell :: Mod CommandFields CommandGlobalOptions
 commandMiniHaskell =
   command "minihaskell" $
     info
-      (withGlobalOptions (pure MiniHaskell))
+      (addGlobals (pure MiniHaskell))
       (progDesc "Translate a MiniJuvix file to MiniHaskell")
 
 commandMiniC :: Mod CommandFields CommandGlobalOptions
 commandMiniC =
   command "minic" $
     info
-      (withGlobalOptions (pure MiniC))
+      (addGlobals (pure MiniC))
       (progDesc "Translate a MiniJuvix file to MiniC")
 
 commandCompile :: Mod CommandFields CommandGlobalOptions
 commandCompile =
   command "compile" $
     info
-      (withGlobalOptions (Compile <$> parseCompile))
+      (addGlobals (Compile <$> parseCompile))
       (progDesc "Compile a MiniJuvix file")
 
 commandHighlight :: Mod CommandFields CommandGlobalOptions
 commandHighlight =
   command "highlight" $
     info
-      (withGlobalOptions (pure Highlight))
+      (addGlobals (pure Highlight))
       (progDesc "Highlight a MiniJuvix file")
 
 commandParse :: Mod CommandFields CommandGlobalOptions
 commandParse =
   command "parse" $
     info
-      (withGlobalOptions (Parse <$> parseParse))
+      (addGlobals (Parse <$> parseParse))
       (progDesc "Parse a MiniJuvix file")
 
 commandHtml :: Mod CommandFields CommandGlobalOptions
 commandHtml =
   command "html" $
     info
-      (withGlobalOptions (Html <$> parseHtml))
+      (addGlobals (Html <$> parseHtml))
       (progDesc "Generate HTML for a MiniJuvix file")
 
 commandScope :: Mod CommandFields CommandGlobalOptions
 commandScope =
   command "scope" $
     info
-      (withGlobalOptions (Scope <$> parseScope))
+      (addGlobals (Scope <$> parseScope))
       (progDesc "Parse and scope a MiniJuvix file")
 
 commandTermination :: Mod CommandFields CommandGlobalOptions
 commandTermination =
   command "termination" $
     info
-      (withGlobalOptions (Termination <$> parseTerminationCommand))
+      (addGlobals (Termination <$> parseTerminationCommand))
       (progDesc "Subcommands related to termination checking")

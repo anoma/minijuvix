@@ -28,6 +28,20 @@ defaultGlobalOptions =
       _globalInputFiles = []
     }
 
+instance Semigroup GlobalOptions where
+  o1 <> o2 =
+    GlobalOptions
+      { _globalNoColors = o1 ^. globalNoColors || o2 ^. globalNoColors,
+        _globalShowNameIds = o1 ^. globalShowNameIds || o2 ^. globalShowNameIds,
+        _globalOnlyErrors = o1 ^. globalOnlyErrors || o2 ^. globalOnlyErrors,
+        _globalNoTermination = o1 ^. globalNoTermination || o2 ^. globalNoTermination,
+        _globalInputFiles = o1 ^. globalInputFiles ++ o2 ^. globalInputFiles
+      }
+
+instance Monoid GlobalOptions where
+  mempty = defaultGlobalOptions
+  mappend = (<>)
+
 parseGlobalOptions :: Parser GlobalOptions
 parseGlobalOptions = do
   _globalNoColors <-
@@ -48,7 +62,7 @@ parseGlobalOptions = do
   _globalNoTermination <-
     switch
       ( long "no-termination"
-          <> help "Disable the termination checker"
+          <> help "Disable termination checking"
       )
   _globalInputFiles <- parseInputFiles
   return GlobalOptions {..}
