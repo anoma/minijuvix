@@ -167,6 +167,9 @@ checkLhs hint ariSignature pats = do
           (replicate tailUnderscores (PatternBraces PatternWildcard), a')
       lhs@(p : ps) -> case a of
         ArityUnit -> throw @ArityCheckerError (error "too many patterns in Lhs")
+        ArityUnknown -> do
+          p' <- checkPattern ArityUnknown p
+          first (p' : ) <$> goLhs ArityUnknown ps
         ArityFunction (FunctionArity l r) ->
           case (getPatternBraces p, l) of
             (Just b, ParamImplicit) -> first (b :) <$> goLhs r ps
@@ -201,6 +204,7 @@ checkPattern ari = \case
   PatternWildcard -> return PatternWildcard
   PatternConstructorApp c -> case ari of
     ArityUnit -> PatternConstructorApp <$> checkConstructorApp c
+    ArityUnknown -> PatternConstructorApp <$> checkConstructorApp c
     ArityFunction {} -> error "Function types cannot be pattern matched"
 
 checkConstructorApp ::
@@ -239,7 +243,7 @@ checkExpression hintArity expr = case expr of
   ExpressionTyped {} -> impossible
   where
     goApp :: Application -> Sem r Expression
-    goApp a = uncurry appHelper (second toList (unfoldApplication' a))
+    goApp = uncurry appHelper . second toList . unfoldApplication'
     appHelper :: Expression -> [(IsImplicit, Expression)] -> Sem r Expression
     appHelper e args = do
       args' :: [(IsImplicit, Expression)] <- case e of
@@ -254,7 +258,7 @@ checkExpression hintArity expr = case expr of
                 ParamImplicit -> ArityUnit
           mapM
             (secondM (uncurry checkExpression))
-            [(i', (Just a, e')) | (a, (i', e')) <- zip argsAris args]
+            [(i', (Just a, e')) | (a, (i', e')) <- zip (argsAris ++ repeat ArityUnknown) args]
             >>= addHoles (getLoc i) hintArity ari
         ExpressionLiteral {} -> error "TODO literals on the left of an application"
         ExpressionFunction {} -> throw ErrFutureTypeCheckerError
@@ -284,6 +288,8 @@ checkExpression hintArity expr = case expr of
       (ArityUnit, []) -> return []
       (ArityFunction (FunctionArity (ParamExplicit _) _), []) -> return []
       (ArityUnit, _ : _) -> error "too many arguments"
+      (ArityUnknown, []) -> return []
+      (ArityUnknown, p : ps) -> (p :)  <$> addHoles loc hint ArityUnknown ps
 
 newHole :: Member NameIdGen r => Interval -> Sem r Hole
 newHole loc = (`Hole` loc) <$> freshNameId
