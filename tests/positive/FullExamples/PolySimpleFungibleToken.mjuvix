@@ -326,11 +326,4 @@ main ≔
     (putStr "VP Status: ")
     >> (putStrLn (show-result (vp token keys-changed verifiers)));
 
-axiom Nat : Type;
-axiom a : Nat;
-
-inductive Uno {
- u : Nat;
-};
-
 end;
