@@ -1,0 +1,10 @@
+$ minijuvix compile --help
+> /Usage\: minijuvix compile \[\-\-no\-colors\] \[\-\-show\-name\-ids\] \[\-\-only\-errors\]
+                         \[\-\-no\-termination\] \[\-t\|\-\-target TARGET\]
+                         \[\-r\|\-\-runtime RUNTIME\] \[\-o\|\-\-output OUTPUT_FILE\]
+                         \[MINIJUVIX_FILE\].*/
+>= 0
+
+$ cd tests/positive/MiniC/HelloWorld && minijuvix compile Input.mjuvix -o hello.wasm
+>
+>= 0

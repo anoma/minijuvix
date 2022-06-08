@@ -1,0 +1,72 @@
+$ minijuvix termination
+>2 /Usage\: minijuvix termination \[\-\-no\-colors\] \[\-\-show\-name\-ids\] \[\-\-only\-errors\]
+                             \[\-\-no-termination\] COMMAND \[MINIJUVIX_FILE\].*/
+>= 1
+
+$ minijuvix termination --help
+> /.*
+Available commands:
+  calls                    Compute the calls table of a .mjuvix file
+  graph                    Compute the complete call graph of a .mjuvix file
+/
+>= 0
+
+$ minijuvix termination calls
+>
+Provide a MiniJuvix file to run this command
+Use --help to see all the options
+>2
+>=1
+
+$ minijuvix termination graph
+>
+Provide a MiniJuvix file to run this command
+Use --help to see all the options
+>2
+>= 1
+
+
+$ minijuvix termination calls --help
+>
+Usage: minijuvix termination calls [--no-colors] [--show-name-ids]
+                                   [--only-errors] [--no-termination]
+                                   [MINIJUVIX_FILE]
+                                   [-f|--function fun1 fun2 ...]
+                                   [-d|--show-decreasing-args ARG]
+
+  Compute the calls table of a .mjuvix file
+
+Available options:
+  --no-colors              Disable ANSI formatting
+  --show-name-ids          Show the unique number of each identifier when pretty
+                           printing
+  --only-errors            Only print errors in a uniform format (used by
+                           minijuvix-mode)
+  --no-termination         Disable termination checking
+  MINIJUVIX_FILE           Path to a .mjuvix file
+  -f,--function fun1 fun2 ...
+                           Only shows the specified functions
+  -d,--show-decreasing-args ARG
+                           possible values: argument, relation, both
+  -h,--help                Show this help text
+>= 0
+
+$ minijuvix termination graph --help
+>
+Usage: minijuvix termination graph [--no-colors] [--show-name-ids]
+                                   [--only-errors] [--no-termination]
+                                   [MINIJUVIX_FILE] [-f|--function ARG]
+
+  Compute the complete call graph of a .mjuvix file
+
+Available options:
+  --no-colors              Disable ANSI formatting
+  --show-name-ids          Show the unique number of each identifier when pretty
+                           printing
+  --only-errors            Only print errors in a uniform format (used by
+                           minijuvix-mode)
+  --no-termination         Disable termination checking
+  MINIJUVIX_FILE           Path to a .mjuvix file
+  -f,--function ARG        Only shows the specified function
+  -h,--help                Show this help text
+>= 0

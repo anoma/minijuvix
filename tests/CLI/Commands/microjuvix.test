@@ -1,0 +1,57 @@
+$ minijuvix microjuvix
+>2 /Usage: minijuvix microjuvix .*/
+>= 1
+
+$ minijuvix microjuvix --help
+> /Usage: minijuvix microjuvix \[\-\-no\-colors\] \[\-\-show\-name\-ids\] \[\-\-only\-errors\]
+                            \[\-\-no-termination\] COMMAND \[MINIJUVIX_FILE\].*/
+>= 0
+
+$ minijuvix microjuvix --help
+> /.*
+Available commands:
+  pretty                   Translate a MiniJuvix file to MicroJuvix and pretty
+                           print the result
+  typecheck                Translate a MiniJuvix file to MicroJuvix and
+                           typecheck the result
+/
+>= 0
+
+$ minijuvix microjuvix pretty
+>
+Provide a MiniJuvix file to run this command
+Use --help to see all the options
+>= 1
+
+$ minijuvix microjuvix typecheck
+>
+Provide a MiniJuvix file to run this command
+Use --help to see all the options
+>= 1
+
+$ minijuvix microjuvix typecheck tests/positive/MicroJuvix/Simple.mjuvix
+>
+Well done! It type checks
+>= 0
+
+$ minijuvix --only-errors microjuvix typecheck tests/positive/MicroJuvix/Simple.mjuvix
+>
+>= 0
+
+$ minijuvix microjuvix typecheck --only-errors tests/positive/MicroJuvix/Simple.mjuvix
+>
+>= 0
+
+$ minijuvix microjuvix typecheck tests/positive/MicroJuvix/Simple.mjuvix --only-errors
+>
+>= 0
+
+$ minijuvix microjuvix typecheck tests/negative/MicroJuvix/MultiWrongType.mjuvix --no-colors
+>2 /(.+)\/([^\/]+)\.mjuvix\:11\:7\-8\: error.*
+Type error near (.+)\/([^\/]+)\.mjuvix\:11\:7\-8\..*
+The expression b@4 has type:
+  B@3
+but is expected to have type:
+  A@1.
+/
+>= 1
