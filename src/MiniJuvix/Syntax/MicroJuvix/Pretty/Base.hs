@@ -238,7 +238,7 @@ instance PrettyCode Pattern where
   ppCode p = case p of
     PatternVariable v -> ppCode v
     PatternConstructorApp a -> ppCode a
-    PatternWildcard -> return kwWildcard
+    PatternWildcard {} -> return kwWildcard
     PatternBraces b -> braces <$> ppCode b
 
 instance PrettyCode FunctionDef where

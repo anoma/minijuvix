@@ -264,7 +264,7 @@ patternVariables = \case
   PatternVariable v -> [v]
   PatternConstructorApp a -> goApp a
   PatternBraces b -> patternVariables b
-  PatternWildcard -> []
+  PatternWildcard {} -> []
   where
     goApp :: ConstructorApp -> [VarName]
     goApp (ConstructorApp _ ps) = concatMap patternVariables ps

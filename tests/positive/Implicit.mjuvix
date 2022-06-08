@@ -1,5 +1,9 @@
 module Implicit;
 
+infixr 9 ∘;
+∘ : {A : Type} → {B : Type} → {C : Type} → (B → C) → (A → B) → A → C;
+∘ f g x ≔ f (g x);
+
 inductive Nat {
   zero : Nat;
   suc : Nat → Nat;
@@ -7,7 +11,7 @@ inductive Nat {
 
 infixr 5 ∷;
 inductive List (A : Type) {
-  nil  : List A;
+  nil : List A;
   ∷ : A → List A → List A;
 };
 
@@ -19,12 +23,15 @@ inductive Pair (A : Type) (B : Type) {
   , : A → B → Pair A B;
 };
 
- p1 : Nat → Nat → Pair Nat Nat;
- p1 a b ≔ a , b ;
+p1 : Nat → Nat → Pair Nat Nat;
+p1 a b ≔ a , b ;
 
 inductive Proxy (A : Type) {
  proxy : Proxy A;
 };
+
+t2' : {A : Type} → Proxy A;
+t2' ≔ proxy;
 
 t2 : {A : Type} → Proxy A;
 t2 ≔ proxy;
@@ -33,7 +40,7 @@ t3 : ({A : Type} → Proxy A) → {B : Type} → Proxy B → Proxy B;
 t3 _ _ ≔ proxy;
 
 t4 : {B : Type} → Proxy B;
-t4 {_} ≔ t3 proxy proxy ;
+t4 {_} ≔ t3 proxy proxy;
 
 t4' : {B : Type} → Proxy B;
 t4' ≔ t3 proxy proxy ;
@@ -60,7 +67,7 @@ f a b ≔ a;
 pairEval : {A : Type} → {B : Type} → Pair (A → B) A → B;
 pairEval (f , x) ≔ f x;
 
-pairEval' : {A : Type} → {B : Type} → Pair ({C : Type} → A → B) A → B;
-pairEval' (f , x) ≔ f {Nat} x;
+-- pairEval' : {A : Type} → {B : Type} → Pair ({C : Type} → A → B) A → B;
+-- pairEval' (f , x) ≔ f x;
 
 end;

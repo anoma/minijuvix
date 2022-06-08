@@ -1089,7 +1089,7 @@ checkPatternAtom ::
   PatternAtom 'Parsed ->
   Sem r (PatternAtom 'Scoped)
 checkPatternAtom p = case p of
-  PatternAtomWildcard -> return PatternAtomWildcard
+  PatternAtomWildcard i -> return (PatternAtomWildcard i)
   PatternAtomEmpty -> return PatternAtomEmpty
   PatternAtomParens e -> PatternAtomParens <$> checkPatternAtoms e
   PatternAtomIden n -> PatternAtomIden <$> checkPatternName n
@@ -1526,12 +1526,12 @@ parsePatternTerm = do
           _ -> Nothing
 
     parseWildcard :: ParsePat Pattern
-    parseWildcard = PatternWildcard <$ P.satisfy isWildcard
+    parseWildcard = PatternWildcard <$> P.token isWildcard mempty
       where
-        isWildcard :: PatternAtom 'Scoped -> Bool
+        isWildcard :: PatternAtom 'Scoped -> Maybe Wildcard
         isWildcard s = case s of
-          PatternAtomWildcard -> True
-          _ -> False
+          PatternAtomWildcard i -> Just i
+          _ -> Nothing
 
     parseEmpty :: ParsePat Pattern
     parseEmpty = PatternEmpty <$ P.satisfy isEmpty

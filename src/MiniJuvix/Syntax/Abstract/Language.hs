@@ -2,6 +2,7 @@ module MiniJuvix.Syntax.Abstract.Language
   ( module MiniJuvix.Syntax.Abstract.Language,
     module MiniJuvix.Syntax.Concrete.Language,
     module MiniJuvix.Syntax.Hole,
+    module MiniJuvix.Syntax.Wildcard,
     module MiniJuvix.Syntax.IsImplicit,
   )
 where
@@ -14,6 +15,7 @@ import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.Hole
 import MiniJuvix.Syntax.IsImplicit
 import MiniJuvix.Syntax.Universe
+import MiniJuvix.Syntax.Wildcard
 
 type TopModuleName = S.TopModulePath
 
@@ -179,7 +181,7 @@ data ConstructorApp = ConstructorApp
 data Pattern
   = PatternVariable VarName
   | PatternConstructorApp ConstructorApp
-  | PatternWildcard
+  | PatternWildcard Wildcard
   | PatternEmpty
   | PatternBraces Pattern
   deriving stock (Eq, Show)

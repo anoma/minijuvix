@@ -411,6 +411,9 @@ constructorDef = do
   _constructorType <- parseExpressionAtoms
   return InductiveConstructorDef {..}
 
+wildcard :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r Wildcard
+wildcard = Wildcard . snd <$> interval kwWildcard
+
 --------------------------------------------------------------------------------
 -- Pattern section
 --------------------------------------------------------------------------------
@@ -418,7 +421,7 @@ constructorDef = do
 patternAtom :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (PatternAtom 'Parsed)
 patternAtom =
   PatternAtomIden <$> name
-    <|> PatternAtomWildcard <$ kwWildcard
+    <|> PatternAtomWildcard <$> wildcard
     <|> (PatternAtomParens <$> parens parsePatternAtoms)
     <|> (PatternAtomBraces <$> braces parsePatternAtoms)
 

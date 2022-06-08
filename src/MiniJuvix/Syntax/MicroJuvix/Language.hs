@@ -5,6 +5,7 @@ module MiniJuvix.Syntax.MicroJuvix.Language
     module MiniJuvix.Syntax.Concrete.Loc,
     module MiniJuvix.Syntax.IsImplicit,
     module MiniJuvix.Syntax.Hole,
+    module MiniJuvix.Syntax.Wildcard,
     module MiniJuvix.Syntax.Concrete.LiteralLoc,
   )
 where
@@ -18,6 +19,7 @@ import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.Hole
 import MiniJuvix.Syntax.IsImplicit
+import MiniJuvix.Syntax.Wildcard
 import Prettyprinter
 
 type FunctionName = Name
@@ -149,7 +151,7 @@ data ConstructorApp = ConstructorApp
 data Pattern
   = PatternVariable VarName
   | PatternConstructorApp ConstructorApp
-  | PatternWildcard
+  | PatternWildcard Wildcard
   | PatternBraces Pattern
 
 newtype InductiveParameter = InductiveParameter
@@ -295,3 +297,16 @@ instance HasLoc Iden where
     IdenVar v -> getLoc v
     IdenAxiom a -> getLoc a
     IdenInductive a -> getLoc a
+
+instance HasLoc Pattern where
+  getLoc = \case
+    PatternVariable v -> getLoc v
+    PatternConstructorApp a -> getLoc a
+    PatternBraces p -> getLoc p
+    PatternWildcard i -> getLoc i
+
+instance HasLoc ConstructorApp where
+  getLoc (ConstructorApp c ps) =
+    case last <$> nonEmpty ps of
+      Just p -> getLoc c <> getLoc p
+      Nothing -> getLoc c

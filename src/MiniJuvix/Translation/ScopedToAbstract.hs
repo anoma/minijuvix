@@ -308,7 +308,7 @@ goPattern p = case p of
   PatternApplication a -> A.PatternConstructorApp <$> goPatternApplication a
   PatternInfixApplication a -> A.PatternConstructorApp <$> goInfixPatternApplication a
   PatternPostfixApplication a -> A.PatternConstructorApp <$> goPostfixPatternApplication a
-  PatternWildcard -> return A.PatternWildcard
+  PatternWildcard i -> return (A.PatternWildcard i)
   PatternEmpty -> return A.PatternEmpty
   PatternBraces b -> A.PatternBraces <$> goPattern b
 

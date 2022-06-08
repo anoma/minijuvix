@@ -190,7 +190,7 @@ goPattern :: Abstract.Pattern -> Sem r Pattern
 goPattern p = case p of
   Abstract.PatternVariable v -> return (PatternVariable (goSymbol v))
   Abstract.PatternConstructorApp c -> PatternConstructorApp <$> goConstructorApp c
-  Abstract.PatternWildcard -> return PatternWildcard
+  Abstract.PatternWildcard i -> return (PatternWildcard i)
   Abstract.PatternBraces b -> PatternBraces <$> goPattern b
   Abstract.PatternEmpty -> unsupported "pattern empty"
 

@@ -653,7 +653,7 @@ instance SingI s => PrettyCode (PatternAtom s) where
     PatternAtomIden n -> case sing :: SStage s of
       SParsed -> ppCode n
       SScoped -> ppCode n
-    PatternAtomWildcard -> return kwWildcard
+    PatternAtomWildcard {} -> return kwWildcard
     PatternAtomEmpty -> return $ parens mempty
     PatternAtomParens p -> parens <$> ppCode p
     PatternAtomBraces p -> braces <$> ppCode p
@@ -745,7 +745,7 @@ instance PrettyCode Pattern where
       l' <- ppLeftExpression appFixity l
       r' <- ppRightExpression appFixity r
       return $ l' <+> r'
-    PatternWildcard -> return kwWildcard
+    PatternWildcard {} -> return kwWildcard
     PatternEmpty -> return $ parens mempty
     PatternBraces p -> braces <$> ppCode p
     PatternConstructor constr -> ppCode constr

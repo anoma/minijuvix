@@ -14,6 +14,7 @@ module MiniJuvix.Syntax.Concrete.Language
     module MiniJuvix.Syntax.Concrete.PublicAnn,
     module MiniJuvix.Syntax.Concrete.ModuleIsTop,
     module MiniJuvix.Syntax.Concrete.Language.Stage,
+    module MiniJuvix.Syntax.Wildcard,
     module MiniJuvix.Syntax.Fixity,
     module MiniJuvix.Syntax.Usage,
     module MiniJuvix.Syntax.Universe,
@@ -40,6 +41,7 @@ import MiniJuvix.Syntax.Hole
 import MiniJuvix.Syntax.IsImplicit
 import MiniJuvix.Syntax.Universe
 import MiniJuvix.Syntax.Usage
+import MiniJuvix.Syntax.Wildcard
 import Prelude (show)
 
 --------------------------------------------------------------------------------
@@ -283,7 +285,7 @@ data Pattern
   | PatternInfixApplication PatternInfixApp
   | PatternPostfixApplication PatternPostfixApp
   | PatternBraces Pattern
-  | PatternWildcard
+  | PatternWildcard Wildcard
   | PatternEmpty
   deriving stock (Show, Eq, Ord)
 
@@ -294,7 +296,7 @@ instance HasAtomicity Pattern where
     PatternApplication {} -> Aggregate appFixity
     PatternInfixApplication a -> Aggregate (getFixity a)
     PatternPostfixApplication p -> Aggregate (getFixity p)
-    PatternWildcard -> Atom
+    PatternWildcard {} -> Atom
     PatternBraces {} -> Atom
     PatternEmpty -> Atom
 
@@ -309,7 +311,7 @@ data PatternScopedIden
 
 data PatternAtom (s :: Stage)
   = PatternAtomIden (PatternAtomIdenType s)
-  | PatternAtomWildcard
+  | PatternAtomWildcard Wildcard
   | PatternAtomEmpty
   | PatternAtomParens (PatternAtoms s)
   | PatternAtomBraces (PatternAtoms s)

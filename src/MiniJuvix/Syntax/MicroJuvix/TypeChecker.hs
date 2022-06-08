@@ -206,7 +206,7 @@ checkPattern funName = go
             PatternBraces b -> b
             x -> x
       case unbrace p of
-        PatternWildcard -> return ()
+        PatternWildcard {} -> return ()
         PatternBraces {} -> impossible
         PatternVariable v -> do
           modify (addType v ty)
