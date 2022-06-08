@@ -150,6 +150,11 @@ jobs:
           cd main
           make ci-build
 
+      - name: Build ShellTestRunner
+        run: |
+          cd main
+          make install-shelltest
+
   test:
     needs: build
     runs-on: ${{ matrix.os }}
@@ -202,3 +207,8 @@ jobs:
         run: |
           cd main
           make ci-test
+      - name : Shell tests
+        id: shell-tests
+        run : |
+          cd main
+          make test-shell
