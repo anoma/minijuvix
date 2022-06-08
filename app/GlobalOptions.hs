@@ -42,12 +42,12 @@ instance Monoid GlobalOptions where
   mempty = defaultGlobalOptions
   mappend = (<>)
 
-parseGlobalOptions :: Parser GlobalOptions
-parseGlobalOptions = do
+parseGlobalFlags :: Parser GlobalOptions
+parseGlobalFlags = do
   _globalNoColors <-
     switch
       ( long "no-colors"
-          <> help "Disable globally ANSI formatting"
+          <> help "Disable ANSI formatting"
       )
   _globalShowNameIds <-
     switch
@@ -64,5 +64,11 @@ parseGlobalOptions = do
       ( long "no-termination"
           <> help "Disable termination checking"
       )
-  _globalInputFiles <- parseInputFiles
-  return GlobalOptions {..}
+
+  return GlobalOptions {_globalInputFiles = [], ..}
+
+parseGlobalOptions :: Parser GlobalOptions
+parseGlobalOptions = do
+  opts <- parseGlobalFlags
+  files <- parserInputFiles
+  return opts {_globalInputFiles = files}

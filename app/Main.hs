@@ -130,7 +130,7 @@ runCommand cmdWithOpts = do
                   <$> runPipeline (upToMicroJuvix entryPoint)
               let ppOpts =
                     Micro.defaultOptions
-                      { Micro._optShowNameId = globalOpts ^. globalShowNameIds
+                      { Micro._optShowNameIds = globalOpts ^. globalShowNameIds
                       }
               App.renderStdOut (Micro.ppOut ppOpts micro)
             MicroJuvix (TypeCheck localOpts) -> do
@@ -139,7 +139,7 @@ runCommand cmdWithOpts = do
               when (localOpts ^. microJuvixTypePrint) $ do
                 let ppOpts =
                       Micro.defaultOptions
-                        { Micro._optShowNameId = globalOpts ^. globalShowNameIds
+                        { Micro._optShowNameIds = globalOpts ^. globalShowNameIds
                         }
                     checkedModule = head (res ^. MicroTyped.resultModules)
                 renderStdOut (Micro.ppOut ppOpts checkedModule)
@@ -179,7 +179,7 @@ runCommand cmdWithOpts = do
                   callMap = case _callsFunctionNameFilter of
                     Nothing -> callMap0
                     Just f -> Termination.filterCallMap f callMap0
-                  localOpts' = Termination.callsPrettyOptions localOpts
+                  localOpts' = Termination.callsPrettyOptions globalOpts localOpts
               renderStdOut (Abstract.ppOut localOpts' callMap)
               newline
             Termination (CallGraph CallGraphOptions {..}) -> do
@@ -189,7 +189,7 @@ runCommand cmdWithOpts = do
                   callMap = Termination.buildCallMap infotable topModule
                   localOpts' =
                     Abstract.defaultOptions
-                      { Abstract._optShowNameId = globalOpts ^. globalShowNameIds
+                      { Abstract._optShowNameIds = globalOpts ^. globalShowNameIds
                       }
                   completeGraph = Termination.completeCallGraph callMap
                   filteredGraph =
@@ -212,7 +212,7 @@ runCommand cmdWithOpts = do
                     markedTerminating = funInfo ^. (Abstract.functionInfoDef . Abstract.funDefTerminating)
                     scoperOpts =
                       Scoper.defaultOptions
-                        { Scoper._optShowNameId = globalOpts ^. globalShowNameIds
+                        { Scoper._optShowNameIds = globalOpts ^. globalShowNameIds
                         }
                     n = toAnsiText' (Scoper.ppOut scoperOpts funName)
                 App.renderStdOut (Abstract.ppOut localOpts' r)
@@ -236,7 +236,7 @@ showHelpText p = do
 
 main :: IO ()
 main = do
-  let p = prefs (showHelpOnEmpty <> helpShowGlobals)
+  let p = prefs showHelpOnEmpty
   cli <- customExecParser p descr >>= makeAbsPaths
   case cli of
     DisplayVersion -> runDisplayVersion

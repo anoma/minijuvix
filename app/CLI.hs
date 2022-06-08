@@ -29,14 +29,14 @@ parseDisplayHelp =
     DisplayHelp
     (long "help" <> short 'h' <> help "Show the help text" <> noGlobal)
 
-parseCommandGlobalOptions :: Parser CLI
-parseCommandGlobalOptions = Command <$> parseCommand
+parseCommand :: Parser CLI
+parseCommand = Command <$> parseCommandGlobalOptions
 
 parseCLI :: Parser CLI
 parseCLI =
   parseDisplayVersion
     <|> parseDisplayHelp
-    <|> parseCommandGlobalOptions
+    <|> parseCommand
 
 commandFirstFile :: CommandGlobalOptions -> Maybe FilePath
 commandFirstFile CommandGlobalOptions {_cliGlobalOptions = GlobalOptions {..}} =

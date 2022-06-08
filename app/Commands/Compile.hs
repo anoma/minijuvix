@@ -126,7 +126,9 @@ clangCompile projRoot compileInputFile o = do
     Right sysrootPath -> withSysrootPath sysrootPath
   where
     sysrootEnvVar :: IO (Either Text String)
-    sysrootEnvVar = maybeToEither "Missing environment variable WASI_SYSROOT_PATH" <$> lookupEnv "WASI_SYSROOT_PATH"
+    sysrootEnvVar =
+      maybeToEither "Missing environment variable WASI_SYSROOT_PATH"
+        <$> lookupEnv "WASI_SYSROOT_PATH"
 
     withSysrootPath :: String -> IO (Either Text ())
     withSysrootPath sysrootPath = runClang clangArgs
