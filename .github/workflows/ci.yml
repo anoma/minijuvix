@@ -150,12 +150,6 @@ jobs:
           cd main
           make ci-build
 
-      - run: echo "${HOME}/.local/bin" >> $GITHUB_PATH
-      - name: Build ShellTestRunner
-        run: |
-          cd main
-          make install-shelltest
-
   test:
     needs: build
     runs-on: ${{ matrix.os }}
@@ -208,9 +202,10 @@ jobs:
         run: |
           cd main
           make ci-test
-      - run: echo "${HOME}/.local/bin" >> $GITHUB_PATH
       - name : Shell tests
         id: shell-tests
         run : |
           cd main
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
+          make install-shelltest
           make test-shell
