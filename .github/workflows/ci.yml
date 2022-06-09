@@ -207,5 +207,6 @@ jobs:
         run : |
           cd main
           echo "${HOME}/.local/bin" >> $GITHUB_PATH
+          make install
           make install-shelltest
           make test-shell
