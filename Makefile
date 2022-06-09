@@ -106,7 +106,7 @@ install-shelltest:
 
 .PHONY : test-shell
 test-shell :
-	shelltest --color --precise -j8 tests
+	shelltest --color --diff -a -j8 tests
 
 format:
 	@find . -name "*.hs" -exec ormolu --mode inplace {} --ghc-opt -XStandaloneDeriving --ghc-opt -XUnicodeSyntax --ghc-opt -XDerivingStrategies --ghc-opt -XMultiParamTypeClasses  --ghc-opt  -XTemplateHaskell --ghc-opt -XImportQualifiedPost \;

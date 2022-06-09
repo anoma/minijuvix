@@ -5,7 +5,7 @@ where
 
 import Commands.Extra
 import MiniJuvix.Prelude
-import Options.Applicative
+import Options.Applicative hiding (hidden)
 
 data GlobalOptions = GlobalOptions
   { _globalNoColors :: Bool,
@@ -42,33 +42,38 @@ instance Monoid GlobalOptions where
   mempty = defaultGlobalOptions
   mappend = (<>)
 
-parseGlobalFlags :: Parser GlobalOptions
-parseGlobalFlags = do
+-- | Get a parser for global flags which can be hidden or not depending on
+-- the input boolean
+parseGlobalFlags :: Bool -> Parser GlobalOptions
+parseGlobalFlags b = do
   _globalNoColors <-
     switch
       ( long "no-colors"
           <> help "Disable ANSI formatting"
+          <> hidden b
       )
   _globalShowNameIds <-
     switch
       ( long "show-name-ids"
           <> help "Show the unique number of each identifier when pretty printing"
+          <> hidden b
       )
   _globalOnlyErrors <-
     switch
       ( long "only-errors"
           <> help "Only print errors in a uniform format (used by minijuvix-mode)"
+          <> hidden b
       )
   _globalNoTermination <-
     switch
       ( long "no-termination"
           <> help "Disable termination checking"
+          <> hidden b
       )
-
   return GlobalOptions {_globalInputFiles = [], ..}
 
-parseGlobalOptions :: Parser GlobalOptions
-parseGlobalOptions = do
-  opts <- parseGlobalFlags
+parseGlobalOptions :: Bool -> Parser GlobalOptions
+parseGlobalOptions b = do
+  opts <- parseGlobalFlags b
   files <- parserInputFiles
   return opts {_globalInputFiles = files}

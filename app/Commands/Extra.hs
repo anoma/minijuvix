@@ -2,6 +2,7 @@ module Commands.Extra where
 
 import MiniJuvix.Prelude hiding (Doc)
 import Options.Applicative
+import Options.Applicative.Builder.Internal
 import Options.Applicative.Types
 
 parserInputFile :: Parser FilePath
@@ -38,3 +39,9 @@ addParser parser = \case
   (BindP p k) -> BindP (addParser parser p) $ \(g1, x) ->
     BindP (addParser parser $ k x) $ \(g2, x') ->
       pure (g1 <> g2, x')
+
+hidden :: Bool -> Mod f a
+hidden sure = optionMod $ \p ->
+  if
+      | not sure -> p
+      | otherwise -> p {propVisibility = min Hidden (propVisibility p)}

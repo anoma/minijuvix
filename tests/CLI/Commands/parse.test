@@ -1,19 +1,14 @@
 $ minijuvix parse
->
-Provide a MiniJuvix file to run this command
-Use --help to see all the options
+> /Provide.*/
 >= 1
 
 $ minijuvix parse tests/positive/Axiom.mjuvix
 > /Module
-*
-/
+*/
 >2
 >= 0
 
 $ minijuvix parse tests/positive/Axiom.mjuvix --no-pretty-show
-> /Module \{\_modulePath = TopModulePath \{\_modulePathDir = \[\],.*
-*
-/
+> /Module \{.*/
 >2
 >= 0

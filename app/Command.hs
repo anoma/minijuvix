@@ -44,7 +44,7 @@ makeLenses ''CommandGlobalOptions
 
 parseCommandGlobalOptions :: Parser CommandGlobalOptions
 parseCommandGlobalOptions = do
-  opts <- parseGlobalFlags
+  opts <- parseGlobalFlags False
   cmd <-
     hsubparser
       ( mconcat
@@ -151,16 +151,10 @@ cmdDefaultOptions _cliCommand =
 liftParserCmd :: Parser Command -> Parser CommandGlobalOptions
 liftParserCmd cmd = cmdDefaultOptions <$> cmd
 
-addOnlyFlags :: Parser CommandGlobalOptions -> Parser CommandGlobalOptions
-addOnlyFlags parser = do
-  opts1 <- parseGlobalFlags
-  (opts2, cmd) <- addParser parseGlobalFlags parser
-  return cmd {_cliGlobalOptions = opts1 <> opts2}
-
 addGlobalOptions :: Parser Command -> Parser CommandGlobalOptions
 addGlobalOptions parser = do
-  flags1 <- parseGlobalFlags
-  ~(opts2, _cliCommand) <- addParser parseGlobalOptions parser
+  flags1 <- parseGlobalFlags True
+  ~(opts2, _cliCommand) <- addParser (parseGlobalOptions True) parser
   fs <- parserInputFiles
   return
     CommandGlobalOptions
