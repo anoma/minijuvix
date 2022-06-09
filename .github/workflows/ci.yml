@@ -124,7 +124,6 @@ jobs:
         with:
           path: |
             ~/.stack
-            ~/.local/bin
             main/.stack-work
             main/.hie
           key: ${{ runner.os }}-v1-build-${{ matrix.ghc }}-${{ hashFiles('main/src/**/*.hs', 'main/app/**/*.hs',  'main/test/**/*.hs', 'main/package.yaml', 'main/stack.yaml') }}
@@ -133,7 +132,6 @@ jobs:
             ${{ runner.os }}-v1-build-
             ${{ runner.os }}-v1-
 
-      - run: echo "${HOME}/.local/bin" >> $GITHUB_PATH
       - uses: haskell/actions/setup@v1
         name: Setup Haskell
         with:
@@ -152,6 +150,7 @@ jobs:
           cd main
           make ci-build
 
+      - run: echo "${HOME}/.local/bin" >> $GITHUB_PATH
       - name: Build ShellTestRunner
         run: |
           cd main
@@ -170,7 +169,6 @@ jobs:
         with:
           path: |
             ~/.stack
-            ~/.local/bin
             main/.stack-work/
             main/.hie
           key: ${{ runner.os }}-v1-build-${{ matrix.ghc }}-
@@ -178,7 +176,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: main
-      - run: echo "${HOME}/.local/bin" >> $GITHUB_PATH
       - name: Cache LLVM and Clang
         id: cache-llvm
         uses: actions/cache@v3
@@ -211,6 +208,7 @@ jobs:
         run: |
           cd main
           make ci-test
+      - run: echo "${HOME}/.local/bin" >> $GITHUB_PATH
       - name : Shell tests
         id: shell-tests
         run : |
