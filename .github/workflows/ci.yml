@@ -204,6 +204,7 @@ jobs:
           make ci-test
       - name : Shell tests
         id: shell-tests
+        if: matrix.os == 'ubuntu-latest'
         run : |
           cd main
           echo "$GITHUB_WORKSPACE/.local/bin" >> $GITHUB_PATH
