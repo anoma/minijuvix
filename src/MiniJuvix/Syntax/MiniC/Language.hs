@@ -161,6 +161,15 @@ castToType cDecl e =
         }
     )
 
+cDeclToNamedDecl :: Text -> CDeclType -> Declaration
+cDeclToNamedDecl name CDeclType {..} =
+  Declaration
+    { _declType = _typeDeclType,
+      _declIsPtr = _typeIsPtr,
+      _declName = Just name,
+      _declInitializer = Nothing
+    }
+
 cDeclToDecl :: CDeclType -> Declaration
 cDeclToDecl CDeclType {..} =
   Declaration
@@ -264,6 +273,15 @@ typeDefType typName declName =
     { _declType = DeclTypeDefType typName,
       _declIsPtr = False,
       _declName = Just declName,
+      _declInitializer = Nothing
+    }
+
+namedDeclType :: Text -> DeclType -> Declaration
+namedDeclType name typ =
+  Declaration
+    { _declType = typ,
+      _declIsPtr = False,
+      _declName = Just name,
       _declInitializer = Nothing
     }
 
