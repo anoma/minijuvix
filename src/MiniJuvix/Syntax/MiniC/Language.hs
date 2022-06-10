@@ -267,15 +267,6 @@ typeDefType typName declName =
       _declInitializer = Nothing
     }
 
-typeDefType' :: Text -> Declaration
-typeDefType' typName =
-  Declaration
-    { _declType = DeclTypeDefType typName,
-      _declIsPtr = False,
-      _declName = Nothing,
-      _declInitializer = Nothing
-    }
-
 equals :: Expression -> Expression -> Expression
 equals e1 e2 =
   ExpressionBinary
