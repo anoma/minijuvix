@@ -87,7 +87,7 @@ data DeclType
   | DeclTypeDef DeclType
   | DeclEnum Enum
   | DeclFunPtr FunPtr
-  | DeclJuvixClosure
+  | DeclMiniJuvixClosure
   | BoolType
   deriving stock (Show, Eq)
 

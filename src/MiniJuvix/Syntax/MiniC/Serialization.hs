@@ -171,7 +171,7 @@ mkDeclSpecifier = \case
   DeclTypeDef typ -> CStorageSpec (CTypedef C.undefNode) : mkDeclSpecifier typ
   DeclStructUnion StructUnion {..} -> mkStructUnionTypeSpec _structUnionTag _structUnionName _structMembers
   DeclEnum Enum {..} -> mkEnumSpec _enumName _enumMembers
-  DeclJuvixClosure -> mkTypeDefTypeSpec Str.minijuvixFunctionT
+  DeclMiniJuvixClosure -> mkTypeDefTypeSpec Str.minijuvixFunctionT
   BoolType -> [CTypeSpec (CBoolType C.undefNode)]
   DeclFunPtr {} -> []
 
