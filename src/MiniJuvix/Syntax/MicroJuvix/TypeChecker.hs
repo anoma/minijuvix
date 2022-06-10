@@ -146,12 +146,12 @@ checkFunctionClause ::
   FunctionInfo ->
   FunctionClause ->
   Sem r FunctionClause
-checkFunctionClause info clause@FunctionClause {..} = do
+checkFunctionClause info FunctionClause {..} = do
   let (argTys, rty) = unfoldFunType (info ^. functionInfoDef . funDefType)
       (patTys, restTys) = splitAt (length _clausePatterns) argTys
       bodyTy = foldFunType restTys rty
   if
-      | length patTys /= length _clausePatterns -> throw (tyErr patTys)
+      | length patTys /= length _clausePatterns -> impossible
       | otherwise -> do
           locals <- checkPatterns _clauseName (zipExact patTys _clausePatterns)
           let bodyTy' =
@@ -167,15 +167,6 @@ checkFunctionClause info clause@FunctionClause {..} = do
               { _clauseBody = _clauseBody',
                 ..
               }
-  where
-    tyErr :: [FunctionArgType] -> TypeCheckerError
-    tyErr patTys =
-      ErrTooManyPatterns
-        ( TooManyPatterns
-            { _tooManyPatternsClause = clause,
-              _tooManyPatternsTypes = patTys
-            }
-        )
 
 checkPatterns ::
   Members '[Reader InfoTable, Error TypeCheckerError] r =>
@@ -233,16 +224,17 @@ checkPattern funName = go
           let psTys' = map (substituteIndParams ctx) psTys
               expectedNum = length psTys
           let w = map FunctionArgTypeType psTys'
-          when (expectedNum /= length ps) (throw (appErr app w))
+          when (expectedNum /= length ps) (throw (appErr app expectedNum))
           zipWithM_ go w ps
-        appErr :: ConstructorApp -> [FunctionArgType] -> TypeCheckerError
-        appErr app tys =
-          ErrWrongConstructorAppArgs
-            ( WrongConstructorAppArgs
-                { _wrongCtorAppApp = app,
-                  _wrongCtorAppTypes = tys,
-                  _wrongCtorAppName = funName
-                }
+        appErr :: ConstructorApp -> Int -> TypeCheckerError
+        appErr app expected =
+          ErrArity
+            ( ErrWrongConstructorAppLength
+                ( WrongConstructorAppLength
+                    { _wrongConstructorAppLength = app,
+                      _wrongConstructorAppLengthExpected = expected
+                    }
+                )
             )
     checkSaturatedInductive :: Type -> Sem r (InductiveName, [(InductiveParameter, Type)])
     checkSaturatedInductive t = do

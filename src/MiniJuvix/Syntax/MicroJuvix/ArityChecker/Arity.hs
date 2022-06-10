@@ -19,6 +19,11 @@ data ArityParameter
   | ParamImplicit
   deriving stock (Eq)
 
+arityParameter :: ArityParameter -> Arity
+arityParameter = \case
+  ParamImplicit -> ArityUnit
+  ParamExplicit a -> a
+
 unfoldArity :: Arity -> [ArityParameter]
 unfoldArity = go
   where

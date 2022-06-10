@@ -50,13 +50,6 @@ tests =
         ErrWrongConstructorType {} -> Nothing
         _ -> wrongError,
     NegTest
-      "Constructor pattern length mismatch"
-      "MicroJuvix"
-      "PatternConstructorApp.mjuvix"
-      $ \case
-        ErrWrongConstructorAppArgs {} -> Nothing
-        _ -> wrongError,
-    NegTest
       "Type vs inferred type mismatch"
       "MicroJuvix"
       "WrongType.mjuvix"
@@ -70,13 +63,14 @@ tests =
       $ \case
         ErrExpectedFunctionType {} -> Nothing
         _ -> wrongError,
-    NegTest
-      "Function definition clause with two many match patterns"
-      "MicroJuvix"
-      "TooManyPatterns.mjuvix"
-      $ \case
-        ErrTooManyPatterns {} -> Nothing
-        _ -> wrongError,
+    -- TODO: Move to arity
+    -- NegTest
+    --   "Function definition clause with two many match patterns"
+    --   "MicroJuvix"
+    --   "TooManyPatterns.mjuvix"
+    --   $ \case
+    --     ErrTooManyPatterns {} -> Nothing
+    --     _ -> wrongError,
     NegTest
       "Unsolved hole"
       "MicroJuvix"
@@ -90,12 +84,5 @@ tests =
       "MultiWrongType.mjuvix"
       $ \case
         ErrWrongType {} -> Nothing
-        _ -> wrongError,
-    NegTest
-      "Constructor pattern with arity greater than the constructor"
-      "MicroJuvix"
-      "WrongConstructorArity.mjuvix"
-      $ \case
-        ErrWrongConstructorAppArgs {} -> Nothing
         _ -> wrongError
   ]

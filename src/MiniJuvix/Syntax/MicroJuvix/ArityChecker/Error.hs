@@ -1,21 +1,28 @@
-module MiniJuvix.Syntax.MicroJuvix.ArityChecker.Error where
+module MiniJuvix.Syntax.MicroJuvix.ArityChecker.Error
+  ( module MiniJuvix.Syntax.MicroJuvix.ArityChecker.Error,
+    module MiniJuvix.Syntax.MicroJuvix.ArityChecker.Error.Types,
+  )
+where
 
 import MiniJuvix.Prelude
-import MiniJuvix.Syntax.MicroJuvix.Error.Pretty
-
--- import MiniJuvix.Syntax.MicroJuvix.ArityChecker.Error.Types
+import MiniJuvix.Syntax.MicroJuvix.ArityChecker.Error.Types
 
 data ArityCheckerError
-  = ArityCheckerError Interval
-  | ErrFutureTypeCheckerError
+  = ErrWrongConstructorAppLength WrongConstructorAppLength
+  | ErrLhsTooManyPatterns LhsTooManyPatterns
+  | ErrExpectedExplicitPattern ExpectedExplicitPattern
+  | ErrExpectedExplicitArgument ExpectedExplicitArgument
+  | ErrPatternFunction PatternFunction
+  | ErrTooManyArguments TooManyArguments
+  | ErrFunctionApplied FunctionApplied
 
 instance ToGenericError ArityCheckerError where
   genericError :: ArityCheckerError -> GenericError
   genericError = \case
-    ArityCheckerError i ->
-      GenericError
-        { _genericErrorLoc = i,
-          _genericErrorMessage = prettyError "arity error",
-          _genericErrorIntervals = [i]
-        }
-    ErrFutureTypeCheckerError {} -> error "future type check"
+    ErrWrongConstructorAppLength e -> genericError e
+    ErrLhsTooManyPatterns e -> genericError e
+    ErrExpectedExplicitPattern e -> genericError e
+    ErrExpectedExplicitArgument e -> genericError e
+    ErrPatternFunction e -> genericError e
+    ErrTooManyArguments e -> genericError e
+    ErrFunctionApplied e -> genericError e

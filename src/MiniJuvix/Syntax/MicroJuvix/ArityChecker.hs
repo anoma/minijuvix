@@ -93,7 +93,7 @@ checkFunctionClause ::
 checkFunctionClause ari cl = do
   hint <- guessArity (cl ^. clauseBody)
   (patterns', locals, bodyAri) <- checkLhs loc hint ari (cl ^. clausePatterns)
-  body' <- runReader locals (checkExpression (Just bodyAri) (cl ^. clauseBody))
+  body' <- runReader locals (checkExpression bodyAri (cl ^. clauseBody))
   return
     FunctionClause
       { _clauseName = cl ^. clauseName,
@@ -101,7 +101,8 @@ checkFunctionClause ari cl = do
         _clauseBody = body'
       }
   where
-    loc = getLoc (cl ^. clauseName)
+    name = cl ^. clauseName
+    loc = getLoc name
 
 guessArity ::
   forall r.
@@ -170,14 +171,28 @@ checkLhs loc hint ariSignature pats = do
           let a' = foldArity (drop tailUnderscores (unfoldArity a))
            in (replicate tailUnderscores wildcard, a')
       lhs@(p : ps) -> case a of
-        ArityUnit -> throw @ArityCheckerError (error "too many patterns in Lhs")
+        ArityUnit ->
+          throw
+            ( ErrLhsTooManyPatterns
+                LhsTooManyPatterns
+                  { _lhsTooManyPatternsRemaining = p :| ps
+                  }
+            )
         ArityUnknown -> do
           p' <- checkPattern ArityUnknown p
           first (p' :) <$> goLhs ArityUnknown ps
         ArityFunction (FunctionArity l r) ->
           case (getPatternBraces p, l) of
-            (Just b, ParamImplicit) -> first (b :) <$> goLhs r ps
-            (Just {}, ParamExplicit {}) -> error "expected an explicit argument"
+            (Just b, ParamImplicit) -> do
+              b' <- checkPattern (arityParameter l) b
+              first (b' :) <$> goLhs r ps
+            (Just x, ParamExplicit {}) ->
+              throw
+                ( ErrExpectedExplicitPattern
+                    ExpectedExplicitPattern
+                      { _expectedExplicitPattern = x
+                      }
+                )
             (Nothing, ParamImplicit) ->
               first (wildcard :) <$> goLhs r lhs
             (Nothing, ParamExplicit pa) -> do
@@ -206,25 +221,40 @@ checkPattern ::
   Pattern ->
   Sem r Pattern
 checkPattern ari = \case
-  PatternBraces {} -> impossible
+  PatternBraces p -> checkPattern ari p
   PatternVariable v -> addArity v ari $> PatternVariable v
   PatternWildcard i -> return (PatternWildcard i)
   PatternConstructorApp c -> case ari of
     ArityUnit -> PatternConstructorApp <$> checkConstructorApp c
     ArityUnknown -> PatternConstructorApp <$> checkConstructorApp c
-    ArityFunction {} -> error "Function types cannot be pattern matched"
+    ArityFunction {} ->
+      throw
+        ( ErrPatternFunction
+            PatternFunction
+              { _patternFunction = c
+              }
+        )
 
 checkConstructorApp ::
   forall r.
   Members '[Reader InfoTable, Error ArityCheckerError, State LocalVars] r =>
   ConstructorApp ->
   Sem r ConstructorApp
-checkConstructorApp (ConstructorApp c ps) = do
+checkConstructorApp ca@(ConstructorApp c ps) = do
   args <- (^. constructorInfoArgs) <$> lookupConstructor c
   arities <- mapM typeArity args
   let n = length arities
       lps = length ps
-  when (n /= lps) (throw @ArityCheckerError (error "wrong number of args in constructor app"))
+  when
+    (n /= lps)
+    ( throw
+        ( ErrWrongConstructorAppLength
+            WrongConstructorAppLength
+              { _wrongConstructorAppLength = ca,
+                _wrongConstructorAppLengthExpected = n
+              }
+        )
+    )
   ps' <- zipWithM checkPattern arities ps
   return (ConstructorApp c ps')
 
@@ -279,7 +309,7 @@ typeArity = go
 checkExpression ::
   forall r.
   Members '[Reader InfoTable, NameIdGen, Error ArityCheckerError, Reader LocalVars] r =>
-  Maybe Arity ->
+  Arity ->
   Expression ->
   Sem r Expression
 checkExpression hintArity expr = case expr of
@@ -293,9 +323,9 @@ checkExpression hintArity expr = case expr of
     goApp :: Application -> Sem r Expression
     goApp = uncurry appHelper . second toList . unfoldApplication'
     appHelper :: Expression -> [(IsImplicit, Expression)] -> Sem r Expression
-    appHelper e args = do
-      args' :: [(IsImplicit, Expression)] <- case e of
-        ExpressionHole {} -> mapM (secondM (checkExpression Nothing)) args
+    appHelper fun args = do
+      args' :: [(IsImplicit, Expression)] <- case fun of
+        ExpressionHole {} -> mapM (secondM (checkExpression ArityUnknown)) args
         ExpressionIden i -> do
           ari <- idenArity i
           let argsAris :: [Arity]
@@ -306,38 +336,66 @@ checkExpression hintArity expr = case expr of
                 ParamImplicit -> ArityUnit
           mapM
             (secondM (uncurry checkExpression))
-            [(i', (Just a, e')) | (a, (i', e')) <- zip (argsAris ++ repeat ArityUnknown) args]
+            [(i', (a, e')) | (a, (i', e')) <- zip (argsAris ++ repeat ArityUnknown) args]
             >>= addHoles (getLoc i) hintArity ari
         ExpressionLiteral {} -> error "TODO literals on the left of an application"
-        ExpressionFunction {} -> throw ErrFutureTypeCheckerError
+        ExpressionFunction f ->
+          throw
+            ( ErrFunctionApplied
+                FunctionApplied
+                  { _functionAppliedFunction = f,
+                    _functionAppliedArguments = args
+                  }
+            )
         ExpressionApplication {} -> impossible
         ExpressionTyped {} -> impossible
-      return (foldApplication e args')
-    addHoles ::
-      Interval ->
-      Maybe Arity ->
-      Arity ->
-      [(IsImplicit, Expression)] ->
-      Sem r [(IsImplicit, Expression)]
-    addHoles loc hint ari args = case (ari, args) of
-      (ArityFunction (FunctionArity ParamImplicit r), (Implicit, e) : rest) ->
-        ((Implicit, e) :) <$> addHoles loc hint r rest
-      (ArityFunction (FunctionArity (ParamExplicit {}) r), (Explicit, e) : rest) ->
-        ((Explicit, e) :) <$> addHoles loc hint r rest
-      (ArityFunction (FunctionArity ParamImplicit _), [])
-        -- When there are no remaining arguments and the expected arity of the
-        -- expression matches the current arity we should *not* insert a hole.
-        | Just ari == hint -> return []
-      (ArityFunction (FunctionArity ParamImplicit r), _) -> do
-        h <- newHole loc
-        ((Implicit, ExpressionHole h) :) <$> addHoles loc hint r args
-      (ArityFunction (FunctionArity (ParamExplicit {}) _), (Implicit, _) : _) ->
-        throw @ArityCheckerError (error "expected explicit but got implicit argument")
-      (ArityUnit, []) -> return []
-      (ArityFunction (FunctionArity (ParamExplicit _) _), []) -> return []
-      (ArityUnit, _ : _) -> error "too many arguments"
-      (ArityUnknown, []) -> return []
-      (ArityUnknown, p : ps) -> (p :) <$> addHoles loc hint ArityUnknown ps
+      return (foldApplication fun args')
+      where
+        addHoles ::
+          Interval ->
+          Arity ->
+          Arity ->
+          [(IsImplicit, Expression)] ->
+          Sem r [(IsImplicit, Expression)]
+        addHoles loc hint = go 0
+          where
+            go ::
+              Int ->
+              Arity ->
+              [(IsImplicit, Expression)] ->
+              Sem r [(IsImplicit, Expression)]
+            go idx ari goargs = case (ari, goargs) of
+              (ArityFunction (FunctionArity ParamImplicit r), (Implicit, e) : rest) ->
+                ((Implicit, e) :) <$> go (succ idx) r rest
+              (ArityFunction (FunctionArity (ParamExplicit {}) r), (Explicit, e) : rest) ->
+                ((Explicit, e) :) <$> go (succ idx) r rest
+              (ArityFunction (FunctionArity ParamImplicit _), [])
+                -- When there are no remaining arguments and the expected arity of the
+                -- expression matches the current arity we should *not* insert a hole.
+                | ari == hint -> return []
+              (ArityFunction (FunctionArity ParamImplicit r), _) -> do
+                h <- newHole loc
+                ((Implicit, ExpressionHole h) :) <$> go (succ idx) r goargs
+              (ArityFunction (FunctionArity (ParamExplicit {}) _), (Implicit, _) : _) ->
+                throw
+                  ( ErrExpectedExplicitArgument
+                      ExpectedExplicitArgument
+                        { _expectedExplicitArgumentApp = (fun, args),
+                          _expectedExplicitArgumentIx = idx
+                        }
+                  )
+              (ArityUnit, []) -> return []
+              (ArityFunction (FunctionArity (ParamExplicit _) _), []) -> return []
+              (ArityUnit, _ : _) ->
+                throw
+                  ( ErrTooManyArguments
+                      TooManyArguments
+                        { _tooManyArgumentsApp = (fun, args),
+                          _tooManyArgumentsUnexpected = length goargs
+                        }
+                  )
+              (ArityUnknown, []) -> return []
+              (ArityUnknown, p : ps) -> (p :) <$> go (succ idx) ArityUnknown ps
 
 newHole :: Member NameIdGen r => Interval -> Sem r Hole
 newHole loc = (`Hole` loc) <$> freshNameId

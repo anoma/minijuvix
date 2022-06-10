@@ -109,7 +109,7 @@ instance ToGenericError WrongType where
     where
       i = getLoc (e ^. wrongTypeExpression)
       msg =
-        "Type error near" <+> highlight (pretty (getLoc subjectExpr)) <> "."
+        "Type error near" <+> pretty (getLoc subjectExpr) <> "."
           <> line
           <> "The expression" <+> ppCode subjectExpr <+> "has type:"
           <> line
@@ -142,7 +142,7 @@ instance ToGenericError ExpectedFunctionType where
     where
       i = getLoc (e ^. expectedFunctionTypeExpression)
       msg =
-        "Type error near" <+> highlight (pretty (getLoc subjectExpr)) <> "."
+        "Type error near" <+> pretty (getLoc subjectExpr) <> "."
           <> line
           <> "In the expression:"
           <> line
@@ -153,35 +153,3 @@ instance ToGenericError ExpectedFunctionType where
           <> indent' (ppCode (e ^. expectedFunctionTypeType))
       subjectExpr :: Expression
       subjectExpr = e ^. expectedFunctionTypeExpression
-
--- | A function definition clause matches too many arguments
-data TooManyPatterns = TooManyPatterns
-  { _tooManyPatternsClause :: FunctionClause,
-    _tooManyPatternsTypes :: [FunctionArgType]
-  }
-
-makeLenses ''TooManyPatterns
-
-instance ToGenericError TooManyPatterns where
-  genericError e =
-    GenericError
-      { _genericErrorLoc = i,
-        _genericErrorMessage = prettyError msg,
-        _genericErrorIntervals = [i]
-      }
-    where
-      i = getLoc (e ^. tooManyPatternsClause . clauseName)
-
-      name :: Name
-      name = e ^. tooManyPatternsClause . clauseName
-
-      msg =
-        "Type error near" <+> highlight (pretty (name ^. nameDefined))
-          <> line
-          <> "In in the definition of" <+> ppCode name <+> "the function clause:"
-          <> line
-          <> indent' (ppCode (e ^. tooManyPatternsClause))
-          <> line
-          <> "matches too many patterns. It should match the following types:"
-          <> line
-          <> indent' (hsep (ppCode <$> (e ^. tooManyPatternsTypes)))
