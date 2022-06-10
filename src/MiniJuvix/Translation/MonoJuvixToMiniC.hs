@@ -258,7 +258,7 @@ functionDefClosures ::
   Member (Reader Mono.InfoTable) r =>
   Mono.FunctionDef ->
   Sem r [ClosureInfo]
-functionDefClosures Mono.FunctionDef {..} = do
+functionDefClosures Mono.FunctionDef {..} =
   concatMapM (clauseClosures (fst (unfoldFunType _funDefType))) (toList _funDefClauses)
 
 goFunctionDef ::
