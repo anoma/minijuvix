@@ -549,7 +549,7 @@ data Expression
   | ExpressionLiteral LiteralLoc
   | ExpressionFunction (Function 'Scoped)
   | ExpressionHole (HoleType 'Scoped)
-  | ExpressionBraces (ALoc Expression)
+  | ExpressionBraces (WithLoc Expression)
   deriving stock (Show, Eq, Ord)
 
 instance HasAtomicity Expression where
@@ -922,7 +922,7 @@ data ExpressionAtom (s :: Stage)
   = AtomIdentifier (IdentifierType s)
   | AtomLambda (Lambda s)
   | AtomHole (HoleType s)
-  | AtomBraces (ALoc (ExpressionType s))
+  | AtomBraces (WithLoc (ExpressionType s))
   | AtomLetBlock (LetBlock s)
   | AtomUniverse Universe
   | AtomFunction (Function s)

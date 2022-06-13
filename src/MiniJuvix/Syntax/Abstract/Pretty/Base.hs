@@ -125,7 +125,7 @@ instance PrettyCode Application where
     l' <- ppLeftExpression appFixity l
     r' <- case i of
       Explicit -> ppRightExpression appFixity r
-      Implicit -> braces <$> ppCode r
+      Implicit -> implicitDelim i <$> ppCode r
     return $ l' <+> r'
 
 instance PrettyCode Universe where

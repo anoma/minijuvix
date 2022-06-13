@@ -211,7 +211,7 @@ goExpression = \case
       return (A.Application l' r' i)
       where
         (r, i) = case arg of
-          ExpressionBraces b -> (b ^. aLocA, Implicit)
+          ExpressionBraces b -> (b ^. withLocParam, Implicit)
           _ -> (arg, Explicit)
 
     goPostfix :: PostfixApplication -> Sem r A.Application

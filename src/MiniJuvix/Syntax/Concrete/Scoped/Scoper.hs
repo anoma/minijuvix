@@ -1114,7 +1114,7 @@ checkExpressionAtom e = case e of
   AtomUniverse uni -> return (AtomUniverse uni)
   AtomFunction fun -> AtomFunction <$> checkFunction fun
   AtomParens par -> AtomParens <$> checkParens par
-  AtomBraces br -> AtomBraces <$> traverseOf aLocA checkParseExpressionAtoms br
+  AtomBraces br -> AtomBraces <$> traverseOf withLocParam checkParseExpressionAtoms br
   AtomFunArrow -> return AtomFunArrow
   AtomHole h -> AtomHole <$> checkHole h
   AtomLiteral l -> return (AtomLiteral l)
@@ -1419,7 +1419,7 @@ parseTerm =
     parseBraces :: Parse Expression
     parseBraces = ExpressionBraces <$> P.token bracedExpr mempty
       where
-        bracedExpr :: ExpressionAtom 'Scoped -> Maybe (ALoc Expression)
+        bracedExpr :: ExpressionAtom 'Scoped -> Maybe (WithLoc Expression)
         bracedExpr s = case s of
           AtomBraces l -> Just l
           _ -> Nothing

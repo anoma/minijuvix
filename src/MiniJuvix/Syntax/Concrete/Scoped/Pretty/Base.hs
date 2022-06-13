@@ -718,8 +718,8 @@ instance PrettyCode ScopedIden where
     ScopedFunction f -> ppCode f
     ScopedConstructor c -> ppCode c
 
-instance PrettyCode c => PrettyCode (ALoc c) where
-  ppCode = ppCode . (^. aLocA)
+instance PrettyCode c => PrettyCode (WithLoc c) where
+  ppCode = ppCode . (^. withLocParam)
 
 instance PrettyCode Expression where
   ppCode e = case e of
@@ -825,7 +825,7 @@ instance SingI s => PrettyCode (ExpressionAtom s) where
     AtomFunArrow -> return kwArrowR
     AtomMatch m -> ppCode m
     AtomParens e -> parens <$> ppExpression e
-    AtomBraces e -> braces <$> ppExpression (e ^. aLocA)
+    AtomBraces e -> braces <$> ppExpression (e ^. withLocParam)
     AtomHole w -> ppHole w
 
 instance SingI s => PrettyCode (ExpressionAtoms s) where

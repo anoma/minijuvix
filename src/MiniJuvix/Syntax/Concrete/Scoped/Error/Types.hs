@@ -278,7 +278,7 @@ instance HasLoc NotInScope where
   getLoc = getLoc . (^. notInScopeSymbol)
 
 newtype AppLeftImplicit = AppLeftImplicit
-  { _appLeftImplicit :: ALoc Expression
+  { _appLeftImplicit :: WithLoc Expression
   }
   deriving stock (Show)
 

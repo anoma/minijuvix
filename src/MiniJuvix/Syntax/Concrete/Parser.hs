@@ -188,7 +188,7 @@ expressionAtom =
     <|> (AtomHole <$> hole)
     <|> parens (AtomParens <$> parseExpressionAtoms)
     -- TODO: revise this try. Necessary to avoid confusion with match
-    <|> P.try (braces (AtomBraces <$> aLoc parseExpressionAtoms))
+    <|> P.try (braces (AtomBraces <$> withLoc parseExpressionAtoms))
 
 parseExpressionAtoms ::
   Members '[Reader ParserParams, InfoTableBuilder] r =>

@@ -94,10 +94,10 @@ interval ma = do
   end <- curLoc
   return (res, mkInterval start end)
 
-aLoc :: Member (Reader ParserParams) r => ParsecS r a -> ParsecS r (ALoc a)
-aLoc ma = do
+withLoc :: Member (Reader ParserParams) r => ParsecS r a -> ParsecS r (WithLoc a)
+withLoc ma = do
   (a, i) <- interval ma
-  return (ALoc i a)
+  return (WithLoc i a)
 
 keyword :: Members '[Reader ParserParams, InfoTableBuilder] r => Text -> ParsecS r ()
 keyword kw = do
