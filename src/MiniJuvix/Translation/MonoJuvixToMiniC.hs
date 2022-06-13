@@ -409,71 +409,70 @@ goFunctionClause argTyps clause = do
 
 genClosure :: ClosureInfo -> [Function]
 genClosure ClosureInfo {..} =
-  [ Function
-      { _funcSig =
-          FunctionSig
-            { _funcReturnType = returnType ^. typeDeclType,
-              _funcIsPtr = returnType ^. typeIsPtr,
-              _funcQualifier = None,
-              _funcName = funName,
-              _funcArgs = namedArgs asFunArg (declFunctionPtrType : argTypes)
-            },
-        _funcBody =
-          [ returnStatement
-              ( functionCall
-                  (ExpressionVar _closureRootName)
-                  (ExpressionVar <$> take (length argTypes) (drop 1 funArgs))
-              )
-          ]
-      },
-    Function
-      { _funcSig =
-          FunctionSig
-            { _funcReturnType = declFunctionType,
-              _funcIsPtr = True,
-              _funcQualifier = None,
-              _funcName = asNew funName,
-              _funcArgs = []
-            },
-        _funcBody =
-          [ BodyDecl
-              ( Declaration
-                  { _declType = declFunctionType,
-                    _declIsPtr = True,
-                    _declName = Just localName,
-                    _declInitializer = Just $ ExprInitializer (mallocSizeOf Str.minijuvixFunctionT)
-                  }
-              ),
-            BodyStatement
-              ( StatementExpr
-                  ( ExpressionAssign
-                      ( Assign
-                          { _assignLeft = memberAccess Pointer (ExpressionVar localName) "fun",
-                            _assignRight =
-                              castToType
-                                ( CDeclType
-                                    { _typeDeclType = uIntPtrType,
-                                      _typeIsPtr = False
-                                    }
-                                )
-                                (ExpressionVar funName)
-                          }
-                      )
+  let returnType :: CDeclType
+      returnType = _closureFunType ^. cFunReturnType
+      argTypes :: [CDeclType]
+      argTypes = _closureFunType ^. cFunArgTypes
+      localName :: Text
+      localName = "f"
+      funName :: Text
+      funName = asFun _closureRootName
+   in [ Function
+          { _funcSig =
+              FunctionSig
+                { _funcReturnType = returnType ^. typeDeclType,
+                  _funcIsPtr = returnType ^. typeIsPtr,
+                  _funcQualifier = None,
+                  _funcName = funName,
+                  _funcArgs = namedArgs asFunArg (declFunctionPtrType : argTypes)
+                },
+            _funcBody =
+              [ returnStatement
+                  ( functionCall
+                      (ExpressionVar _closureRootName)
+                      (ExpressionVar <$> take (length argTypes) (drop 1 funArgs))
                   )
-              ),
-            returnStatement (ExpressionVar localName)
-          ]
-      }
-  ]
-  where
-    returnType :: CDeclType
-    returnType = _closureFunType ^. cFunReturnType
-    argTypes :: [CDeclType]
-    argTypes = _closureFunType ^. cFunArgTypes
-    localName :: Text
-    localName = "f"
-    funName :: Text
-    funName = asFun _closureRootName
+              ]
+          },
+        Function
+          { _funcSig =
+              FunctionSig
+                { _funcReturnType = declFunctionType,
+                  _funcIsPtr = True,
+                  _funcQualifier = None,
+                  _funcName = asNew funName,
+                  _funcArgs = []
+                },
+            _funcBody =
+              [ BodyDecl
+                  ( Declaration
+                      { _declType = declFunctionType,
+                        _declIsPtr = True,
+                        _declName = Just localName,
+                        _declInitializer = Just $ ExprInitializer (mallocSizeOf Str.minijuvixFunctionT)
+                      }
+                  ),
+                BodyStatement
+                  ( StatementExpr
+                      ( ExpressionAssign
+                          ( Assign
+                              { _assignLeft = memberAccess Pointer (ExpressionVar localName) "fun",
+                                _assignRight =
+                                  castToType
+                                    ( CDeclType
+                                        { _typeDeclType = uIntPtrType,
+                                          _typeIsPtr = False
+                                        }
+                                    )
+                                    (ExpressionVar funName)
+                              }
+                          )
+                      )
+                  ),
+                returnStatement (ExpressionVar localName)
+              ]
+          }
+      ]
 
 genClosureExpression ::
   forall r.
