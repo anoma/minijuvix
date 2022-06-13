@@ -296,7 +296,7 @@ instance ToGenericError AppLeftImplicit where
       msg =
         "The expression" <+> ppCode (e ^. appLeftImplicit) <+> "cannot appear by itself."
           <> line
-          <> "It needs to be the argument to a function expecting an implicit argument."
+          <> "It needs to be the argument of a function expecting an implicit argument."
 
 newtype ModuleNotInScope = ModuleNotInScope
   { _moduleNotInScopeName :: Name

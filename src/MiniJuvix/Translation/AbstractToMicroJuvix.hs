@@ -151,10 +151,10 @@ goFunction (Abstract.Function l r) = do
   l' <- goFunctionParameter l
   r' <- goType r
   return $ case l' of
-    Left tyvar ->
+    Left tyVar ->
       TypeAbs
         ( TypeAbstraction
-            { _typeAbsVar = tyvar,
+            { _typeAbsVar = tyVar,
               _typeAbsImplicit = l ^. Abstract.paramImplicit,
               _typeAbsBody = r'
             }

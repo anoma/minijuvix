@@ -268,6 +268,7 @@ inferExpression' e = case e of
       return (TypedExpression TypeUniverse (ExpressionFunction (FunctionExpression l' r')))
     goLiteral :: LiteralLoc -> Sem r TypedExpression
     goLiteral l = return (TypedExpression TypeAny (ExpressionLiteral l))
+
     inferIden :: Iden -> Sem r TypedExpression
     inferIden i = case i of
       IdenFunction fun -> do

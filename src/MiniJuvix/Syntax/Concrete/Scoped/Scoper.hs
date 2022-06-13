@@ -1182,25 +1182,6 @@ checkParseExpressionAtoms ::
   Sem r Expression
 checkParseExpressionAtoms = checkExpressionAtoms >=> parseExpressionAtoms
 
--- checkImplicit e
--- return e
-
--- checkImplicit :: forall r. Members '[Error ScoperError] r =>
---   Expression ->
---   Sem r ()
--- checkImplicit = go
---  where
---    go :: Expression -> Sem r ()
---    go = \case
---      ExpressionIdentifier {} -> return ()
---      ExpressionParensIdentifier {} -> return ()
---      ExpressionInfixApplication a -> goIndix a
---      ExpressionPostfixApplication a -> goPostfix a
---      ExpressionLambda {} -> return ()
---      ExpressionMatch {} -> return ()
---      ExpressionLetBlock {} -> return ()
---      ExpressionFunction {} -> return ()
-
 checkParsePatternAtom ::
   Members '[Error ScoperError, State Scope, State ScoperState, InfoTableBuilder, NameIdGen] r =>
   PatternAtom 'Parsed ->
@@ -1228,6 +1209,7 @@ checkStatement s = case s of
 -------------------------------------------------------------------------------
 -- Infix Expression
 -------------------------------------------------------------------------------
+
 makeExpressionTable2 ::
   ExpressionAtoms 'Scoped -> [[P.Operator Parse Expression]]
 makeExpressionTable2 (ExpressionAtoms atoms _) = [appOpExplicit] : operators ++ [[functionOp]]
@@ -1420,7 +1402,7 @@ parseTerm =
     parseBraces = ExpressionBraces <$> P.token bracedExpr mempty
       where
         bracedExpr :: ExpressionAtom 'Scoped -> Maybe (WithLoc Expression)
-        bracedExpr s = case s of
+        bracedExpr = \case
           AtomBraces l -> Just l
           _ -> Nothing
 

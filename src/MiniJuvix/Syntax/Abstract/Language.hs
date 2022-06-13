@@ -114,7 +114,7 @@ data Expression
   deriving stock (Eq, Show)
 
 instance HasAtomicity Expression where
-  atomicity e = case e of
+  atomicity = \case
     ExpressionIden {} -> Atom
     ExpressionHole {} -> Atom
     ExpressionUniverse u -> atomicity u

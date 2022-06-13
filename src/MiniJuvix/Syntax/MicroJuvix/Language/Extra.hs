@@ -374,12 +374,16 @@ substitution m = go
       TypeUniverse -> TypeUniverse
       TypeAny -> TypeAny
       TypeHole h -> TypeHole h
+
     goApp :: TypeApplication -> TypeApplication
     goApp (TypeApplication l r i) = TypeApplication (go l) (go r) i
+
     goAbs :: TypeAbstraction -> TypeAbstraction
     goAbs (TypeAbstraction v i b) = TypeAbstraction v i (go b)
+
     goFunction :: Function -> Function
     goFunction (Function l r) = Function (go l) (go r)
+
     goIden :: TypeIden -> Type
     goIden i = case i of
       TypeIdenInductive {} -> TypeIden i

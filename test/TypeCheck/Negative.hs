@@ -63,14 +63,6 @@ tests =
       $ \case
         ErrExpectedFunctionType {} -> Nothing
         _ -> wrongError,
-    -- TODO: Move to arity
-    -- NegTest
-    --   "Function definition clause with two many match patterns"
-    --   "MicroJuvix"
-    --   "TooManyPatterns.mjuvix"
-    --   $ \case
-    --     ErrTooManyPatterns {} -> Nothing
-    --     _ -> wrongError,
     NegTest
       "Unsolved hole"
       "MicroJuvix"

@@ -191,5 +191,5 @@ instance ToGenericError FunctionApplied where
       args = e ^. functionAppliedArguments
       fun = ExpressionFunction (e ^. functionAppliedFunction)
       msg =
-        "A function (arrow type) cannot be applied." <> softline
+        "A function type cannot be applied." <> softline
           <> "In the application" <+> ppApp (fun, args)

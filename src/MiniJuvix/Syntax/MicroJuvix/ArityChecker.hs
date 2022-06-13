@@ -5,8 +5,6 @@ module MiniJuvix.Syntax.MicroJuvix.ArityChecker
   )
 where
 
--- import Data.HashMap.Strict qualified as HashMap
-
 import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Prelude hiding (fromEither)
 import MiniJuvix.Syntax.MicroJuvix.ArityChecker.Arity
@@ -67,9 +65,9 @@ checkStatement ::
   Sem r Statement
 checkStatement s = case s of
   StatementFunction fun -> StatementFunction <$> checkFunctionDef fun
+  StatementInclude i -> StatementInclude <$> checkInclude i
   StatementForeign {} -> return s
   StatementInductive {} -> return s
-  StatementInclude i -> StatementInclude <$> checkInclude i
   StatementAxiom {} -> return s
 
 checkFunctionDef ::
@@ -121,11 +119,14 @@ guessArity = \case
     idenHelper i = case i of
       IdenVar {} -> return Nothing
       _ -> Just <$> runReader (LocalVars mempty) (idenArity i)
+
     appHelper :: Application -> Sem r (Maybe Arity)
     appHelper a = do
       f' <- arif
       return (f' >>= \f'' -> foldArity <$> refine (unfoldArity f'') args)
       where
+        (f, args) = second (map fst . toList) (unfoldApplication' a)
+
         refine :: [ArityParameter] -> [IsImplicit] -> Maybe [ArityParameter]
         refine ps as = case (ps, as) of
           (ParamExplicit {} : ps', Explicit : as') -> refine ps' as'
@@ -134,7 +135,7 @@ guessArity = \case
           (ParamExplicit {} : _, Implicit : _) -> Nothing
           (ps', []) -> Just ps'
           ([], _ : _) -> Nothing
-        (f, args) = second (map fst . toList) (unfoldApplication' a)
+
         arif :: Sem r (Maybe Arity)
         arif = case f of
           ExpressionHole {} -> return Nothing
@@ -322,6 +323,7 @@ checkExpression hintArity expr = case expr of
   where
     goApp :: Application -> Sem r Expression
     goApp = uncurry appHelper . second toList . unfoldApplication'
+
     appHelper :: Expression -> [(IsImplicit, Expression)] -> Sem r Expression
     appHelper fun args = do
       args' :: [(IsImplicit, Expression)] <- case fun of
