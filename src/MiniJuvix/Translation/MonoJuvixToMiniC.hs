@@ -482,7 +482,7 @@ genClosureExpression ::
   Sem r [ClosureInfo]
 genClosureExpression = \case
   Mono.ExpressionIden i -> do
-    let rootFunMonoName = getName i
+    let rootFunMonoName = Mono.getName i
         rootFunNameId = rootFunMonoName ^. Mono.nameId
         rootFunName = mkName rootFunMonoName
     case i of
@@ -515,7 +515,7 @@ genClosureExpression = \case
 goExpression :: Members '[Reader Mono.InfoTable, Reader PatternInfoTable] r => Mono.Expression -> Sem r Expression
 goExpression = \case
   Mono.ExpressionIden i -> do
-    let rootFunMonoName = getName i
+    let rootFunMonoName = Mono.getName i
         rootFunName = mkName rootFunMonoName
         funName = asFun rootFunName
         newFunName = asNew funName
@@ -554,13 +554,6 @@ getType = \case
     return $ typeToFunType (fInfo ^. Mono.axiomInfoType)
   Mono.IdenVar n ->
     (^. bindingInfoType) . HashMap.lookupDefault impossible (n ^. Mono.nameText) <$> asks (^. patternBindings)
-
-getName :: Mono.Iden -> Mono.Name
-getName = \case
-  Mono.IdenFunction n -> n
-  Mono.IdenConstructor n -> n
-  Mono.IdenVar n -> n
-  Mono.IdenAxiom n -> n
 
 goIden :: Members '[Reader PatternInfoTable, Reader Mono.InfoTable] r => Mono.Iden -> Sem r Expression
 goIden = \case
