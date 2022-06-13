@@ -217,6 +217,9 @@ mkName n =
     idSuffix :: Text
     idSuffix = "_" <> show (n ^. Mono.nameId . unNameId)
 
+isNullary :: Text -> CFunType -> Bool
+isNullary funName funType = null (funType ^. cFunArgTypes) && funName /= Str.main_
+
 cFunTypeToFunSig :: Text -> CFunType -> FunctionSig
 cFunTypeToFunSig name CFunType {..} =
   FunctionSig
@@ -234,19 +237,19 @@ genFunctionSig Mono.FunctionDef {..} =
   where
     funType :: CFunType
     funType = typeToFunType _funDefType
-    isNullary :: Bool
-    isNullary = null (funType ^. cFunArgTypes) && funcBasename /= Str.main_
+    funIsNullary :: Bool
+    funIsNullary = isNullary funcBasename funType
     funcBasename :: Text
     funcBasename = mkName _funDefName
     funName :: Text
     funName =
       if
-          | isNullary -> asNullary funcBasename
+          | funIsNullary -> asNullary funcBasename
           | otherwise -> funcBasename
     nullaryDefine :: Maybe Define
     nullaryDefine =
       if
-          | isNullary ->
+          | funIsNullary ->
               Just $
                 Define
                   { _defineName = funcBasename,
@@ -297,8 +300,8 @@ goFunctionDef Mono.FunctionDef {..} = do
               )
           )
 
-    isNullary :: Bool
-    isNullary = null funArgTypes && funcBasename /= Str.main_
+    funIsNullary :: Bool
+    funIsNullary = isNullary funcBasename funType
 
     funcBasename :: Text
     funcBasename = mkName _funDefName
@@ -306,11 +309,8 @@ goFunctionDef Mono.FunctionDef {..} = do
     funName :: Text
     funName =
       if
-          | isNullary -> asNullary funcBasename
+          | funIsNullary -> asNullary funcBasename
           | otherwise -> funcBasename
-
-    funArgTypes :: [CDeclType]
-    funArgTypes = funType ^. cFunArgTypes
 
     funType :: CFunType
     funType = typeToFunType _funDefType
