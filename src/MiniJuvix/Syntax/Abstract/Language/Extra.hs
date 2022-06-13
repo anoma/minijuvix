@@ -8,7 +8,7 @@ import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Language
 
 patternVariables :: Pattern -> [VarName]
-patternVariables pat = case pat of
+patternVariables = \case
   PatternVariable v -> [v]
   PatternWildcard {} -> []
   PatternEmpty {} -> []
