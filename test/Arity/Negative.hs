@@ -42,8 +42,7 @@ wrongError = Just "Incorrect error"
 
 tests :: [NegTest]
 tests =
-  [
-    NegTest
+  [ NegTest
       "Too many arguments in expression"
       "MicroJuvix"
       "TooManyArguments.mjuvix"
