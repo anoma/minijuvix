@@ -13,6 +13,7 @@ data MetavarState
 data Inference m a where
   FreshMetavar :: Hole -> Inference m TypedExpression
   MatchTypes :: Type -> Type -> Inference m Bool
+  QueryMetavar :: Hole -> Inference m (Maybe Type)
 
 makeSem ''Inference
 
@@ -72,9 +73,14 @@ re :: Member (Error TypeCheckerError) r => Sem (Inference ': r) a -> Sem (State 
 re = reinterpret $ \case
   FreshMetavar h -> freshMetavar' h
   MatchTypes a b -> matchTypes' a b
+  QueryMetavar h -> queryMetavar' h
   where
     queryMetavar' :: Members '[State InferenceState] r => Hole -> Sem r (Maybe Type)
-    queryMetavar' h = metavarType <$> getMetavar h
+    queryMetavar' h = do
+      s <- getMetavar h
+      case s of
+        Fresh -> return Nothing
+        Refined t -> return (Just t)
 
     freshMetavar' :: Members '[State InferenceState] r => Hole -> Sem r TypedExpression
     freshMetavar' h = do
@@ -98,11 +104,6 @@ re = reinterpret $ \case
       case s of
         Fresh -> modify (over inferenceMap (HashMap.insert h (Refined t)))
         Refined {} -> impossible
-
-    metavarType :: MetavarState -> Maybe Type
-    metavarType = \case
-      Fresh -> Nothing
-      Refined t -> Just t
 
     -- Supports alpha equivalence.
     matchTypes' :: Members '[Error TypeCheckerError, State InferenceState] r => Type -> Type -> Sem r Bool
