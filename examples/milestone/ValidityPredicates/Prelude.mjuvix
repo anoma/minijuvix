@@ -10,10 +10,10 @@ import System.IO;
 
 open Data.Bool public;
 open Data.Int public;
+open Data.String public;
 open Data.List public;
 open Data.Maybe public;
 open Data.Pair public;
-open Data.String public;
 open System.IO public;
 
 --------------------------------------------------------------------------------
