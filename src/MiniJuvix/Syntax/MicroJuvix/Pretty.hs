@@ -9,6 +9,8 @@ import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Ann
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Ansi qualified as Ansi
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Base
+
+import Prettyprinter.Render.Terminal qualified as Ansi
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Options
 
 newtype PPOutput = PPOutput (Doc Ann)
@@ -18,6 +20,9 @@ ppOutDefault = AnsiText . PPOutput . doc defaultOptions
 
 ppOut :: PrettyCode c => Options -> c -> AnsiText
 ppOut o = AnsiText . PPOutput . doc o
+
+ppSimple :: PrettyCode c => c -> Text
+ppSimple = Ansi.renderStrict . reAnnotateS Ansi.stylize . layoutPretty defaultLayoutOptions . doc defaultOptions
 
 instance HasAnsiBackend PPOutput where
   toAnsiStream (PPOutput o) = reAnnotateS Ansi.stylize (layoutPretty defaultLayoutOptions o)

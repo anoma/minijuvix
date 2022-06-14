@@ -16,6 +16,7 @@ import MiniJuvix.Syntax.MonoJuvix.Language.Extra
 import MiniJuvix.Syntax.MonoJuvix.MonoJuvixResult
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypeCallsMapBuilder
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix.TypePropagation
+import MiniJuvix.Syntax.MicroJuvix.Pretty qualified as Micro
 
 data PolyIden
   = PolyFunctionIden Micro.FunctionName
