@@ -33,7 +33,7 @@ end;
 
 The result is compiled to WASM using [[https://llvm.org][Clang]] and then executed using [[https://wasmer.io][wasmer]].
 
-NB: Set the =WASI_SYSROOT_PATH= environment variable to the root of the WASI sysroot. See [[#Dependencies][Dependencies]] for instructions on how to install the sysroot.
+NB: Set the =WASI_SYSROOT_PATH= environment variable to the root of the WASI sysroot. See [[../../getting-started/dependencies.md][Installing dependencies]] for instructions on how to install the sysroot.
 
 #+begin_src shell
 cd tests/positive/MiniC/HelloWorld
