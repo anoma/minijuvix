@@ -90,7 +90,10 @@ re = reinterpret $ \case
       Hole ->
       Type ->
       Sem r ()
-    refineFreshMetavar h t = do
+    refineFreshMetavar h t
+     | TypeHole h' <- t, h' == h = return ()
+     | otherwise
+      = do
       s <- gets (fromJust . (^. inferenceMap . at h))
       case s of
         Fresh -> modify (over inferenceMap (HashMap.insert h (Refined t)))
