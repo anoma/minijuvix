@@ -127,5 +127,7 @@ tests =
     PosTest "Multiple modules" "MultiModules",
     PosTest "Higher Order Functions" "HigherOrder",
     PosTest "Higher Order Functions and explicit holes" "PolymorphismHoles",
-    PosTest "Closures with no environment" "ClosureNoEnv"
+    PosTest "Closures with no environment" "ClosureNoEnv",
+    PosTest "Closures with environment" "ClosureEnv",
+    PosTest "SimpleFungibleTokenImplicit" "SimpleFungibleTokenImplicit"
   ]
