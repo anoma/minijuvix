@@ -97,13 +97,13 @@ re = reinterpret $ \case
       Type ->
       Sem r ()
     refineFreshMetavar h t
-     | TypeHole h' <- t, h' == h = return ()
-     | otherwise
-      = do
-      s <- gets (fromJust . (^. inferenceMap . at h))
-      case s of
-        Fresh -> modify (over inferenceMap (HashMap.insert h (Refined t)))
-        Refined {} -> impossible
+      | TypeHole h' <- t, h' == h = return ()
+      | otherwise =
+          do
+            s <- gets (fromJust . (^. inferenceMap . at h))
+            case s of
+              Fresh -> modify (over inferenceMap (HashMap.insert h (Refined t)))
+              Refined {} -> impossible
 
     -- Supports alpha equivalence.
     matchTypes' :: Members '[Error TypeCheckerError, State InferenceState] r => Type -> Type -> Sem r Bool
