@@ -157,7 +157,7 @@ tests =
       "Parsing"
       "."
       "Parsing.mjuvix",
-     PosTest
+    PosTest
       "open overrides open public"
       "."
       "ShadowPublicOpen.mjuvix"
