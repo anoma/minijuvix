@@ -258,7 +258,7 @@ freshHole l = do
 
 inferExpression' ::
   forall r.
-  Members '[Reader InfoTable, Reader LocalVars, Error TypeCheckerError, NameIdGen, NameIdGen, Inference] r =>
+  Members '[Reader InfoTable, Reader LocalVars, Error TypeCheckerError, NameIdGen, Inference] r =>
   Expression ->
   Sem r TypedExpression
 inferExpression' e = case e of
