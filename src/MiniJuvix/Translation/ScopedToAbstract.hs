@@ -101,16 +101,19 @@ goStatement (Indexed idx s) =
     StatementFunctionClause {} -> return Nothing
     StatementCompile {} -> return Nothing
 
-goOpenModule :: forall r.
+goOpenModule ::
+  forall r.
   Members '[InfoTableBuilder, Error ScoperError] r =>
-   OpenModule 'Scoped  -> Sem r (Maybe Abstract.Statement)
+  OpenModule 'Scoped ->
+  Sem r (Maybe Abstract.Statement)
 goOpenModule o
- | o ^. openModuleImport =
-   case o ^. openModuleName of
-     ModuleRef' (SModuleTop :&: m) -> Just . Abstract.StatementImport <$>
-       goModule (m ^. moduleRefModule)
-     _ -> impossible
- | otherwise = return Nothing
+  | o ^. openModuleImport =
+      case o ^. openModuleName of
+        ModuleRef' (SModuleTop :&: m) ->
+          Just . Abstract.StatementImport
+            <$> goModule (m ^. moduleRefModule)
+        _ -> impossible
+  | otherwise = return Nothing
 
 goFunctionDef ::
   forall r.
