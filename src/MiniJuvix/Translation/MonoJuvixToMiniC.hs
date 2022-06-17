@@ -71,13 +71,23 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
     cmodules = do
       m <- toList (i ^. Mono.resultModules)
       let buildTable = Mono.buildTable m
-      run (runReader compileInfo (genCTypes m))
+      genStructDefs m
+        <> run (runReader compileInfo (genCTypes m))
         <> genFunctionSigs m
         <> run (runReader buildTable (genClosures m))
         <> run (runReader buildTable (genFunctionDefs m))
 
 unsupported :: Text -> a
 unsupported msg = error (msg <> " Mono to C: not yet supported")
+
+genStructDefs :: Mono.Module -> [CCode]
+genStructDefs Mono.Module {..} =
+  concatMap go (_moduleBody ^. Mono.moduleStatements)
+  where
+    go :: Mono.Statement -> [CCode]
+    go = \case
+      Mono.StatementInductive d -> mkInductiveTypeDef d
+      _ -> []
 
 genCTypes :: forall r. Members '[Reader Mono.CompileInfoTable] r => Mono.Module -> Sem r [CCode]
 genCTypes Mono.Module {..} =
@@ -880,9 +890,29 @@ mkInductiveName i = mkName (i ^. Mono.inductiveName)
 mkInductiveConstructorNames :: Mono.InductiveDef -> [Text]
 mkInductiveConstructorNames i = mkName . view Mono.constructorName <$> i ^. Mono.inductiveConstructors
 
+mkInductiveTypeDef :: Mono.InductiveDef -> [CCode]
+mkInductiveTypeDef i =
+  [ ExternalDecl structTypeDef ]
+  where
+    structTypeDef :: Declaration
+    structTypeDef =
+      typeDefWrap
+        (asTypeDef baseName)
+        ( DeclStructUnion
+            ( StructUnion
+                { _structUnionTag = StructTag,
+                  _structUnionName = Just (asStruct baseName),
+                  _structMembers = Nothing
+                }
+            )
+        )
+
+    baseName :: Text
+    baseName = mkName (i ^. Mono.inductiveName)
+
 goInductiveDef :: Mono.InductiveDef -> [CCode]
 goInductiveDef i =
-  [ ExternalDecl structTypeDef,
+  [
     ExternalDecl tagsType
   ]
     <> (i ^. Mono.inductiveConstructors >>= goInductiveConstructorDef)
@@ -896,19 +926,6 @@ goInductiveDef i =
 
     constructorNames :: [Text]
     constructorNames = mkInductiveConstructorNames i
-
-    structTypeDef :: Declaration
-    structTypeDef =
-      typeDefWrap
-        (asTypeDef baseName)
-        ( DeclStructUnion
-            ( StructUnion
-                { _structUnionTag = StructTag,
-                  _structUnionName = Just (asStruct baseName),
-                  _structMembers = Nothing
-                }
-            )
-        )
 
     tagsType :: Declaration
     tagsType =
