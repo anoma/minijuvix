@@ -6,6 +6,7 @@ $ cd examples/milestone/ValidityPredicates/ && minijuvix html Prelude.mjuvix && 
 > /<!DOCTYPE HTML>.*/
 >= 0
 
-$ cd examples/milestone/ValidityPredicates/ && minijuvix html --recursive SimpleFungibleToken.mjuvix && cat html/Data.Bool.html hml/Data.Int.html
-> /<!DOCTYPE HTML>.*/
+$ [ ! -d examples/html ] && minijuvix html examples/milestone/ValidityPredicates/Prelude.mjuvix --output-dir=examples/html && [ -d examples/html/assets ] && [ -f examples/html/Prelude.html ] && rm -r examples/html
+> 
+Writing Prelude.html
 >= 0
