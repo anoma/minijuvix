@@ -11,8 +11,6 @@ import MiniJuvix.Syntax.Abstract.Language.Extra
 import MiniJuvix.Syntax.Abstract.Pretty.Ann
 import MiniJuvix.Syntax.Abstract.Pretty.Options
 import MiniJuvix.Syntax.Concrete.Scoped.Pretty.Base qualified as S
-import MiniJuvix.Syntax.Universe
-import MiniJuvix.Syntax.Usage
 import Prettyprinter
 
 doc :: PrettyCode c => Options -> c -> Doc Ann

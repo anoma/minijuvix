@@ -4,6 +4,7 @@ module MiniJuvix.Syntax.Concrete.Language
   ( module MiniJuvix.Syntax.Concrete.Language,
     module MiniJuvix.Syntax.Concrete.Name,
     module MiniJuvix.Syntax.Concrete.Scoped.NameRef,
+    module MiniJuvix.Syntax.Concrete.Builtins,
     module MiniJuvix.Syntax.Concrete.Loc,
     module MiniJuvix.Syntax.Hole,
     module MiniJuvix.Syntax.Concrete.LiteralLoc,
@@ -24,6 +25,7 @@ where
 import Data.Kind qualified as GHC
 import MiniJuvix.Prelude hiding (show)
 import MiniJuvix.Syntax.Backends
+import MiniJuvix.Syntax.Concrete.Builtins
 import MiniJuvix.Syntax.Concrete.Language.Stage
 import MiniJuvix.Syntax.Concrete.LiteralLoc
 import MiniJuvix.Syntax.Concrete.Loc
@@ -237,7 +239,8 @@ deriving stock instance (Eq (ExpressionType s), Eq (SymbolType s)) => Eq (Induct
 deriving stock instance (Ord (ExpressionType s), Ord (SymbolType s)) => Ord (InductiveParameter s)
 
 data InductiveDef (s :: Stage) = InductiveDef
-  { _inductiveName :: InductiveName s,
+  { _inductiveBuiltin :: Maybe BuiltinInductive,
+    _inductiveName :: InductiveName s,
     _inductiveParameters :: [InductiveParameter s],
     _inductiveType :: Maybe (ExpressionType s),
     _inductiveConstructors :: [InductiveConstructorDef s]

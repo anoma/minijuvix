@@ -8,6 +8,7 @@ where
 
 import Data.List.NonEmpty.Extra qualified as NonEmpty
 import Data.Singletons
+import MiniJuvix.Internal.Strings qualified as Str
 import MiniJuvix.Pipeline.EntryPoint
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Concrete.Base qualified as P
@@ -95,15 +96,28 @@ statement =
     <|> (StatementOpenModule <$> openModule)
     <|> (StatementEval <$> eval)
     <|> (StatementImport <$> import_)
-    <|> (StatementInductive <$> inductiveDef)
+    <|> (StatementInductive <$> inductiveDef Nothing)
     <|> (StatementPrint <$> printS)
     <|> (StatementForeign <$> foreignBlock)
     <|> (StatementModule <$> moduleDef)
     <|> (StatementAxiom <$> axiomDef)
     <|> (StatementCompile <$> compileBlock)
+    <|> builtinStatement
     <|> ( either StatementTypeSignature StatementFunctionClause
             <$> auxTypeSigFunClause
         )
+
+builtinInductive :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r BuiltinInductive
+builtinInductive =
+  keyword Str.natural $> BuiltinNatural
+
+builtinInductiveDef :: Members '[Reader ParserParams, InfoTableBuilder] r => BuiltinInductive -> ParsecS r (InductiveDef 'Parsed)
+builtinInductiveDef = inductiveDef . Just
+
+builtinStatement :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (Statement 'Parsed)
+builtinStatement = do
+  kwBuiltin
+  builtinInductive >>= fmap StatementInductive . builtinInductiveDef
 
 --------------------------------------------------------------------------------
 -- Compile
@@ -388,8 +402,8 @@ lambda = do
 -- Data type construction declaration
 -------------------------------------------------------------------------------
 
-inductiveDef :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (InductiveDef 'Parsed)
-inductiveDef = do
+inductiveDef :: Members '[Reader ParserParams, InfoTableBuilder] r => Maybe BuiltinInductive -> ParsecS r (InductiveDef 'Parsed)
+inductiveDef _inductiveBuiltin = do
   kwInductive
   _inductiveName <- symbol
   _inductiveParameters <- P.many inductiveParam

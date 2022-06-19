@@ -80,6 +80,12 @@ error = "error"
 string :: IsString s => s
 string = "string"
 
+natural :: IsString s => s
+natural = "natural"
+
+builtin :: IsString s => s
+builtin = "builtin"
+
 type_ :: IsString s => s
 type_ = "Type"
 

@@ -2,6 +2,8 @@ module MiniJuvix.Syntax.Abstract.Language
   ( module MiniJuvix.Syntax.Abstract.Language,
     module MiniJuvix.Syntax.Concrete.Language,
     module MiniJuvix.Syntax.Hole,
+    module MiniJuvix.Syntax.Usage,
+    module MiniJuvix.Syntax.Universe,
     module MiniJuvix.Syntax.Abstract.Name,
     module MiniJuvix.Syntax.Wildcard,
     module MiniJuvix.Syntax.IsImplicit,
@@ -10,10 +12,11 @@ where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Name
-import MiniJuvix.Syntax.Concrete.Language (BackendItem, ForeignBlock (..), LiteralLoc (..), Usage, symbolLoc)
+import MiniJuvix.Syntax.Concrete.Language (BackendItem, ForeignBlock (..), LiteralLoc (..), symbolLoc)
 import MiniJuvix.Syntax.Hole
 import MiniJuvix.Syntax.IsImplicit
 import MiniJuvix.Syntax.Universe
+import MiniJuvix.Syntax.Usage
 import MiniJuvix.Syntax.Wildcard
 
 type LocalModule = Module

@@ -458,6 +458,7 @@ checkInductiveDef InductiveDef {..} = do
     registerInductive'
       InductiveDef
         { _inductiveName = inductiveName',
+          _inductiveBuiltin = Nothing,
           _inductiveParameters = inductiveParameters',
           _inductiveType = inductiveType',
           _inductiveConstructors = inductiveConstructors'
