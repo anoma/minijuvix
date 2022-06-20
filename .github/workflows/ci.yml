@@ -114,7 +114,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest , macOS-latest]
-        ghc: ["9.2.2"]
+        ghc: ["9.2.3"]
     steps:
       - uses: actions/cache@v3
         name: Cache Stack
@@ -156,7 +156,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest , macOS-latest]
-        ghc: ["9.2.2"]
+        ghc: ["9.2.3"]
     steps:
       - uses: actions/cache@v3
         id: cache-build
