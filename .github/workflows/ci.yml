@@ -184,7 +184,7 @@ jobs:
           version: "13.0"
           cached: ${{ steps.cache-llvm.outputs.cache-hit }}
       - name: Remove Clang's GCC alias for stack GHC install
-        if: runner.os == "macOS"
+        if: runner.os == 'macOS'
         run : rm `which gcc`
       - name: Download and extract wasi-sysroot
         run: |
