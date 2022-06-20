@@ -183,6 +183,8 @@ jobs:
         with:
           version: "13.0"
           cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+      - name: Remove Clang's GCC alias for stack GHC install
+        run : rm `which gcc`
       - name: Download and extract wasi-sysroot
         run: |
           curl https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-15/wasi-sysroot-15.0.tar.gz -OL
