@@ -19,11 +19,13 @@ char* intToStr(int i) {
 }
 
 int putStr(const char* str) {
-    return fputs(str, stdout);
+    fputs(str, stdout);
+    return fflush(stdout);
 }
 
 int putStrLn(const char* str) {
-    return puts(str);
+    puts(str);
+    return fflush(stdout);
 }
 
 #endif // MINIC_RUNTIME_H_
