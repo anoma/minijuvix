@@ -1,4 +1,4 @@
-module String;
+module Data.String;
 
 axiom String : Type;
 

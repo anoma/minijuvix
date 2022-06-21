@@ -1,0 +1,8 @@
+module Data.Nat;
+
+inductive Nat {
+  zero : Nat;
+  suc : Nat → Nat;
+};
+
+end;

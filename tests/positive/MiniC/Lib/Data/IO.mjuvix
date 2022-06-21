@@ -1,7 +1,7 @@
-module IO;
+module Data.IO;
 
-import String;
-open String;
+import Data.String;
+open Data.String;
 
 axiom Action : Type;
 

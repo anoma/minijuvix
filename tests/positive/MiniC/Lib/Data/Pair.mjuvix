@@ -1,4 +1,4 @@
-module Pair;
+module Data.Pair;
 
 inductive Pair (A : Type) (B : Type) {
  mkPair : A → B → Pair A B;
