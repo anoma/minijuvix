@@ -25,9 +25,10 @@ instance ToGenericError WrongConstructorType where
         _genericErrorIntervals = [i]
       }
     where
-      i = getLoc (e ^. wrongCtorTypeName)
+      ctorName = e ^. wrongCtorTypeName
+      i = getLoc ctorName
       msg =
-        "The constructor" <+> ppCode (e ^. wrongCtorTypeName) <+> "has type:"
+        "The constructor" <+> ppCode ctorName <+> "has type:"
           <> line
           <> indent' (ppCode (e ^. wrongCtorTypeActual))
           <> line
@@ -53,11 +54,12 @@ instance ToGenericError WrongReturnType where
     where
       ctorName = e ^. wrongReturnTypeConstructorName
       i = getLoc ctorName
-      j = getLoc (typeAsExpression (e ^. wrongReturnTypeActual))
+      ty = e ^. wrongReturnTypeActual
+      j = getLoc (typeAsExpression ty)
       msg =
         "The constructor" <+> ppCode ctorName <+> "has the wrong return type:"
           <> line
-          <> indent' (ppCode (e ^. wrongReturnTypeActual))
+          <> indent' (ppCode ty)
           <> line
           <> "but is expected to have type:"
           <> line
@@ -116,6 +118,7 @@ instance ToGenericError WrongConstructorAppArgs where
 
       ctorName :: Doc Eann
       ctorName = ppCode (e ^. wrongCtorAppApp . constrAppConstructor)
+
       pat :: Int -> Doc ann
       pat n = pretty n <+> plural "pattern" "patterns" n
 
@@ -182,3 +185,48 @@ instance ToGenericError ExpectedFunctionType where
           <> indent' (ppCode (e ^. expectedFunctionTypeType))
       subjectExpr :: Expression
       subjectExpr = e ^. expectedFunctionTypeExpression
+
+data WrongNumberArgumentsIndType = WrongNumberArgumentsIndType
+  { _wrongNumberArgumentsIndTypeActualType :: Type,
+    _wrongNumberArgumentsIndTypeExpectedNumArgs :: Int,
+    _wrongNumberArgumentsIndTypeActualNumArgs :: Int
+  }
+
+makeLenses ''WrongNumberArgumentsIndType
+
+instance ToGenericError WrongNumberArgumentsIndType where
+  genericError e =
+    GenericError
+      { _genericErrorLoc = i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
+    where
+      ty = e ^. wrongNumberArgumentsIndTypeActualType
+      i = getLoc (typeAsExpression ty)
+      msg =
+        "The type" <+> ppCode ty <+> "expects"
+          <> pretty (e ^. wrongNumberArgumentsIndTypeExpectedNumArgs)
+          <+> " arguments, but"
+          <+> pretty (e ^. wrongNumberArgumentsIndTypeActualNumArgs)
+          <+> " arguments are given"
+
+newtype ImpracticalPatternMatching = ImpracticalPatternMatching
+  { _impracticalPatternMatchingType :: Type
+  }
+
+makeLenses ''ImpracticalPatternMatching
+
+instance ToGenericError ImpracticalPatternMatching where
+  genericError e =
+    GenericError
+      { _genericErrorLoc = i,
+        _genericErrorMessage = prettyError msg,
+        _genericErrorIntervals = [i]
+      }
+    where
+      ty = e ^. impracticalPatternMatchingType
+      i = getLoc (typeAsExpression ty)
+      msg =
+        "The type" <+> ppCode ty <+> "is not an inductive data type."
+          <+> "Therefore, pattern-matching is not available here."
