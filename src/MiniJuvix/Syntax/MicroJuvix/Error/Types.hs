@@ -55,7 +55,7 @@ instance ToGenericError WrongReturnType where
       i = getLoc ctorName
       j = getLoc (typeAsExpression (e ^. wrongReturnTypeActual))
       msg =
-        "The constructor" <+> ppCode ctorName <+> "has wrong return type:"
+        "The constructor" <+> ppCode ctorName <+> "has the wrong return type:"
           <> line
           <> indent' (ppCode (e ^. wrongReturnTypeActual))
           <> line
