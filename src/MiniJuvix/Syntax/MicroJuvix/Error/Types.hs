@@ -28,13 +28,15 @@ instance ToGenericError WrongConstructorType where
       ctorName = e ^. wrongCtorTypeName
       i = getLoc ctorName
       msg =
-        "The constructor" <+> ppCode ctorName <+> "has type:"
-          <> line
-          <> indent' (ppCode (e ^. wrongCtorTypeActual))
-          <> line
-          <> "but is expected to have type:"
-          <> line
-          <> indent' (ppCode (e ^. wrongCtorTypeExpected))
+        "The constructor"
+          <+> ppCode ctorName
+          <+> "has type:"
+            <> line
+            <> indent' (ppCode (e ^. wrongCtorTypeActual))
+            <> line
+            <> "but is expected to have type:"
+            <> line
+            <> indent' (ppCode (e ^. wrongCtorTypeExpected))
 
 data WrongReturnType = WrongReturnType
   { _wrongReturnTypeConstructorName :: Name,
@@ -57,13 +59,15 @@ instance ToGenericError WrongReturnType where
       ty = e ^. wrongReturnTypeActual
       j = getLoc (typeAsExpression ty)
       msg =
-        "The constructor" <+> ppCode ctorName <+> "has the wrong return type:"
-          <> line
-          <> indent' (ppCode ty)
-          <> line
-          <> "but is expected to have type:"
-          <> line
-          <> indent' (ppCode (e ^. wrongReturnTypeExpected))
+        "The constructor"
+          <+> ppCode ctorName
+          <+> "has the wrong return type:"
+            <> line
+            <> indent' (ppCode ty)
+            <> line
+            <> "but is expected to have type:"
+            <> line
+            <> indent' (ppCode (e ^. wrongReturnTypeExpected))
 
 newtype UnsolvedMeta = UnsolvedMeta
   { _unsolvedMeta :: Hole
@@ -103,14 +107,19 @@ instance ToGenericError WrongConstructorAppArgs where
     where
       i = getLoc (e ^. wrongCtorAppApp . constrAppConstructor)
       msg =
-        "The constructor:" <+> ctorName <+> "is being matched against" <+> numPats
-          <> ":"
-          <> line
-          <> indent' (ppCode (e ^. wrongCtorAppApp))
-          <> line
-          <> "but is expected to be matched against" <+> numTypes <+> "with the following types:"
-          <> line
-          <> indent' (hsep (ctorName : (ppCode <$> (e ^. wrongCtorAppTypes))))
+        "The constructor:"
+          <+> ctorName
+          <+> "is being matched against"
+          <+> numPats
+            <> ":"
+            <> line
+            <> indent' (ppCode (e ^. wrongCtorAppApp))
+            <> line
+            <> "but is expected to be matched against"
+          <+> numTypes
+          <+> "with the following types:"
+            <> line
+            <> indent' (hsep (ctorName : (ppCode <$> (e ^. wrongCtorAppTypes))))
       numPats :: Doc ann
       numPats = pat (length (e ^. wrongCtorAppApp . constrAppParameters))
       numTypes :: Doc ann
@@ -141,15 +150,19 @@ instance ToGenericError WrongType where
     where
       i = getLoc (e ^. wrongTypeExpression)
       msg =
-        "Type error near" <+> pretty (getLoc subjectExpr) <> "."
-          <> line
-          <> "The expression" <+> ppCode subjectExpr <+> "has type:"
-          <> line
-          <> indent' (ppCode (e ^. wrongTypeInferredType))
-          <> line
-          <> "but is expected to have type:"
-          <> line
-          <> indent' (ppCode (e ^. wrongTypeExpectedType))
+        "Type error near"
+          <+> pretty (getLoc subjectExpr)
+            <> "."
+            <> line
+            <> "The expression"
+          <+> ppCode subjectExpr
+          <+> "has type:"
+            <> line
+            <> indent' (ppCode (e ^. wrongTypeInferredType))
+            <> line
+            <> "but is expected to have type:"
+            <> line
+            <> indent' (ppCode (e ^. wrongTypeExpectedType))
 
       subjectExpr :: Expression
       subjectExpr = e ^. wrongTypeExpression
@@ -174,15 +187,19 @@ instance ToGenericError ExpectedFunctionType where
     where
       i = getLoc (e ^. expectedFunctionTypeExpression)
       msg =
-        "Type error near" <+> pretty (getLoc subjectExpr) <> "."
-          <> line
-          <> "In the expression:"
-          <> line
-          <> indent' (ppCode (e ^. expectedFunctionTypeExpression))
-          <> line
-          <> "the expression" <+> ppCode (e ^. expectedFunctionTypeApp) <+> "is expected to have a function type but has type:"
-          <> line
-          <> indent' (ppCode (e ^. expectedFunctionTypeType))
+        "Type error near"
+          <+> pretty (getLoc subjectExpr)
+            <> "."
+            <> line
+            <> "In the expression:"
+            <> line
+            <> indent' (ppCode (e ^. expectedFunctionTypeExpression))
+            <> line
+            <> "the expression"
+          <+> ppCode (e ^. expectedFunctionTypeApp)
+          <+> "is expected to have a function type but has type:"
+            <> line
+            <> indent' (ppCode (e ^. expectedFunctionTypeType))
       subjectExpr :: Expression
       subjectExpr = e ^. expectedFunctionTypeExpression
 
@@ -204,12 +221,24 @@ instance ToGenericError WrongNumberArgumentsIndType where
     where
       ty = e ^. wrongNumberArgumentsIndTypeActualType
       i = getLoc (typeAsExpression ty)
+      expectedNumArgs = e ^. wrongNumberArgumentsIndTypeExpectedNumArgs
+      actualNumArgs = e ^. wrongNumberArgumentsIndTypeActualNumArgs
       msg =
-        "The type" <+> ppCode ty <+> "expects"
-          <> pretty (e ^. wrongNumberArgumentsIndTypeExpectedNumArgs)
-          <+> " arguments, but"
-          <+> pretty (e ^. wrongNumberArgumentsIndTypeActualNumArgs)
-          <+> " arguments are given"
+        "The type"
+          <+> pretty (getTypeName ty)
+          <+> "expects"
+          <+> ( if
+                    | expectedNumArgs == 0 -> "no arguments"
+                    | expectedNumArgs == 1 -> "one argument"
+                    | otherwise -> pretty expectedNumArgs <+> "arguments"
+              )
+          <> ", but"
+          <+> ( if
+                    | actualNumArgs == 0 -> "no argument is"
+                    | actualNumArgs == 1 -> "only one argument is"
+                    | otherwise -> pretty actualNumArgs <+> "arguments are"
+              )
+          <+> "given"
 
 newtype ImpracticalPatternMatching = ImpracticalPatternMatching
   { _impracticalPatternMatchingType :: Type
@@ -228,5 +257,7 @@ instance ToGenericError ImpracticalPatternMatching where
       ty = e ^. impracticalPatternMatchingType
       i = getLoc (typeAsExpression ty)
       msg =
-        "The type" <+> ppCode ty <+> "is not an inductive data type."
-          <+> "Therefore, pattern-matching is not available here."
+        "The type"
+          <+> ppCode ty
+          <+> "is not an inductive data type."
+          <+> "Therefore, pattern-matching is not available here"
