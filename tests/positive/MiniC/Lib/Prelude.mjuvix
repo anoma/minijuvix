@@ -4,6 +4,8 @@ open import Data.String public;
 
 open import Data.Bool public;
 
+open import Data.Int public;
+
 open import Data.Pair public;
 
 open import Data.IO public;

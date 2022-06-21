@@ -129,5 +129,6 @@ tests =
     PosTest "Higher Order Functions and explicit holes" "PolymorphismHoles",
     PosTest "Closures with no environment" "ClosureNoEnv",
     PosTest "Closures with environment" "ClosureEnv",
-    PosTest "SimpleFungibleTokenImplicit" "SimpleFungibleTokenImplicit"
+    PosTest "SimpleFungibleTokenImplicit" "SimpleFungibleTokenImplicit",
+    PosTest "Mutually recursive function" "MutuallyRecursive"
   ]
