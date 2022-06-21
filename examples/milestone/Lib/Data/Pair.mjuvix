@@ -6,4 +6,7 @@ inductive × (A : Type) (B : Type) {
   , : A → B → A × B;
 };
 
+fst : {A : Type} → {B : Type} → A × B → A;
+fst (a , _) ≔ a;
+
 end;

@@ -25,4 +25,16 @@ infix 4 ==String;
 ==String : String → String → Bool;
 ==String s1 s2 ≔ from-backend-bool (eqString s1 s2);
 
+boolToStr : Bool → String;
+boolToStr true ≔ "true";
+boolToStr false ≔ "false";
+
+infixr 5 ++;
+axiom ++ : String → String → String;
+
+compile ++ {
+  c ↦ "concat";
+};
+
+
 end;

@@ -41,4 +41,10 @@ show-result : Bool → String;
 show-result true ≔ "OK";
 show-result false ≔ "FAIL";
 
+axiom readline : String;
+
+compile readline {
+  c ↦ "readline()";
+};
+
 end;

@@ -3,6 +3,9 @@ module Data.Int;
 import Data.Bool;
 open Data.Bool;
 
+import Data.String;
+open Data.String;
+
 axiom Int : Type;
 compile Int {
   c ↦ "int";
@@ -60,6 +63,12 @@ axiom + : Int -> Int -> Int;
 compile + {
   c ↦ "plus";
   ghc ↦ "(+)";
+};
+
+axiom intToStr : Int → String;
+
+compile intToStr {
+  c ↦ "intToStr";
 };
 
 end;

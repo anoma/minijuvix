@@ -72,6 +72,7 @@ entryMiniC i = return (MiniCResult (serialize cunitResult))
       m <- toList (i ^. Mono.resultModules)
       let buildTable = Mono.buildTable m
       genStructDefs m
+        <> run (runReader compileInfo (genAxioms m))
         <> run (runReader compileInfo (genCTypes m))
         <> genFunctionSigs m
         <> run (runReader buildTable (genClosures m))
@@ -89,6 +90,17 @@ genStructDefs Mono.Module {..} =
       Mono.StatementInductive d -> mkInductiveTypeDef d
       _ -> []
 
+genAxioms :: forall r. Members '[Reader Mono.CompileInfoTable] r => Mono.Module -> Sem r [CCode]
+genAxioms Mono.Module {..} =
+  concatMapM go (_moduleBody ^. Mono.moduleStatements)
+  where
+    go :: Mono.Statement -> Sem r [CCode]
+    go = \case
+      Mono.StatementInductive d -> return []
+      Mono.StatementAxiom d -> goAxiom d
+      Mono.StatementForeign d -> return []
+      Mono.StatementFunction {} -> return []
+
 genCTypes :: forall r. Members '[Reader Mono.CompileInfoTable] r => Mono.Module -> Sem r [CCode]
 genCTypes Mono.Module {..} =
   concatMapM go (_moduleBody ^. Mono.moduleStatements)
@@ -96,7 +108,7 @@ genCTypes Mono.Module {..} =
     go :: Mono.Statement -> Sem r [CCode]
     go = \case
       Mono.StatementInductive d -> return (goInductiveDef d)
-      Mono.StatementAxiom d -> goAxiom d
+      Mono.StatementAxiom d -> return []
       Mono.StatementForeign d -> return (goForeign d)
       Mono.StatementFunction {} -> return []
 
