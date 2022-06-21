@@ -186,16 +186,6 @@ run f x ≔ run f (f (putStr (prompt x) , x));
 welcome : String;
 welcome ≔ "MiniTicTacToe\n-------------\n\nType a number then ENTER to make a move";
 
--- odd : Nat → Bool;
-
--- even : Nat → Bool;
-
--- odd zero ≔ false;
--- odd (suc n) ≔ not (even n);
-
--- even zero ≔ true;
--- even (suc n) ≔ not (odd n);
-
 main : Action;
 main ≔ putStrLn welcome >> run do beginState;
 end;
