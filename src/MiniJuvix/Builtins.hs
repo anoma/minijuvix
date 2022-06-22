@@ -1,17 +1,18 @@
-module MiniJuvix.Builtins (
-module MiniJuvix.Builtins,
-) where
+module MiniJuvix.Builtins
+  ( module MiniJuvix.Builtins,
+  )
+where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Language.Extra
 
-data ConstructorDescr = ConstructorDescr {
-  constructorDescrName :: Name,
-  constructorDescrType :: Expression
+data ConstructorDescr = ConstructorDescr
+  { constructorDescrName :: Name,
+    constructorDescrType :: Expression
   }
 
-data BuiltinsEnum =
-  BuiltinsNatural
+data BuiltinsEnum
+  = BuiltinsNatural
   | BuiltinsZero
   | BuiltinsSuc
   | BuiltinsNaturalPlus
@@ -25,9 +26,10 @@ data Builtins m a where
 
 makeSem ''Builtins
 
-newtype BuiltinsState = BuiltinsState {
-  _builtinsTable :: HashMap BuiltinsEnum Name
+newtype BuiltinsState = BuiltinsState
+  { _builtinsTable :: HashMap BuiltinsEnum Name
   }
+
 makeLenses ''BuiltinsState
 
 iniState :: BuiltinsState
@@ -42,10 +44,10 @@ re = reinterpret $ \case
       Nothing -> modify (over builtinsTable (set (at b) (Just n)))
       Just {} -> alreadyReg
   where
-  notReg :: a
-  notReg = error "not registered"
-  alreadyReg :: a
-  alreadyReg = error "already registered"
+    notReg :: a
+    notReg = error "not registered"
+    alreadyReg :: a
+    alreadyReg = error "already registered"
 
 runBuiltins :: Sem (Builtins ': r) a -> Sem r a
 runBuiltins = evalState iniState . re

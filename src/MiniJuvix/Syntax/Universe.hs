@@ -6,13 +6,13 @@ import MiniJuvix.Syntax.Fixity
 newtype Universe = Universe
   { _universeLevel :: Maybe Natural
   }
-  deriving stock (Show, Ord, Lift)
+  deriving stock (Show, Ord)
 
 instance Eq Universe where
   (Universe a) == (Universe b) = f a == f b
-   where
-     f :: Maybe Natural -> Natural
-     f = fromMaybe defaultLevel
+    where
+      f :: Maybe Natural -> Natural
+      f = fromMaybe defaultLevel
 
 smallUniverse :: Universe
 smallUniverse = Universe (Just 0)

@@ -60,7 +60,7 @@ entryMicroJuvix abstractResults = do
     noTerminationOption =
       abstractResults
         ^. Abstract.abstractResultEntryPoint
-          . E.entryPointNoTermination
+        . E.entryPointNoTermination
 
 goModule ::
   Members '[State TranslationState, Error TypeCheckerError] r =>
@@ -265,80 +265,75 @@ goInductiveParameter f =
     (Just {}, _, _) -> unsupported "only type variables of small types are allowed"
     (Nothing, _, _) -> unsupported "unnamed inductive parameters"
 
-goInductiveDef :: forall r. Abstract.InductiveDef -> Sem r InductiveDef
-goInductiveDef i = if
-  | not (isSmallType (i ^. Abstract.inductiveType)) -> unsupported "inductive indices"
-  | otherwise -> do
-    _inductiveParameters' <- mapM goInductiveParameter (i ^. Abstract.inductiveParameters)
-    _inductiveConstructors' <- mapM goConstructorDef (i ^. Abstract.inductiveConstructors)
-    return
-      InductiveDef
-        { _inductiveName = indName,
-          _inductiveParameters = _inductiveParameters',
-          _inductiveConstructors = _inductiveConstructors'
-        }
+goInductiveDef ::
+  forall r.
+  Member (Error TypeCheckerError) r =>
+  Abstract.InductiveDef ->
+  Sem r InductiveDef
+goInductiveDef i =
+  if
+      | not (isSmallType (i ^. Abstract.inductiveType)) -> unsupported "inductive indices"
+      | otherwise -> do
+          inductiveParameters' <- mapM goInductiveParameter (i ^. Abstract.inductiveParameters)
+          let indTypeName = i ^. Abstract.inductiveName
+              indParamNames = map (^. inductiveParamName) inductiveParameters'
+          inductiveConstructors' <- mapM (goConstructorDef indTypeName indParamNames) (i ^. Abstract.inductiveConstructors)
+          return
+            InductiveDef
+              { _inductiveName = indTypeName,
+                _inductiveParameters = inductiveParameters',
+                _inductiveConstructors = inductiveConstructors'
+              }
   where
-    helper = do
-      inductiveParameters' <- mapM goInductiveParameter (i ^. Abstract.inductiveParameters)
-      let indTypeName = i ^. Abstract.inductiveName
-          indParamNames = map (^. inductiveParamName) inductiveParameters'
-      inductiveConstructors' <- mapM (goConstructorDef indTypeName indParamNames) (i ^. Abstract.inductiveConstructors)
-      return
-        InductiveDef
-          { _inductiveName = indTypeName,
-            _inductiveParameters = inductiveParameters',
-            _inductiveConstructors = inductiveConstructors'
-          }
-      where
-        goConstructorDef :: Name -> [Name] -> Abstract.InductiveConstructorDef -> Sem r InductiveConstructorDef
-        goConstructorDef expectedTypeName expectedNameParms c = do
-          (_constructorParameters', actualReturnType) <- viewConstructorType (c ^. Abstract.constructorType)
-          let ctorName = c ^. Abstract.constructorName
-              expectedReturnType :: Type
-              expectedReturnType = foldTypeAppName expectedTypeName expectedNameParms
-              expectedNumArgs = length expectedNameParms
-              (_, actualReturnTypeParams) = unfoldType actualReturnType
-              actualNumArgs = length actualReturnTypeParams
-              sameTypeName = Just expectedTypeName == getTypeName actualReturnType
-          if
-              | actualReturnType == expectedReturnType ->
-                  return
-                    InductiveConstructorDef
-                      { _constructorName = ctorName,
-                        _constructorParameters = _constructorParameters'
-                      }
-              | sameTypeName,
-                actualNumArgs < expectedNumArgs ->
-                  throw
-                    ( ErrTooFewArgumentsIndType
-                        ( WrongNumberArgumentsIndType
-                            { _wrongNumberArgumentsIndTypeActualType = actualReturnType,
-                              _wrongNumberArgumentsIndTypeActualNumArgs = actualNumArgs,
-                              _wrongNumberArgumentsIndTypeExpectedNumArgs = expectedNumArgs
-                            }
-                        )
+    goConstructorDef :: Name -> [Name] -> Abstract.InductiveConstructorDef -> Sem r InductiveConstructorDef
+    goConstructorDef expectedTypeName expectedNameParms c = do
+      (_constructorParameters', actualReturnType) <- viewConstructorType (c ^. Abstract.constructorType)
+      let ctorName = c ^. Abstract.constructorName
+          expectedReturnType :: Type
+          expectedReturnType = foldTypeAppName expectedTypeName expectedNameParms
+          expectedNumArgs = length expectedNameParms
+          (_, actualReturnTypeParams) = unfoldType actualReturnType
+          actualNumArgs = length actualReturnTypeParams
+          sameTypeName = Just expectedTypeName == getTypeName actualReturnType
+      if
+          | actualReturnType == expectedReturnType ->
+              return
+                InductiveConstructorDef
+                  { _constructorName = ctorName,
+                    _constructorParameters = _constructorParameters'
+                  }
+          | sameTypeName,
+            actualNumArgs < expectedNumArgs ->
+              throw
+                ( ErrTooFewArgumentsIndType
+                    ( WrongNumberArgumentsIndType
+                        { _wrongNumberArgumentsIndTypeActualType = actualReturnType,
+                          _wrongNumberArgumentsIndTypeActualNumArgs = actualNumArgs,
+                          _wrongNumberArgumentsIndTypeExpectedNumArgs = expectedNumArgs
+                        }
                     )
-              | sameTypeName,
-                actualNumArgs > expectedNumArgs ->
-                  throw
-                    ( ErrTooManyArgumentsIndType
-                        ( WrongNumberArgumentsIndType
-                            { _wrongNumberArgumentsIndTypeActualType = actualReturnType,
-                              _wrongNumberArgumentsIndTypeActualNumArgs = actualNumArgs,
-                              _wrongNumberArgumentsIndTypeExpectedNumArgs = expectedNumArgs
-                            }
-                        )
+                )
+          | sameTypeName,
+            actualNumArgs > expectedNumArgs ->
+              throw
+                ( ErrTooManyArgumentsIndType
+                    ( WrongNumberArgumentsIndType
+                        { _wrongNumberArgumentsIndTypeActualType = actualReturnType,
+                          _wrongNumberArgumentsIndTypeActualNumArgs = actualNumArgs,
+                          _wrongNumberArgumentsIndTypeExpectedNumArgs = expectedNumArgs
+                        }
                     )
-              | otherwise ->
-                  throw
-                    ( ErrWrongReturnType
-                        ( WrongReturnType
-                            { _wrongReturnTypeConstructorName = ctorName,
-                              _wrongReturnTypeExpected = expectedReturnType,
-                              _wrongReturnTypeActual = actualReturnType
-                            }
-                        )
+                )
+          | otherwise ->
+              throw
+                ( ErrWrongReturnType
+                    ( WrongReturnType
+                        { _wrongReturnTypeConstructorName = ctorName,
+                          _wrongReturnTypeExpected = expectedReturnType,
+                          _wrongReturnTypeActual = actualReturnType
+                        }
                     )
+                )
 
 goTypeApplication :: Abstract.Application -> Sem r TypeApplication
 goTypeApplication (Abstract.Application l r i) = do

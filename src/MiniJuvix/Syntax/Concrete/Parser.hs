@@ -55,8 +55,10 @@ runModuleParser root fileName input =
         { _parserParamsRoot = root
         }
 
-top :: Members '[Reader ParserParams, InfoTableBuilder] r =>
-  ParsecS r a -> ParsecS r a
+top ::
+  Members '[Reader ParserParams, InfoTableBuilder] r =>
+  ParsecS r a ->
+  ParsecS r a
 top p = space >> p <* (optional kwSemicolon >> P.eof)
 
 topModuleDef ::
@@ -120,13 +122,26 @@ builtinInductive :: Members '[Reader ParserParams, InfoTableBuilder] r => Parsec
 builtinInductive =
   keyword Str.natural $> BuiltinNatural
 
+builtinFunction :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r BuiltinFunction
+builtinFunction =
+  keyword Str.naturalPlus $> BuiltinNaturalPlus
+
 builtinInductiveDef :: Members '[Reader ParserParams, InfoTableBuilder] r => BuiltinInductive -> ParsecS r (InductiveDef 'Parsed)
 builtinInductiveDef = inductiveDef . Just
+
+builtinTypeSig ::
+  Members '[Reader ParserParams, InfoTableBuilder] r =>
+  BuiltinFunction ->
+  ParsecS r (TypeSignature 'Parsed)
+builtinTypeSig b = do
+  fun <- symbol
+  typeSignature False fun (Just b)
 
 builtinStatement :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (Statement 'Parsed)
 builtinStatement = do
   kwBuiltin
-  builtinInductive >>= fmap StatementInductive . builtinInductiveDef
+  (builtinInductive >>= fmap StatementInductive . builtinInductiveDef)
+    <|> (builtinFunction >>= fmap StatementTypeSignature . builtinTypeSig)
 
 --------------------------------------------------------------------------------
 -- Compile
@@ -298,15 +313,12 @@ typeSignature ::
   Members '[Reader ParserParams, InfoTableBuilder] r =>
   Bool ->
   Symbol ->
+  Maybe BuiltinFunction ->
   ParsecS r (TypeSignature 'Parsed)
-typeSignature _sigTerminating _sigName = do
+typeSignature _sigTerminating _sigName _sigBuiltin = do
   kwColon
   _sigType <- parseExpressionAtoms
   return TypeSignature {..}
-
--------------------------------------------------------------------------------
--- Aux type signature function clause
--------------------------------------------------------------------------------
 
 -- | Used to minimize the amount of required @P.try@s.
 auxTypeSigFunClause ::
@@ -315,7 +327,7 @@ auxTypeSigFunClause ::
 auxTypeSigFunClause = do
   terminating <- isJust <$> optional kwTerminating
   sym <- symbol
-  (Left <$> typeSignature terminating sym)
+  (Left <$> typeSignature terminating sym Nothing)
     <|> (Right <$> functionClause sym)
 
 -------------------------------------------------------------------------------

@@ -6,7 +6,7 @@ data Precedence
   = PrecMinusOmega
   | PrecNat Natural
   | PrecOmega
-  deriving stock (Show, Eq, Lift)
+  deriving stock (Show, Eq)
 
 instance Ord Precedence where
   compare a b = case (a, b) of
@@ -19,21 +19,21 @@ instance Ord Precedence where
     (PrecOmega, _) -> GT
 
 data UnaryAssoc = AssocPostfix
-  deriving stock (Show, Eq, Ord, Lift)
+  deriving stock (Show, Eq, Ord)
 
 data BinaryAssoc = AssocNone | AssocLeft | AssocRight
-  deriving stock (Show, Eq, Ord, Lift)
+  deriving stock (Show, Eq, Ord)
 
 data OperatorArity
   = Unary UnaryAssoc
   | Binary BinaryAssoc
-  deriving stock (Show, Eq, Ord, Lift)
+  deriving stock (Show, Eq, Ord)
 
 data Fixity = Fixity
   { _fixityPrecedence :: Precedence,
     _fixityArity :: OperatorArity
   }
-  deriving stock (Show, Eq, Ord, Lift)
+  deriving stock (Show, Eq, Ord)
 
 makeLenses ''Fixity
 

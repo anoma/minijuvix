@@ -4,11 +4,12 @@ module MiniJuvix.Translation.ScopedToAbstract
   )
 where
 
+import MiniJuvix.Builtins
+import MiniJuvix.Builtins.Natural
+import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.AbstractResult
 import MiniJuvix.Syntax.Abstract.InfoTableBuilder
-import MiniJuvix.Builtins.Natural
-import MiniJuvix.Builtins
 import MiniJuvix.Syntax.Abstract.Language qualified as Abstract
 import MiniJuvix.Syntax.Concrete.Language qualified as Concrete
 import MiniJuvix.Syntax.Concrete.Scoped.Error
@@ -19,7 +20,7 @@ import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
 unsupported :: Text -> a
 unsupported msg = error $ msg <> "Scoped to Abstract: not yet supported"
 
-entryAbstract :: Members '[Error ScoperError, Builtins] r => Scoper.ScoperResult -> Sem r AbstractResult
+entryAbstract :: Members '[Error ScoperError, Builtins, NameIdGen] r => Scoper.ScoperResult -> Sem r AbstractResult
 entryAbstract _resultScoper = do
   (_resultTable, _resultModules) <- runInfoTableBuilder (mapM goTopModule ms)
   return AbstractResult {..}
@@ -27,20 +28,20 @@ entryAbstract _resultScoper = do
     ms = _resultScoper ^. Scoper.resultModules
 
 goTopModule ::
-  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins, NameIdGen] r =>
   Module 'Scoped 'ModuleTop ->
   Sem r Abstract.TopModule
 goTopModule = goModule
 
 goLocalModule ::
-  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins, NameIdGen] r =>
   Module 'Scoped 'ModuleLocal ->
   Sem r Abstract.LocalModule
 goLocalModule = goModule
 
 goModule ::
   forall r t.
-  (Members '[InfoTableBuilder, Error ScoperError, Builtins] r, SingI t) =>
+  (Members '[InfoTableBuilder, Error ScoperError, Builtins, NameIdGen] r, SingI t) =>
   Module 'Scoped t ->
   Sem r Abstract.Module
 goModule (Module n par b) = case par of
@@ -66,7 +67,7 @@ goSymbol s =
 
 goModuleBody ::
   forall r.
-  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins, NameIdGen] r =>
   [Statement 'Scoped] ->
   Sem r Abstract.ModuleBody
 goModuleBody ss' = do
@@ -103,7 +104,7 @@ goModuleBody ss' = do
 
 goStatement ::
   forall r.
-  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins, NameIdGen] r =>
   Indexed (Statement 'Scoped) ->
   Sem r (Maybe (Indexed Abstract.Statement))
 goStatement (Indexed idx s) =
@@ -123,7 +124,7 @@ goStatement (Indexed idx s) =
 
 goOpenModule ::
   forall r.
-  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins, NameIdGen] r =>
   OpenModule 'Scoped ->
   Sem r (Maybe Abstract.Statement)
 goOpenModule o
@@ -137,7 +138,7 @@ goOpenModule o
 
 goFunctionDef ::
   forall r.
-  Members '[InfoTableBuilder, Error ScoperError] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins, NameIdGen] r =>
   TypeSignature 'Scoped ->
   NonEmpty (FunctionClause 'Scoped) ->
   Sem r Abstract.FunctionDef
@@ -146,7 +147,9 @@ goFunctionDef TypeSignature {..} clauses = do
       _funDefTerminating = _sigTerminating
   _funDefClauses <- mapM goFunctionClause clauses
   _funDefTypeSig <- goExpression _sigType
-  registerFunction' Abstract.FunctionDef {..}
+  let fun = Abstract.FunctionDef {..}
+  whenJust _sigBuiltin (registerBuiltinFunction fun)
+  registerFunction' fun
 
 goFunctionClause ::
   Member (Error ScoperError) r =>
@@ -158,8 +161,7 @@ goFunctionClause FunctionClause {..} = do
   goWhereBlock _clauseWhere
   return
     Abstract.FunctionClause
-      {
-        _clauseName = goSymbol _clauseOwnerFunction,
+      { _clauseName = goSymbol _clauseOwnerFunction,
         _clausePatterns = _clausePatterns',
         _clauseBody = _clauseBody'
       }
@@ -185,10 +187,21 @@ goInductiveParameter InductiveParameter {..} = do
         _paramUsage = UsageOmega
       }
 
-registerInductiveBuiltin :: Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
-  Abstract.InductiveDef -> BuiltinInductive -> Sem r ()
-registerInductiveBuiltin d = \case
+registerBuiltinInductive ::
+  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
+  Abstract.InductiveDef ->
+  BuiltinInductive ->
+  Sem r ()
+registerBuiltinInductive d = \case
   BuiltinNatural -> registerNaturalDef d
+
+registerBuiltinFunction ::
+  Members '[InfoTableBuilder, Error ScoperError, Builtins, NameIdGen] r =>
+  Abstract.FunctionDef ->
+  BuiltinFunction ->
+  Sem r ()
+registerBuiltinFunction d = \case
+  BuiltinNaturalPlus -> registerNaturalPlus d
 
 goInductive ::
   Members '[InfoTableBuilder, Builtins, Error ScoperError] r =>
@@ -198,14 +211,15 @@ goInductive InductiveDef {..} = do
   _inductiveParameters' <- mapM goInductiveParameter _inductiveParameters
   _inductiveType' <- mapM goExpression _inductiveType
   _inductiveConstructors' <- mapM goConstructorDef _inductiveConstructors
-  let indDef = Abstract.InductiveDef
-        { _inductiveParameters = _inductiveParameters',
-          _inductiveBuiltin = _inductiveBuiltin,
-          _inductiveName = goSymbol _inductiveName,
-          _inductiveType = fromMaybe (Abstract.ExpressionUniverse smallUniverse) _inductiveType',
-          _inductiveConstructors = _inductiveConstructors'
-        }
-  whenJust _inductiveBuiltin (registerInductiveBuiltin indDef)
+  let indDef =
+        Abstract.InductiveDef
+          { _inductiveParameters = _inductiveParameters',
+            _inductiveBuiltin = _inductiveBuiltin,
+            _inductiveName = goSymbol _inductiveName,
+            _inductiveType = fromMaybe (Abstract.ExpressionUniverse smallUniverse) _inductiveType',
+            _inductiveConstructors = _inductiveConstructors'
+          }
+  whenJust _inductiveBuiltin (registerBuiltinInductive indDef)
   inductiveInfo <- registerInductive indDef
   forM_ _inductiveConstructors' (registerConstructor inductiveInfo)
   return (inductiveInfo ^. inductiveInfoDef)

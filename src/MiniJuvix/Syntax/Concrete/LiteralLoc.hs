@@ -13,7 +13,7 @@ data LiteralLoc = LiteralLoc
   { _literalLocLiteral :: Literal,
     _literalLocLoc :: Interval
   }
-  deriving stock (Show, Lift)
+  deriving stock (Show)
 
 makeLenses ''LiteralLoc
 

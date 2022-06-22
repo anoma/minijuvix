@@ -184,6 +184,7 @@ instance HasLoc OperatorSyntaxDef where
 data TypeSignature (s :: Stage) = TypeSignature
   { _sigName :: FunctionName s,
     _sigType :: ExpressionType s,
+    _sigBuiltin :: Maybe BuiltinFunction,
     _sigTerminating :: Bool
   }
 

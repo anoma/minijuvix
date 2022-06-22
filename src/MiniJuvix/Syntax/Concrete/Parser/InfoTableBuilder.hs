@@ -69,7 +69,8 @@ build st = InfoTable (nubHashable (st ^. stateItems))
 
 runInfoTableBuilder :: Sem (InfoTableBuilder ': r) a -> Sem r (InfoTable, a)
 runInfoTableBuilder =
-  fmap (first build) . runState iniState
+  fmap (first build)
+    . runState iniState
     . reinterpret
       ( \case
           RegisterItem i ->

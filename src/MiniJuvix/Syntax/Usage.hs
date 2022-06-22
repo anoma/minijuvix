@@ -6,4 +6,4 @@ data Usage
   = UsageNone
   | UsageOnce
   | UsageOmega
-  deriving stock (Show, Eq, Ord, Lift)
+  deriving stock (Show, Eq, Ord)

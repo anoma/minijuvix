@@ -13,11 +13,11 @@ where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Name
+import MiniJuvix.Syntax.Concrete.Builtins
 import MiniJuvix.Syntax.Concrete.Language (BackendItem, ForeignBlock (..), LiteralLoc (..), symbolLoc)
 import MiniJuvix.Syntax.Hole
 import MiniJuvix.Syntax.IsImplicit
 import MiniJuvix.Syntax.Universe
-import MiniJuvix.Syntax.Concrete.Builtins
 import MiniJuvix.Syntax.Usage
 import MiniJuvix.Syntax.Wildcard
 
@@ -31,12 +31,12 @@ data Module = Module
   { _moduleName :: Name,
     _moduleBody :: ModuleBody
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 newtype ModuleBody = ModuleBody
   { _moduleStatements :: [Statement]
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data Statement
   = StatementInductive InductiveDef
@@ -45,7 +45,7 @@ data Statement
   | StatementForeign ForeignBlock
   | StatementLocalModule LocalModule
   | StatementAxiom AxiomDef
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data FunctionDef = FunctionDef
   { _funDefName :: FunctionName,
@@ -53,34 +53,33 @@ data FunctionDef = FunctionDef
     _funDefClauses :: NonEmpty FunctionClause,
     _funDefTerminating :: Bool
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data FunctionClause = FunctionClause
-  {
-    _clauseName :: FunctionName,
+  { _clauseName :: FunctionName,
     _clausePatterns :: [Pattern],
     _clauseBody :: Expression
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 newtype FunctionRef = FunctionRef
   {_functionRefName :: Name}
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
   deriving newtype (Hashable)
 
 newtype ConstructorRef = ConstructorRef
   {_constructorRefName :: Name}
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
   deriving newtype (Hashable)
 
 newtype InductiveRef = InductiveRef
   {_inductiveRefName :: Name}
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
   deriving newtype (Hashable)
 
 newtype AxiomRef = AxiomRef
   {_axiomRefName :: Name}
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
   deriving newtype (Hashable)
 
 data Iden
@@ -89,7 +88,7 @@ data Iden
   | IdenVar VarName
   | IdenInductive InductiveRef
   | IdenAxiom AxiomRef
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data Expression
   = ExpressionIden Iden
@@ -100,7 +99,7 @@ data Expression
   | ExpressionHole Hole
   --- | ExpressionMatch Match
   ---  ExpressionLambda Lambda not supported yet
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 instance HasAtomicity Expression where
   atomicity = \case
@@ -115,33 +114,33 @@ data Match = Match
   { _matchExpression :: Expression,
     _matchAlts :: [MatchAlt]
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data MatchAlt = MatchAlt
   { _matchAltPattern :: Pattern,
     _matchAltBody :: Expression
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data Application = Application
   { _appLeft :: Expression,
     _appRight :: Expression,
     _appImplicit :: IsImplicit
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 instance HasAtomicity Application where
   atomicity = const (Aggregate appFixity)
 
 newtype Lambda = Lambda
   {_lambdaClauses :: [LambdaClause]}
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data LambdaClause = LambdaClause
   { _lambdaParameters :: NonEmpty Pattern,
     _lambdaBody :: Expression
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data FunctionParameter = FunctionParameter
   { _paramName :: Maybe VarName,
@@ -149,13 +148,13 @@ data FunctionParameter = FunctionParameter
     _paramImplicit :: IsImplicit,
     _paramType :: Expression
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data Function = Function
   { _funParameter :: FunctionParameter,
     _funReturn :: Expression
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 instance HasAtomicity Function where
   atomicity = const (Aggregate funFixity)
@@ -165,7 +164,7 @@ data ConstructorApp = ConstructorApp
   { _constrAppConstructor :: ConstructorRef,
     _constrAppParameters :: [Pattern]
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data Pattern
   = PatternVariable VarName
@@ -173,7 +172,7 @@ data Pattern
   | PatternWildcard Wildcard
   | PatternEmpty
   | PatternBraces Pattern
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data InductiveDef = InductiveDef
   { _inductiveName :: InductiveName,
@@ -182,19 +181,19 @@ data InductiveDef = InductiveDef
     _inductiveType :: Expression,
     _inductiveConstructors :: [InductiveConstructorDef]
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data InductiveConstructorDef = InductiveConstructorDef
   { _constructorName :: ConstrName,
     _constructorType :: Expression
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 data AxiomDef = AxiomDef
   { _axiomName :: AxiomName,
     _axiomType :: Expression
   }
-  deriving stock (Eq, Show, Lift)
+  deriving stock (Eq, Show)
 
 makeLenses ''Module
 makeLenses ''FunctionParameter

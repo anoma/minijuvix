@@ -4,9 +4,9 @@ module MiniJuvix.Pipeline
   )
 where
 
+import MiniJuvix.Builtins
 import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Pipeline.EntryPoint
-import MiniJuvix.Builtins
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.AbstractResult qualified as Abstract
 import MiniJuvix.Syntax.Concrete.Parser qualified as Parser
@@ -105,7 +105,7 @@ pipelineScoper ::
 pipelineScoper = mapError (MiniJuvixError @Scoper.ScoperError) . Scoper.entryScoper
 
 pipelineAbstract ::
-  Members '[Error MiniJuvixError, Builtins] r =>
+  Members '[Error MiniJuvixError, Builtins, NameIdGen] r =>
   Scoper.ScoperResult ->
   Sem r Abstract.AbstractResult
 pipelineAbstract = mapError (MiniJuvixError @Scoper.ScoperError) . Abstract.entryAbstract

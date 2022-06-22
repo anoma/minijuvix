@@ -18,7 +18,7 @@ data Name = Name
     _nameKind :: NameKind,
     _nameLoc :: Interval
   }
-  deriving stock (Show, Lift)
+  deriving stock (Show)
 
 makeLenses ''Name
 

@@ -1,10 +1,11 @@
 module MiniJuvix.Builtins.Natural where
 
-import MiniJuvix.Prelude
-import MiniJuvix.Builtins
-import MiniJuvix.Syntax.Abstract.Language.Extra
-import MiniJuvix.Internal.NameIdGen
 import Data.HashSet qualified as HashSet
+import MiniJuvix.Builtins
+import MiniJuvix.Internal.NameIdGen
+import MiniJuvix.Prelude
+import MiniJuvix.Syntax.Abstract.Language.Extra
+import MiniJuvix.Syntax.Abstract.Pretty
 
 registerNaturalDef :: Member Builtins r => InductiveDef -> Sem r ()
 registerNaturalDef d = do
@@ -18,7 +19,7 @@ registerNaturalDef d = do
 registerZero :: Member Builtins r => InductiveConstructorDef -> Sem r ()
 registerZero (InductiveConstructorDef zero ty) = do
   nat <- getBuiltin BuiltinsNatural
-  unless (ty === nat) (error "zero has the wrong type")
+  unless (ty === nat) (error $ "zero has the wrong type " <> ppSimple ty <> " | " <> ppSimple nat)
   registerBuiltin BuiltinsZero zero
 
 registerSuc :: Member Builtins r => InductiveConstructorDef -> Sem r ()
@@ -27,8 +28,8 @@ registerSuc (InductiveConstructorDef suc ty) = do
   unless (ty === (nat --> nat)) (error "suc has the wrong type")
   registerBuiltin BuiltinsSuc suc
 
-registerPlus :: Members '[Builtins, NameIdGen] r => FunctionDef -> Sem r ()
-registerPlus f = do
+registerNaturalPlus :: Members '[Builtins, NameIdGen] r => FunctionDef -> Sem r ()
+registerNaturalPlus f = do
   nat <- getBuiltin BuiltinsNatural
   zero <- toExpression <$> getBuiltin BuiltinsZero
   suc <- toExpression <$> getBuiltin BuiltinsSuc
@@ -44,13 +45,16 @@ registerPlus f = do
       x .+. y = plus @@ x @@ y
       exClauses :: [(Expression, Expression)]
       exClauses =
-        [ (zero .+. m , zero),
-         ((suc @@ n) .+. m , suc @@ (n .+. m))
+        [ (zero .+. m, toExpression m),
+          ((suc @@ n) .+. m, suc @@ (n .+. m))
         ]
       clauses :: [(Expression, Expression)]
-      clauses = [ (clauseLhsAsExpression c, c ^. clauseBody)
-        | c <- toList (f ^. funDefClauses)]
+      clauses =
+        [ (clauseLhsAsExpression c, c ^. clauseBody)
+          | c <- toList (f ^. funDefClauses)
+        ]
   case zipExactMay exClauses clauses of
     Nothing -> error "Natural plus has the wrong number of clauses"
-    Just z ->  forM_ z $ \((exLhs, exBody), (lhs, body)) ->
-      unless (exLhs =% lhs && exBody =% body) (error "clause does not match")
+    Just z -> forM_ z $ \((exLhs, exBody), (lhs, body)) -> do
+      unless (exLhs =% lhs) (error "clause lhs does not match")
+      unless (exBody =% body) (error $ "clause body does not match " <> ppSimple exBody <> " | " <> ppSimple body)

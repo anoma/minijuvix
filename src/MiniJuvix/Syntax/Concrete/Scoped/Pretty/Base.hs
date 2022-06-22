@@ -234,8 +234,12 @@ groupStatements = reverse . map reverse . uncurry cons . foldl' aux ([], [])
       (StatementImport i, StatementOpenModule o) -> case sing :: SStage s of
         SParsed -> True
         SScoped ->
-          i ^. importModule . modulePath . S.nameId
-            == projSigma2 (^. moduleRefName) (o ^. openModuleName . unModuleRef') ^. S.nameId
+          i
+            ^. importModule
+            . modulePath
+            . S.nameId
+            == projSigma2 (^. moduleRefName) (o ^. openModuleName . unModuleRef')
+            ^. S.nameId
       (StatementImport _, _) -> False
       (StatementOpenModule {}, StatementOpenModule {}) -> True
       (StatementOpenModule {}, _) -> False
@@ -271,8 +275,9 @@ groupStatements = reverse . map reverse . uncurry cons . foldl' aux ([], [])
         syms InductiveDef {..} = case sing :: SStage s of
           SParsed -> _inductiveName : map (^. constructorName) _inductiveConstructors
           SScoped ->
-            _inductiveName ^. S.nameConcrete :
-            map (^. constructorName . S.nameConcrete) _inductiveConstructors
+            _inductiveName
+              ^. S.nameConcrete
+              : map (^. constructorName . S.nameConcrete) _inductiveConstructors
 
 instance SingI s => PrettyCode [Statement s] where
   ppCode ss = vsep2 <$> mapM (fmap vsep . mapM (fmap endSemicolon . ppCode)) (groupStatements ss)
@@ -307,10 +312,13 @@ instance PrettyCode ForeignBlock where
   ppCode ForeignBlock {..} = do
     _foreignBackend' <- ppCode _foreignBackend
     return $
-      kwForeign <+> _foreignBackend' <+> lbrace <> line
-        <> pretty (escape _foreignCode)
-        <> line
-        <> rbrace
+      kwForeign
+        <+> _foreignBackend'
+        <+> lbrace
+          <> line
+          <> pretty (escape _foreignCode)
+          <> line
+          <> rbrace
     where
       escape :: Text -> Text
       escape = T.replace "}" "\\}"
@@ -366,12 +374,16 @@ instance (SingI s, SingI t) => PrettyCode (Module s t) where
     moduleBody' <- ppCode _moduleBody >>= indented
     modulePath' <- ppModulePathType _modulePath
     moduleParameters' <- ppInductiveParameters _moduleParameters
-    return $
-      kwModule <+> modulePath' <+?> moduleParameters' <> kwSemicolon <> line
-        <> moduleBody'
-        <> line
-        <> kwEnd
-        <?> lastSemicolon
+    return
+      $ kwModule
+        <+> modulePath'
+        <+?> moduleParameters'
+          <> kwSemicolon
+          <> line
+          <> moduleBody'
+          <> line
+          <> kwEnd
+      <?> lastSemicolon
     where
       lastSemicolon = case sing :: SModuleIsTop t of
         SModuleLocal -> Nothing
@@ -410,12 +422,13 @@ instance SingI s => PrettyCode (InductiveConstructorDef s) where
     return $ constructorName' <+> kwColon <+> constructorType'
 
 instance PrettyCode BuiltinInductive where
-  ppCode i = return $
-     kwBuiltin <+> key
+  ppCode i =
+    return $
+      kwBuiltin <+> key
     where
-    key :: Doc Ann
-    key = case i of
-      BuiltinNatural -> kwNatural
+      key :: Doc Ann
+      key = case i of
+        BuiltinNatural -> kwNatural
 
 instance SingI s => PrettyCode (InductiveDef s) where
   ppCode :: forall r. Members '[Reader Options] r => InductiveDef s -> Sem r (Doc Ann)
@@ -426,8 +439,11 @@ instance SingI s => PrettyCode (InductiveDef s) where
     inductiveConstructors' <- ppBlock _inductiveConstructors
     inductivebuiltin' <- traverse ppCode _inductiveBuiltin
     return $
-      inductivebuiltin' <?+>
-      kwInductive <+> inductiveName' <+?> inductiveParameters' <+?> inductiveType'
+      inductivebuiltin'
+        <?+> kwInductive
+        <+> inductiveName'
+        <+?> inductiveParameters'
+        <+?> inductiveType'
         <+> inductiveConstructors'
     where
       ppTypeType :: Sem r (Maybe (Doc Ann))
@@ -613,7 +629,10 @@ instance SingI s => PrettyCode (FunctionClause s) where
     clauseBody' <- ppExpression _clauseBody
     clauseWhere' <- mapM ppCode _clauseWhere
     return $
-      clauseOwnerFunction' <+?> clausePatterns' <+> kwAssignment <+> clauseBody'
+      clauseOwnerFunction'
+        <+?> clausePatterns'
+        <+> kwAssignment
+        <+> clauseBody'
         <+?> ((line <>) <$> clauseWhere')
 
 instance SingI s => PrettyCode (WhereBlock s) where
@@ -858,7 +877,8 @@ ppExpression = case sing :: SStage s of
 instance PrettyCode SymbolEntry where
   ppCode ent =
     return
-      ( kindTag <+> pretty (entryName ent ^. S.nameVerbatim)
+      ( kindTag
+          <+> pretty (entryName ent ^. S.nameVerbatim)
           <+> "defined at"
           <+> pretty (getLoc ent)
       )

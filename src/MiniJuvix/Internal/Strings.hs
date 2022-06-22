@@ -83,6 +83,9 @@ string = "string"
 natural :: IsString s => s
 natural = "natural"
 
+naturalPlus :: IsString s => s
+naturalPlus = "natural-plus"
+
 builtin :: IsString s => s
 builtin = "builtin"
 

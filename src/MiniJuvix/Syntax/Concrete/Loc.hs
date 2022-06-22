@@ -5,7 +5,7 @@ import Prettyprinter
 import Text.Megaparsec qualified as M
 
 newtype Pos = Pos {_unPos :: Word64}
-  deriving stock (Show, Eq, Ord, Lift)
+  deriving stock (Show, Eq, Ord)
   deriving newtype (Hashable)
 
 instance Semigroup Pos where
@@ -22,7 +22,7 @@ data FileLoc = FileLoc
     -- | Offset wrt the start of the input. Used for syntax highlighting.
     _locOffset :: !Pos
   }
-  deriving stock (Show, Eq, Generic, Lift)
+  deriving stock (Show, Eq, Generic)
 
 instance Hashable FileLoc
 
@@ -57,7 +57,7 @@ data Interval = Interval
     _intervalStart :: FileLoc,
     _intervalEnd :: FileLoc
   }
-  deriving stock (Show, Ord, Eq, Generic, Lift)
+  deriving stock (Show, Ord, Eq, Generic)
 
 instance Hashable Interval
 
@@ -75,7 +75,7 @@ data WithLoc a = WithLoc
   { _withLocInt :: Interval,
     _withLocParam :: a
   }
-  deriving stock (Show, Lift)
+  deriving stock (Show)
 
 makeLenses ''Interval
 makeLenses ''FileLoc
@@ -131,7 +131,8 @@ instance Pretty Loc where
 instance Pretty Interval where
   pretty :: Interval -> Doc a
   pretty i =
-    pretty (i ^. intervalFile) <> colon
+    pretty (i ^. intervalFile)
+      <> colon
       <> ppPosRange (i ^. intervalStart . locLine, i ^. intervalEnd . locLine)
       <> colon
       <> ppPosRange (i ^. intervalStart . locCol, i ^. intervalEnd . locCol)

@@ -81,7 +81,6 @@ import Data.Function
 import Data.Functor
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
-import Language.Haskell.TH.Syntax (Lift)
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.Hashable
@@ -124,6 +123,7 @@ import GHC.Generics (Generic)
 import GHC.Num
 import GHC.Real
 import GHC.Stack.Types
+import Language.Haskell.TH.Syntax (Lift)
 import Lens.Micro.Platform hiding (both, _head)
 import Polysemy
 import Polysemy.Embed
@@ -272,16 +272,19 @@ impossible = Err.error "impossible"
 --------------------------------------------------------------------------------
 
 infixl 7 <+?>
+
 (<+?>) :: Doc ann -> Maybe (Doc ann) -> Doc ann
 (<+?>) a = maybe a (a <+>)
 
 infixl 7 <?+>
+
 (<?+>) :: Maybe (Doc ann) -> Doc ann -> Doc ann
 (<?+>) = \case
   Nothing -> id
   Just a -> (a <+>)
 
 infixl 7 <?>
+
 (<?>) :: Semigroup m => m -> Maybe m -> m
 (<?>) a = maybe a (a <>)
 

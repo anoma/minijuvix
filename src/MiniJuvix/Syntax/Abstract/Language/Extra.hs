@@ -6,15 +6,15 @@ where
 
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet qualified as HashSet
+import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Language
-import MiniJuvix.Internal.NameIdGen
 
-data ApplicationArg =
-  ApplicationArg  {
-   _appArgIsImplicit :: IsImplicit,
-   _appArg :: Expression
+data ApplicationArg = ApplicationArg
+  { _appArgIsImplicit :: IsImplicit,
+    _appArg :: Expression
   }
+
 makeLenses ''ApplicationArg
 
 patternVariables :: Pattern -> [VarName]
@@ -112,10 +112,12 @@ matchExpressions = go
     isSoftFreeVar = asks . HashSet.member
     go :: Expression -> Expression -> Sem r ()
     go a b = case (a, b) of
-      (ExpressionIden ia, ExpressionIden ib) -> do
-        addIfFreeVar ia ib
-        addIfFreeVar ib ia
-        unlessM ((== Just (idenName ib)) <$> gets @(HashMap Name Name) (^. at (idenName ia))) err
+      (ExpressionIden ia, ExpressionIden ib) -> case (ia, ib) of
+        (IdenVar va, IdenVar vb) -> do
+          addIfFreeVar va vb
+          addIfFreeVar vb va
+          unlessM ((== Just (idenName ib)) <$> gets @(HashMap Name Name) (^. at (idenName ia))) err
+        (_, _) -> unless (ia == ib) err
       (ExpressionIden {}, _) -> err
       (_, ExpressionIden {}) -> err
       (ExpressionApplication ia, ExpressionApplication ib) ->
@@ -135,11 +137,8 @@ matchExpressions = go
       (ExpressionLiteral {}, _) -> err
       (_, ExpressionLiteral {}) -> err
       (ExpressionHole _, ExpressionHole _) -> return ()
-    addIfFreeVar :: Iden -> Iden -> Sem r ()
-    addIfFreeVar ia ib = case ia of
-      IdenVar va ->
-        whenM (isSoftFreeVar va) (addName va (idenName ib))
-      _ -> return ()
+    addIfFreeVar :: VarName -> VarName -> Sem r ()
+    addIfFreeVar va vb = whenM (isSoftFreeVar va) (addName va vb)
     err :: Sem r a
     err = throw @Text "Expression missmatch"
     goApp :: Application -> Application -> Sem r ()
@@ -209,6 +208,7 @@ clauseLhsAsExpression cl =
   foldApplication (toExpression (cl ^. clauseName)) (map toApplicationArg (cl ^. clausePatterns))
 
 infixr 0 -->
+
 (-->) :: (IsExpression a, IsExpression b) => a -> b -> Expression
 (-->) a b =
   ExpressionFunction
@@ -224,29 +224,33 @@ infixr 0 -->
     )
 
 infix 4 ===
+
 (===) :: (IsExpression a, IsExpression b) => a -> b -> Bool
 a === b = (toExpression a ==% toExpression b) mempty
 
 infix 4 ==%
+
 (==%) :: (IsExpression a, IsExpression b) => a -> b -> HashSet Name -> Bool
 (==%) a b free =
-   isRight
-   . run
-   . runError @Text
-   . runReader free
-   . evalState (mempty @(HashMap Name Name) )
-   $ matchExpressions (toExpression a) (toExpression b)
+  isRight
+    . run
+    . runError @Text
+    . runReader free
+    . evalState (mempty @(HashMap Name Name))
+    $ matchExpressions (toExpression a) (toExpression b)
 
 infixl 9 @@
+
 (@@) :: (IsExpression a, IsExpression b) => a -> b -> Expression
 a @@ b = toExpression (Application (toExpression a) (toExpression b) Explicit)
 
 freshVar :: Member NameIdGen r => Text -> Sem r VarName
 freshVar n = do
   uid <- freshNameId
-  return Name {
-    _nameId = uid,
-    _nameText = n,
-    _nameKind = KNameLocal,
-    _nameLoc = error "freshVar with no location"
-  }
+  return
+    Name
+      { _nameId = uid,
+        _nameText = n,
+        _nameKind = KNameLocal,
+        _nameLoc = error "freshVar with no location"
+      }

@@ -7,7 +7,7 @@ import Prettyprinter
 data Literal
   = LitString Text
   | LitInteger Integer
-  deriving stock (Show, Eq, Ord, Lift)
+  deriving stock (Show, Eq, Ord)
 
 instance HasAtomicity Literal where
   atomicity = \case
