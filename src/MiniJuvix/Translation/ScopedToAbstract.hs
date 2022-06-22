@@ -7,7 +7,8 @@ where
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.AbstractResult
 import MiniJuvix.Syntax.Abstract.InfoTableBuilder
-import MiniJuvix.Syntax.Abstract.Language (FunctionDef (_funDefTypeSig))
+import MiniJuvix.Builtins.Natural
+import MiniJuvix.Builtins
 import MiniJuvix.Syntax.Abstract.Language qualified as Abstract
 import MiniJuvix.Syntax.Concrete.Language qualified as Concrete
 import MiniJuvix.Syntax.Concrete.Scoped.Error
@@ -18,7 +19,7 @@ import MiniJuvix.Syntax.Concrete.Scoped.Scoper qualified as Scoper
 unsupported :: Text -> a
 unsupported msg = error $ msg <> "Scoped to Abstract: not yet supported"
 
-entryAbstract :: Member (Error ScoperError) r => Scoper.ScoperResult -> Sem r AbstractResult
+entryAbstract :: Members '[Error ScoperError, Builtins] r => Scoper.ScoperResult -> Sem r AbstractResult
 entryAbstract _resultScoper = do
   (_resultTable, _resultModules) <- runInfoTableBuilder (mapM goTopModule ms)
   return AbstractResult {..}
@@ -26,20 +27,20 @@ entryAbstract _resultScoper = do
     ms = _resultScoper ^. Scoper.resultModules
 
 goTopModule ::
-  Members '[InfoTableBuilder, Error ScoperError] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
   Module 'Scoped 'ModuleTop ->
   Sem r Abstract.TopModule
 goTopModule = goModule
 
 goLocalModule ::
-  Members '[InfoTableBuilder, Error ScoperError] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
   Module 'Scoped 'ModuleLocal ->
   Sem r Abstract.LocalModule
 goLocalModule = goModule
 
 goModule ::
   forall r t.
-  (Members '[InfoTableBuilder, Error ScoperError] r, SingI t) =>
+  (Members '[InfoTableBuilder, Error ScoperError, Builtins] r, SingI t) =>
   Module 'Scoped t ->
   Sem r Abstract.Module
 goModule (Module n par b) = case par of
@@ -65,7 +66,7 @@ goSymbol s =
 
 goModuleBody ::
   forall r.
-  Members '[InfoTableBuilder, Error ScoperError] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
   [Statement 'Scoped] ->
   Sem r Abstract.ModuleBody
 goModuleBody ss' = do
@@ -102,7 +103,7 @@ goModuleBody ss' = do
 
 goStatement ::
   forall r.
-  Members '[InfoTableBuilder, Error ScoperError] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
   Indexed (Statement 'Scoped) ->
   Sem r (Maybe (Indexed Abstract.Statement))
 goStatement (Indexed idx s) =
@@ -122,7 +123,7 @@ goStatement (Indexed idx s) =
 
 goOpenModule ::
   forall r.
-  Members '[InfoTableBuilder, Error ScoperError] r =>
+  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
   OpenModule 'Scoped ->
   Sem r (Maybe Abstract.Statement)
 goOpenModule o
@@ -157,7 +158,9 @@ goFunctionClause FunctionClause {..} = do
   goWhereBlock _clauseWhere
   return
     Abstract.FunctionClause
-      { _clausePatterns = _clausePatterns',
+      {
+        _clauseName = goSymbol _clauseOwnerFunction,
+        _clausePatterns = _clausePatterns',
         _clauseBody = _clauseBody'
       }
 
@@ -182,23 +185,28 @@ goInductiveParameter InductiveParameter {..} = do
         _paramUsage = UsageOmega
       }
 
+registerInductiveBuiltin :: Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
+  Abstract.InductiveDef -> BuiltinInductive -> Sem r ()
+registerInductiveBuiltin d = \case
+  BuiltinNatural -> registerNaturalDef d
+
 goInductive ::
-  Members '[InfoTableBuilder, Error ScoperError] r =>
+  Members '[InfoTableBuilder, Builtins, Error ScoperError] r =>
   InductiveDef 'Scoped ->
   Sem r Abstract.InductiveDef
 goInductive InductiveDef {..} = do
   _inductiveParameters' <- mapM goInductiveParameter _inductiveParameters
   _inductiveType' <- mapM goExpression _inductiveType
   _inductiveConstructors' <- mapM goConstructorDef _inductiveConstructors
-  inductiveInfo <-
-    registerInductive
-      Abstract.InductiveDef
+  let indDef = Abstract.InductiveDef
         { _inductiveParameters = _inductiveParameters',
+          _inductiveBuiltin = _inductiveBuiltin,
           _inductiveName = goSymbol _inductiveName,
-          _inductiveType = _inductiveType',
+          _inductiveType = fromMaybe (Abstract.ExpressionUniverse smallUniverse) _inductiveType',
           _inductiveConstructors = _inductiveConstructors'
         }
-
+  whenJust _inductiveBuiltin (registerInductiveBuiltin indDef)
+  inductiveInfo <- registerInductive indDef
   forM_ _inductiveConstructors' (registerConstructor inductiveInfo)
   return (inductiveInfo ^. inductiveInfoDef)
 

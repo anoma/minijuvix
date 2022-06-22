@@ -45,6 +45,7 @@ module MiniJuvix.Prelude.Base
     module Polysemy.Output,
     module Polysemy.Reader,
     module Polysemy.State,
+    module Language.Haskell.TH.Syntax,
     module Prettyprinter,
     module System.Directory,
     module System.Exit,
@@ -80,6 +81,7 @@ import Data.Function
 import Data.Functor
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
+import Language.Haskell.TH.Syntax (Lift)
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.Hashable
@@ -103,7 +105,7 @@ import Data.Maybe
 import Data.Monoid
 import Data.Ord
 import Data.Semigroup (Semigroup, (<>))
-import Data.Singletons
+import Data.Singletons hiding ((@@))
 import Data.Singletons.Sigma
 import Data.Singletons.TH (genSingletons, promoteOrdInstances, singOrdInstances)
 import Data.Stream (Stream)
@@ -243,6 +245,9 @@ tableNestedInsert k1 k2 a = tableInsert (HashMap.singleton k2) (HashMap.insert k
 nonEmptyUnsnoc :: NonEmpty a -> (Maybe (NonEmpty a), a)
 nonEmptyUnsnoc e = (NonEmpty.nonEmpty (NonEmpty.init e), NonEmpty.last e)
 
+_nonEmpty :: Lens' [a] (Maybe (NonEmpty a))
+_nonEmpty f x = maybe [] toList <$> f (nonEmpty x)
+
 groupSortOn :: Ord b => (a -> b) -> [a] -> [NonEmpty a]
 groupSortOn f = map (fromJust . nonEmpty) . List.groupSortOn f
 
@@ -267,12 +272,16 @@ impossible = Err.error "impossible"
 --------------------------------------------------------------------------------
 
 infixl 7 <+?>
-
 (<+?>) :: Doc ann -> Maybe (Doc ann) -> Doc ann
 (<+?>) a = maybe a (a <+>)
 
-infixl 7 <?>
+infixl 7 <?+>
+(<?+>) :: Maybe (Doc ann) -> Doc ann -> Doc ann
+(<?+>) = \case
+  Nothing -> id
+  Just a -> (a <+>)
 
+infixl 7 <?>
 (<?>) :: Semigroup m => m -> Maybe m -> m
 (<?>) a = maybe a (a <>)
 

@@ -40,6 +40,12 @@ kwModule = keyword Str.module_
 kwEnd :: Doc Ann
 kwEnd = keyword Str.end
 
+kwBuiltin :: Doc Ann
+kwBuiltin = keyword Str.builtin
+
+kwNatural :: Doc Ann
+kwNatural = keyword Str.natural
+
 kwInductive :: Doc Ann
 kwInductive = keyword Str.inductive
 
@@ -403,6 +409,14 @@ instance SingI s => PrettyCode (InductiveConstructorDef s) where
     constructorType' <- ppExpression _constructorType
     return $ constructorName' <+> kwColon <+> constructorType'
 
+instance PrettyCode BuiltinInductive where
+  ppCode i = return $
+     kwBuiltin <+> key
+    where
+    key :: Doc Ann
+    key = case i of
+      BuiltinNatural -> kwNatural
+
 instance SingI s => PrettyCode (InductiveDef s) where
   ppCode :: forall r. Members '[Reader Options] r => InductiveDef s -> Sem r (Doc Ann)
   ppCode InductiveDef {..} = do
@@ -410,7 +424,9 @@ instance SingI s => PrettyCode (InductiveDef s) where
     inductiveParameters' <- ppInductiveParameters _inductiveParameters
     inductiveType' <- ppTypeType
     inductiveConstructors' <- ppBlock _inductiveConstructors
+    inductivebuiltin' <- traverse ppCode _inductiveBuiltin
     return $
+      inductivebuiltin' <?+>
       kwInductive <+> inductiveName' <+?> inductiveParameters' <+?> inductiveType'
         <+> inductiveConstructors'
     where

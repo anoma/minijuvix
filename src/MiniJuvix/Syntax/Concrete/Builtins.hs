@@ -4,4 +4,4 @@ import MiniJuvix.Prelude
 
 data BuiltinInductive
   = BuiltinNatural
-  deriving stock (Show, Eq, Ord)
+  deriving stock (Show, Eq, Ord, Lift)

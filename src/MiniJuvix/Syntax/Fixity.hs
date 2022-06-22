@@ -1,6 +1,5 @@
 module MiniJuvix.Syntax.Fixity where
 
-import Language.Haskell.TH.Syntax (Lift)
 import MiniJuvix.Prelude
 
 data Precedence

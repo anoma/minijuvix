@@ -55,10 +55,19 @@ runModuleParser root fileName input =
         { _parserParamsRoot = root
         }
 
+top :: Members '[Reader ParserParams, InfoTableBuilder] r =>
+  ParsecS r a -> ParsecS r a
+top p = space >> p <* (optional kwSemicolon >> P.eof)
+
 topModuleDef ::
   Members '[Reader ParserParams, InfoTableBuilder] r =>
   ParsecS r (Module 'Parsed 'ModuleTop)
-topModuleDef = space >> moduleDef <* (optional kwSemicolon >> P.eof)
+topModuleDef = top moduleDef
+
+topStatement ::
+  Members '[Reader ParserParams, InfoTableBuilder] r =>
+  ParsecS r (Statement 'Parsed)
+topStatement = top statement
 
 --------------------------------------------------------------------------------
 -- Symbols and names

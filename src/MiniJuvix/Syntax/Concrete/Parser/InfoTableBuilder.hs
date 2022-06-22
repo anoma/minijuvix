@@ -5,6 +5,7 @@ module MiniJuvix.Syntax.Concrete.Parser.InfoTableBuilder
     registerComment,
     mergeTable,
     runInfoTableBuilder,
+    ignoreInfoTableBuilder,
     module MiniJuvix.Syntax.Concrete.Parser.InfoTable,
   )
 where
@@ -76,3 +77,6 @@ runInfoTableBuilder =
           MergeTable tbl ->
             modify' (over stateItems ((tbl ^. infoParsedItems) <>))
       )
+
+ignoreInfoTableBuilder :: Sem (InfoTableBuilder ': r) a -> Sem r a
+ignoreInfoTableBuilder = fmap snd . runInfoTableBuilder

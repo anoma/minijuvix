@@ -6,6 +6,7 @@ where
 
 import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Pipeline.EntryPoint
+import MiniJuvix.Builtins
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.AbstractResult qualified as Abstract
 import MiniJuvix.Syntax.Concrete.Parser qualified as Parser
@@ -20,10 +21,10 @@ import MiniJuvix.Translation.MonoJuvixToMiniC qualified as MiniC
 import MiniJuvix.Translation.MonoJuvixToMiniHaskell qualified as MiniHaskell
 import MiniJuvix.Translation.ScopedToAbstract qualified as Abstract
 
-type PipelineEff = '[Files, NameIdGen, Error MiniJuvixError, Embed IO]
+type PipelineEff = '[Files, NameIdGen, Builtins, Error MiniJuvixError, Embed IO]
 
 runIOEither :: Sem PipelineEff a -> IO (Either MiniJuvixError a)
-runIOEither = runM . runError . runNameIdGen . runFilesIO
+runIOEither = runM . runError . runBuiltins . runNameIdGen . runFilesIO
 
 runIO :: Sem PipelineEff a -> IO a
 runIO = runIOEither >=> mayThrow
@@ -48,43 +49,43 @@ upToScoping ::
 upToScoping = upToParsing >=> pipelineScoper
 
 upToAbstract ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
+  Members '[Files, NameIdGen, Builtins, Error MiniJuvixError] r =>
   EntryPoint ->
   Sem r Abstract.AbstractResult
 upToAbstract = upToScoping >=> pipelineAbstract
 
 upToMicroJuvix ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
+  Members '[Files, NameIdGen, Builtins, Error MiniJuvixError] r =>
   EntryPoint ->
   Sem r MicroJuvix.MicroJuvixResult
 upToMicroJuvix = upToAbstract >=> pipelineMicroJuvix
 
 upToMicroJuvixArity ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
+  Members '[Files, NameIdGen, Builtins, Error MiniJuvixError] r =>
   EntryPoint ->
   Sem r MicroJuvix.MicroJuvixArityResult
 upToMicroJuvixArity = upToMicroJuvix >=> pipelineMicroJuvixArity
 
 upToMicroJuvixTyped ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
+  Members '[Files, NameIdGen, Builtins, Error MiniJuvixError] r =>
   EntryPoint ->
   Sem r MicroJuvix.MicroJuvixTypedResult
 upToMicroJuvixTyped = upToMicroJuvixArity >=> pipelineMicroJuvixTyped
 
 upToMonoJuvix ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
+  Members '[Files, NameIdGen, Builtins, Error MiniJuvixError] r =>
   EntryPoint ->
   Sem r MonoJuvix.MonoJuvixResult
 upToMonoJuvix = upToMicroJuvixTyped >=> pipelineMonoJuvix
 
 upToMiniHaskell ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
+  Members '[Files, NameIdGen, Builtins, Error MiniJuvixError] r =>
   EntryPoint ->
   Sem r MiniHaskell.MiniHaskellResult
 upToMiniHaskell = upToMonoJuvix >=> pipelineMiniHaskell
 
 upToMiniC ::
-  Members '[Files, NameIdGen, Error MiniJuvixError] r =>
+  Members '[Files, NameIdGen, Builtins, Error MiniJuvixError] r =>
   EntryPoint ->
   Sem r MiniC.MiniCResult
 upToMiniC = upToMonoJuvix >=> pipelineMiniC
@@ -104,7 +105,7 @@ pipelineScoper ::
 pipelineScoper = mapError (MiniJuvixError @Scoper.ScoperError) . Scoper.entryScoper
 
 pipelineAbstract ::
-  Members '[Error MiniJuvixError] r =>
+  Members '[Error MiniJuvixError, Builtins] r =>
   Scoper.ScoperResult ->
   Sem r Abstract.AbstractResult
 pipelineAbstract = mapError (MiniJuvixError @Scoper.ScoperError) . Abstract.entryAbstract

@@ -5,8 +5,17 @@ module MiniJuvix.Syntax.Abstract.Language.Extra
 where
 
 import Data.HashMap.Strict qualified as HashMap
+import Data.HashSet qualified as HashSet
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Language
+import MiniJuvix.Internal.NameIdGen
+
+data ApplicationArg =
+  ApplicationArg  {
+   _appArgIsImplicit :: IsImplicit,
+   _appArg :: Expression
+  }
+makeLenses ''ApplicationArg
 
 patternVariables :: Pattern -> [VarName]
 patternVariables = \case
@@ -60,30 +69,17 @@ viewExpressionAsPattern e = case viewApp e of
       ExpressionIden (IdenVar n) -> Just n
       _ -> Nothing
 
-matchInductiveDefs :: InductiveDef -> InductiveDef -> Maybe Text
-matchInductiveDefs a b = getError . run . runError . evalState mempty $ go
-  where
-    getError :: Either Text () -> Maybe Text
-    getError = \case
-      Left er -> Just er
-      Right _ -> Nothing
-    compareLengthEq :: [a] -> [b] -> Bool
-    compareLengthEq x y = EQ == comparingLength x y
-    go :: forall r. r ~ '[State (HashMap Name Name), Error Text] => Sem r ()
-    go = do
-      addName (a ^. inductiveName) (b ^. inductiveName)
-      let paramsA = a ^. inductiveParameters
-          paramsB = b ^. inductiveParameters
-      unless (compareLengthEq paramsA paramsB) (throw @Text "different number of inductive parameters")
-      zipWithM_ matchFunctionParameter paramsA paramsB
-      return ()
-
 addName :: Member (State (HashMap Name Name)) r => Name -> Name -> Sem r ()
 addName na nb = modify (HashMap.insert na nb)
 
+foldApplication :: Expression -> [ApplicationArg] -> Expression
+foldApplication f args = case args of
+  [] -> f
+  ((ApplicationArg i a) : as) -> foldApplication (ExpressionApplication (Application f a i)) as
+
 matchFunctionParameter ::
   forall r.
-  Members '[State (HashMap Name Name), Error Text] r =>
+  Members '[State (HashMap Name Name), Reader (HashSet VarName), Error Text] r =>
   FunctionParameter ->
   FunctionParameter ->
   Sem r ()
@@ -105,15 +101,20 @@ matchFunctionParameter pa pb = do
 
 matchExpressions ::
   forall r.
-  Members '[State (HashMap Name Name), Error Text] r =>
+  Members '[State (HashMap Name Name), Reader (HashSet VarName), Error Text] r =>
   Expression ->
   Expression ->
   Sem r ()
 matchExpressions = go
   where
+    -- Soft free vars are allowed to be matched
+    isSoftFreeVar :: VarName -> Sem r Bool
+    isSoftFreeVar = asks . HashSet.member
     go :: Expression -> Expression -> Sem r ()
     go a b = case (a, b) of
-      (ExpressionIden ia, ExpressionIden ib) ->
+      (ExpressionIden ia, ExpressionIden ib) -> do
+        addIfFreeVar ia ib
+        addIfFreeVar ib ia
         unlessM ((== Just (idenName ib)) <$> gets @(HashMap Name Name) (^. at (idenName ia))) err
       (ExpressionIden {}, _) -> err
       (_, ExpressionIden {}) -> err
@@ -134,6 +135,11 @@ matchExpressions = go
       (ExpressionLiteral {}, _) -> err
       (_, ExpressionLiteral {}) -> err
       (ExpressionHole _, ExpressionHole _) -> return ()
+    addIfFreeVar :: Iden -> Iden -> Sem r ()
+    addIfFreeVar ia ib = case ia of
+      IdenVar va ->
+        whenM (isSoftFreeVar va) (addName va (idenName ib))
+      _ -> return ()
     err :: Sem r a
     err = throw @Text "Expression missmatch"
     goApp :: Application -> Application -> Sem r ()
@@ -145,3 +151,102 @@ matchExpressions = go
     goFunction (Function al ar) (Function bl br) = do
       matchFunctionParameter al bl
       matchExpressions ar br
+
+class IsExpression a where
+  toExpression :: a -> Expression
+
+instance IsExpression ConstructorRef where
+  toExpression = toExpression . IdenConstructor
+
+instance IsExpression InductiveRef where
+  toExpression = toExpression . IdenInductive
+
+instance IsExpression FunctionRef where
+  toExpression = toExpression . IdenFunction
+
+instance IsExpression AxiomRef where
+  toExpression = toExpression . IdenAxiom
+
+instance IsExpression Iden where
+  toExpression = ExpressionIden
+
+instance IsExpression Expression where
+  toExpression = id
+
+instance IsExpression Name where
+  toExpression n = case n ^. nameKind of
+    KNameConstructor -> toExpression (ConstructorRef n)
+    KNameInductive -> toExpression (InductiveRef n)
+    KNameFunction -> toExpression (FunctionRef n)
+    KNameAxiom -> toExpression (AxiomRef n)
+    KNameLocal -> toExpression (IdenVar n)
+    KNameLocalModule -> impossible
+    KNameTopModule -> impossible
+
+instance IsExpression Universe where
+  toExpression = ExpressionUniverse
+
+instance IsExpression Application where
+  toExpression = ExpressionApplication
+
+instance IsExpression Function where
+  toExpression = ExpressionFunction
+
+instance IsExpression ConstructorApp where
+  toExpression (ConstructorApp c args) =
+    foldApplication (toExpression c) (map toApplicationArg args)
+
+toApplicationArg :: Pattern -> ApplicationArg
+toApplicationArg = \case
+  PatternVariable v -> ApplicationArg Explicit (toExpression v)
+  PatternConstructorApp a -> ApplicationArg Explicit (toExpression a)
+  PatternEmpty -> impossible
+  PatternBraces p -> set appArgIsImplicit Implicit (toApplicationArg p)
+  PatternWildcard _ -> error "TODO"
+
+clauseLhsAsExpression :: FunctionClause -> Expression
+clauseLhsAsExpression cl =
+  foldApplication (toExpression (cl ^. clauseName)) (map toApplicationArg (cl ^. clausePatterns))
+
+infixr 0 -->
+(-->) :: (IsExpression a, IsExpression b) => a -> b -> Expression
+(-->) a b =
+  ExpressionFunction
+    ( Function
+        ( FunctionParameter
+            { _paramName = Nothing,
+              _paramUsage = UsageOmega,
+              _paramImplicit = Explicit,
+              _paramType = toExpression a
+            }
+        )
+        (toExpression b)
+    )
+
+infix 4 ===
+(===) :: (IsExpression a, IsExpression b) => a -> b -> Bool
+a === b = (toExpression a ==% toExpression b) mempty
+
+infix 4 ==%
+(==%) :: (IsExpression a, IsExpression b) => a -> b -> HashSet Name -> Bool
+(==%) a b free =
+   isRight
+   . run
+   . runError @Text
+   . runReader free
+   . evalState (mempty @(HashMap Name Name) )
+   $ matchExpressions (toExpression a) (toExpression b)
+
+infixl 9 @@
+(@@) :: (IsExpression a, IsExpression b) => a -> b -> Expression
+a @@ b = toExpression (Application (toExpression a) (toExpression b) Explicit)
+
+freshVar :: Member NameIdGen r => Text -> Sem r VarName
+freshVar n = do
+  uid <- freshNameId
+  return Name {
+    _nameId = uid,
+    _nameText = n,
+    _nameKind = KNameLocal,
+    _nameLoc = error "freshVar with no location"
+  }

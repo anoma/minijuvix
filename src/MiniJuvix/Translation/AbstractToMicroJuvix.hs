@@ -265,18 +265,18 @@ goInductiveParameter f =
     (Just {}, _, _) -> unsupported "only type variables of small types are allowed"
     (Nothing, _, _) -> unsupported "unnamed inductive parameters"
 
-goConstructorType :: Abstract.Expression -> Sem r [Type]
-goConstructorType = fmap fst . viewConstructorType
-
-goInductiveDef ::
-  forall r.
-  Members '[Error TypeCheckerError] r =>
-  Abstract.InductiveDef ->
-  Sem r InductiveDef
-goInductiveDef i = case i ^. Abstract.inductiveType of
-  Just Abstract.ExpressionUniverse {} -> helper
-  Just {} -> unsupported "inductive indices"
-  _ -> helper
+goInductiveDef :: forall r. Abstract.InductiveDef -> Sem r InductiveDef
+goInductiveDef i = if
+  | not (isSmallType (i ^. Abstract.inductiveType)) -> unsupported "inductive indices"
+  | otherwise -> do
+    _inductiveParameters' <- mapM goInductiveParameter (i ^. Abstract.inductiveParameters)
+    _inductiveConstructors' <- mapM goConstructorDef (i ^. Abstract.inductiveConstructors)
+    return
+      InductiveDef
+        { _inductiveName = indName,
+          _inductiveParameters = _inductiveParameters',
+          _inductiveConstructors = _inductiveConstructors'
+        }
   where
     helper = do
       inductiveParameters' <- mapM goInductiveParameter (i ^. Abstract.inductiveParameters)

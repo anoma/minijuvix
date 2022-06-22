@@ -8,7 +8,7 @@ data Hole = Hole
   { _holeId :: NameId,
     _holeLoc :: Interval
   }
-  deriving stock (Show)
+  deriving stock (Show, Lift)
 
 makeLenses ''Hole
 
