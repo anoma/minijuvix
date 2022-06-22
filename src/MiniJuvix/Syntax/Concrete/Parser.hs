@@ -8,9 +8,9 @@ where
 
 import Data.List.NonEmpty.Extra qualified as NonEmpty
 import Data.Singletons
-import MiniJuvix.Internal.Strings qualified as Str
 import MiniJuvix.Pipeline.EntryPoint
 import MiniJuvix.Prelude
+import MiniJuvix.Prelude.Pretty (Pretty, prettyText)
 import MiniJuvix.Syntax.Concrete.Base qualified as P
 import MiniJuvix.Syntax.Concrete.Language
 import MiniJuvix.Syntax.Concrete.Lexer hiding (symbol)
@@ -111,7 +111,7 @@ statement =
     <|> (StatementPrint <$> printS)
     <|> (StatementForeign <$> foreignBlock)
     <|> (StatementModule <$> moduleDef)
-    <|> (StatementAxiom <$> axiomDef)
+    <|> (StatementAxiom <$> axiomDef Nothing)
     <|> (StatementCompile <$> compileBlock)
     <|> builtinStatement
     <|> ( either StatementTypeSignature StatementFunctionClause
@@ -119,15 +119,31 @@ statement =
         )
 
 builtinInductive :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r BuiltinInductive
-builtinInductive =
-  keyword Str.natural $> BuiltinNatural
+builtinInductive = builtinHelper
 
 builtinFunction :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r BuiltinFunction
-builtinFunction =
-  keyword Str.naturalPlus $> BuiltinNaturalPlus
+builtinFunction = builtinHelper
+
+builtinAxiom :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r BuiltinAxiom
+builtinAxiom = builtinHelper
+
+builtinHelper ::
+  (Members '[Reader ParserParams, InfoTableBuilder] r, Bounded a, Enum a, Pretty a) =>
+  ParsecS r a
+builtinHelper =
+  P.choice
+    [ keyword (prettyText a) $> a
+      | a <- allElements
+    ]
 
 builtinInductiveDef :: Members '[Reader ParserParams, InfoTableBuilder] r => BuiltinInductive -> ParsecS r (InductiveDef 'Parsed)
 builtinInductiveDef = inductiveDef . Just
+
+builtinAxiomDef ::
+  Members '[Reader ParserParams, InfoTableBuilder] r =>
+  BuiltinAxiom ->
+  ParsecS r (AxiomDef 'Parsed)
+builtinAxiomDef = axiomDef . Just
 
 builtinTypeSig ::
   Members '[Reader ParserParams, InfoTableBuilder] r =>
@@ -142,6 +158,7 @@ builtinStatement = do
   kwBuiltin
   (builtinInductive >>= fmap StatementInductive . builtinInductiveDef)
     <|> (builtinFunction >>= fmap StatementTypeSignature . builtinTypeSig)
+    <|> (builtinAxiom >>= fmap StatementAxiom . builtinAxiomDef)
 
 --------------------------------------------------------------------------------
 -- Compile
@@ -334,8 +351,11 @@ auxTypeSigFunClause = do
 -- Axioms
 -------------------------------------------------------------------------------
 
-axiomDef :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (AxiomDef 'Parsed)
-axiomDef = do
+axiomDef ::
+  Members '[Reader ParserParams, InfoTableBuilder] r =>
+  Maybe BuiltinAxiom ->
+  ParsecS r (AxiomDef 'Parsed)
+axiomDef _axiomBuiltin = do
   kwAxiom
   _axiomName <- symbol
   kwColon

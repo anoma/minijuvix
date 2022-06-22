@@ -319,3 +319,6 @@ fromRightIO pp = fromRightIO' (putStrLn . pp)
 
 nubHashable :: Hashable a => [a] -> [a]
 nubHashable = HashSet.toList . HashSet.fromList
+
+allElements :: (Bounded a, Enum a) => [a]
+allElements = [minBound .. maxBound]

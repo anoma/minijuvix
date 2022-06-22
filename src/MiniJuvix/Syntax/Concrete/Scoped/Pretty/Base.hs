@@ -28,8 +28,11 @@ class PrettyCode a where
 runPrettyCode :: PrettyCode c => Options -> c -> Doc Ann
 runPrettyCode opts = run . runReader opts . ppCode
 
+keyword' :: Pretty a => a -> Doc Ann
+keyword' = annotate AnnKeyword . pretty
+
 keyword :: Text -> Doc Ann
-keyword = annotate AnnKeyword . pretty
+keyword = keyword'
 
 delimiter :: Text -> Doc Ann
 delimiter = annotate AnnDelimiter . pretty
@@ -227,7 +230,7 @@ groupStatements = reverse . map reverse . uncurry cons . foldl' aux ([], [])
     g :: Statement s -> Statement s -> Bool
     g a b = case (a, b) of
       (StatementForeign _, _) -> False
-      (StatementCompile _, _) -> False -- TODO: not sure
+      (StatementCompile _, _) -> False
       (StatementOperator _, StatementOperator _) -> True
       (StatementOperator o, s) -> definesSymbol (o ^. opSymbol) s
       (StatementImport _, StatementImport _) -> True
@@ -263,14 +266,15 @@ groupStatements = reverse . map reverse . uncurry cons . foldl' aux ([], [])
       (StatementFunctionClause {}, _) -> False
     definesSymbol :: Symbol -> Statement s -> Bool
     definesSymbol n s = case s of
-      StatementTypeSignature sig ->
-        let sym = case sing :: SStage s of
-              SParsed -> sig ^. sigName
-              SScoped -> sig ^. sigName . S.nameConcrete
-         in n == sym
+      StatementTypeSignature sig -> n == symbolParsed (sig ^. sigName)
       StatementInductive d -> n `elem` syms d
+      StatementAxiom d -> n == symbolParsed (d ^. axiomName)
       _ -> False
       where
+        symbolParsed :: SymbolType s -> Symbol
+        symbolParsed sym = case sing :: SStage s of
+          SParsed -> sym
+          SScoped -> sym ^. S.nameConcrete
         syms :: InductiveDef s -> [Symbol]
         syms InductiveDef {..} = case sing :: SStage s of
           SParsed -> _inductiveName : map (^. constructorName) _inductiveConstructors
@@ -422,13 +426,13 @@ instance SingI s => PrettyCode (InductiveConstructorDef s) where
     return $ constructorName' <+> kwColon <+> constructorType'
 
 instance PrettyCode BuiltinInductive where
-  ppCode i =
-    return $
-      kwBuiltin <+> key
-    where
-      key :: Doc Ann
-      key = case i of
-        BuiltinNatural -> kwNatural
+  ppCode i = return (kwBuiltin <+> keyword' i)
+
+instance PrettyCode BuiltinFunction where
+  ppCode i = return (kwBuiltin <+> keyword' i)
+
+instance PrettyCode BuiltinAxiom where
+  ppCode i = return (kwBuiltin <+> keyword' i)
 
 instance SingI s => PrettyCode (InductiveDef s) where
   ppCode :: forall r. Members '[Reader Options] r => InductiveDef s -> Sem r (Doc Ann)
@@ -547,7 +551,8 @@ instance SingI s => PrettyCode (TypeSignature s) where
     let sigTerminating' = if _sigTerminating then kwTerminating <> line else mempty
     sigName' <- annDef _sigName <$> ppSymbol _sigName
     sigType' <- ppExpression _sigType
-    return $ sigTerminating' <> sigName' <+> kwColon <+> sigType'
+    builtin' <- traverse ppCode _sigBuiltin
+    return $ builtin' <?+> sigTerminating' <> sigName' <+> kwColon <+> sigType'
 
 instance SingI s => PrettyCode (Function s) where
   ppCode :: forall r. Members '[Reader Options] r => Function s -> Sem r (Doc Ann)
@@ -648,7 +653,8 @@ instance SingI s => PrettyCode (AxiomDef s) where
   ppCode AxiomDef {..} = do
     axiomName' <- ppSymbol _axiomName
     axiomType' <- ppExpression _axiomType
-    return $ kwAxiom <+> axiomName' <+> kwColon <+> axiomType'
+    builtin' <- traverse ppCode _axiomBuiltin
+    return $ builtin' <?+> kwAxiom <+> axiomName' <+> kwColon <+> axiomType'
 
 instance SingI s => PrettyCode (Eval s) where
   ppCode (Eval p) = do

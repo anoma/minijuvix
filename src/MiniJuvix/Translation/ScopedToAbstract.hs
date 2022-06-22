@@ -5,7 +5,6 @@ module MiniJuvix.Translation.ScopedToAbstract
 where
 
 import MiniJuvix.Builtins
-import MiniJuvix.Builtins.Natural
 import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.AbstractResult
@@ -203,6 +202,16 @@ registerBuiltinFunction ::
 registerBuiltinFunction d = \case
   BuiltinNaturalPlus -> registerNaturalPlus d
 
+registerBuiltinAxiom ::
+  Members '[InfoTableBuilder, Error ScoperError, Builtins] r =>
+  Abstract.AxiomDef ->
+  BuiltinAxiom ->
+  Sem r ()
+registerBuiltinAxiom d = \case
+  BuiltinIO -> registerIO d
+  BuiltinIOSequence -> registerIOSequence d
+  BuiltinNaturalPrint -> registerNaturalPrint d
+
 goInductive ::
   Members '[InfoTableBuilder, Builtins, Error ScoperError] r =>
   InductiveDef 'Scoped ->
@@ -367,11 +376,13 @@ goPattern p = case p of
   PatternEmpty -> return Abstract.PatternEmpty
   PatternBraces b -> Abstract.PatternBraces <$> goPattern b
 
-goAxiom :: Members '[InfoTableBuilder, Error ScoperError] r => AxiomDef 'Scoped -> Sem r Abstract.AxiomDef
+goAxiom :: Members '[InfoTableBuilder, Error ScoperError, Builtins] r => AxiomDef 'Scoped -> Sem r Abstract.AxiomDef
 goAxiom a = do
   _axiomType' <- goExpression (a ^. axiomType)
-  registerAxiom'
-    Abstract.AxiomDef
-      { _axiomType = _axiomType',
-        _axiomName = goSymbol (a ^. axiomName)
-      }
+  let axiom =
+        Abstract.AxiomDef
+          { _axiomType = _axiomType',
+            _axiomName = goSymbol (a ^. axiomName)
+          }
+  whenJust (a ^. axiomBuiltin) (registerBuiltinAxiom axiom)
+  registerAxiom' axiom

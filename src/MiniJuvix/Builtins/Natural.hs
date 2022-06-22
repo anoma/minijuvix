@@ -1,7 +1,7 @@
 module MiniJuvix.Builtins.Natural where
 
 import Data.HashSet qualified as HashSet
-import MiniJuvix.Builtins
+import MiniJuvix.Builtins.Effect
 import MiniJuvix.Internal.NameIdGen
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Language.Extra
@@ -27,6 +27,13 @@ registerSuc (InductiveConstructorDef suc ty) = do
   nat <- getBuiltin BuiltinsNatural
   unless (ty === (nat --> nat)) (error "suc has the wrong type")
   registerBuiltin BuiltinsSuc suc
+
+registerNaturalPrint :: Members '[Builtins] r => AxiomDef -> Sem r ()
+registerNaturalPrint f = do
+  nat <- getBuiltin BuiltinsNatural
+  io <- getBuiltin BuiltinsIO
+  unless (f ^. axiomType === (nat --> io)) (error "Natural print has the wrong type signature")
+  registerBuiltin BuiltinsNaturalPrint (f ^. axiomName)
 
 registerNaturalPlus :: Members '[Builtins, NameIdGen] r => FunctionDef -> Sem r ()
 registerNaturalPlus f = do
