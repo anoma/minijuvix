@@ -1,30 +1,16 @@
 module MiniJuvix.Builtins.Effect
   ( module MiniJuvix.Builtins.Effect,
+    module MiniJuvix.Builtins.Base,
   )
 where
 
+import MiniJuvix.Builtins.Base
+import MiniJuvix.Builtins.Error
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Language.Extra
 
-data ConstructorDescr = ConstructorDescr
-  { constructorDescrName :: Name,
-    constructorDescrType :: Expression
-  }
-
-data BuiltinsEnum
-  = BuiltinsNatural
-  | BuiltinsZero
-  | BuiltinsSuc
-  | BuiltinsNaturalPlus
-  | BuiltinsNaturalPrint
-  | BuiltinsIO
-  | BuiltinsIOSequence
-  deriving stock (Eq, Generic)
-
-instance Hashable BuiltinsEnum
-
 data Builtins m a where
-  GetBuiltin :: BuiltinsEnum -> Builtins m Name
+  GetBuiltin :: Interval -> BuiltinsEnum -> Builtins m Name
   RegisterBuiltin :: BuiltinsEnum -> Name -> Builtins m ()
 
 makeSem ''Builtins
@@ -38,19 +24,32 @@ makeLenses ''BuiltinsState
 iniState :: BuiltinsState
 iniState = BuiltinsState mempty
 
-re :: Sem (Builtins ': r) a -> Sem (State BuiltinsState ': r) a
+re :: forall r a. Member (Error MiniJuvixError) r => Sem (Builtins ': r) a -> Sem (State BuiltinsState ': r) a
 re = reinterpret $ \case
-  GetBuiltin n -> fromMaybe notReg <$> gets (^. builtinsTable . at n)
+  GetBuiltin i b -> fromMaybeM notDefined (gets (^. builtinsTable . at b))
+    where
+      notDefined :: Sem (State BuiltinsState : r) x
+      notDefined =
+        throw $
+          MiniJuvixError
+            NotDefined
+              { _notDefinedBuiltin = b,
+                _notDefinedLoc = i
+              }
   RegisterBuiltin b n -> do
     s <- gets (^. builtinsTable . at b)
     case s of
       Nothing -> modify (over builtinsTable (set (at b) (Just n)))
-      Just {} -> alreadyReg
-  where
-    notReg :: a
-    notReg = error "not registered"
-    alreadyReg :: a
-    alreadyReg = error "already registered"
+      Just {} -> alreadyDefined
+    where
+      alreadyDefined :: Sem (State BuiltinsState : r) x
+      alreadyDefined =
+        throw $
+          MiniJuvixError
+            AlreadyDefined
+              { _alreadyDefinedBuiltin = b,
+                _alreadyDefinedLoc = getLoc n
+              }
 
-runBuiltins :: Sem (Builtins ': r) a -> Sem r a
+runBuiltins :: Member (Error MiniJuvixError) r => Sem (Builtins ': r) a -> Sem r a
 runBuiltins = evalState iniState . re

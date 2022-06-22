@@ -1,0 +1,21 @@
+module All;
+
+builtin natural
+inductive ℕ {
+ zero : ℕ;
+ suc : ℕ → ℕ;
+};
+
+infixl 4 +;
+builtin natural-plus
++ : ℕ → ℕ → ℕ;
++ zero x ≔ x;
++ (suc a) b ≔ suc (a + b);
+
+-- builtin IO axiom IO : Type;
+
+-- infixl 1 >>;
+-- builtin IO-sequence axiom >> : IO → IO → IO;
+-- builtin natural-print axiom printNat : ℕ → IO;
+
+end;

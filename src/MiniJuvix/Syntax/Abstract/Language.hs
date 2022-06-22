@@ -209,3 +209,15 @@ makeLenses ''ConstructorRef
 makeLenses ''InductiveRef
 makeLenses ''AxiomRef
 makeLenses ''AxiomDef
+
+instance HasLoc InductiveConstructorDef where
+  getLoc = getLoc . (^. constructorName)
+
+instance HasLoc InductiveDef where
+  getLoc = getLoc . (^. inductiveName)
+
+instance HasLoc AxiomDef where
+  getLoc = getLoc . (^. axiomName)
+
+instance HasLoc FunctionDef where
+  getLoc = getLoc . (^. funDefName)

@@ -17,29 +17,29 @@ registerNaturalDef d = do
     _ -> error "Natural numbers should have exactly two constructors"
 
 registerZero :: Member Builtins r => InductiveConstructorDef -> Sem r ()
-registerZero (InductiveConstructorDef zero ty) = do
-  nat <- getBuiltin BuiltinsNatural
+registerZero d@(InductiveConstructorDef zero ty) = do
+  nat <- getBuiltin (getLoc d) BuiltinsNatural
   unless (ty === nat) (error $ "zero has the wrong type " <> ppSimple ty <> " | " <> ppSimple nat)
   registerBuiltin BuiltinsZero zero
 
 registerSuc :: Member Builtins r => InductiveConstructorDef -> Sem r ()
-registerSuc (InductiveConstructorDef suc ty) = do
-  nat <- getBuiltin BuiltinsNatural
+registerSuc d@(InductiveConstructorDef suc ty) = do
+  nat <- getBuiltin (getLoc d) BuiltinsNatural
   unless (ty === (nat --> nat)) (error "suc has the wrong type")
   registerBuiltin BuiltinsSuc suc
 
 registerNaturalPrint :: Members '[Builtins] r => AxiomDef -> Sem r ()
 registerNaturalPrint f = do
-  nat <- getBuiltin BuiltinsNatural
-  io <- getBuiltin BuiltinsIO
+  nat <- getBuiltin (getLoc f) BuiltinsNatural
+  io <- getBuiltin (getLoc f) BuiltinsIO
   unless (f ^. axiomType === (nat --> io)) (error "Natural print has the wrong type signature")
   registerBuiltin BuiltinsNaturalPrint (f ^. axiomName)
 
 registerNaturalPlus :: Members '[Builtins, NameIdGen] r => FunctionDef -> Sem r ()
 registerNaturalPlus f = do
-  nat <- getBuiltin BuiltinsNatural
-  zero <- toExpression <$> getBuiltin BuiltinsZero
-  suc <- toExpression <$> getBuiltin BuiltinsSuc
+  nat <- getBuiltin (getLoc f) BuiltinsNatural
+  zero <- toExpression <$> getBuiltin (getLoc f) BuiltinsZero
+  suc <- toExpression <$> getBuiltin (getLoc f) BuiltinsSuc
   let plus = f ^. funDefName
       ty = f ^. funDefTypeSig
   unless (ty === (nat --> nat --> nat)) (error "Natural plus has the wrong type signature")
