@@ -579,8 +579,8 @@ genClosureApply c =
                               (ExpressionVar "fa0")
                           )
                   }
-              )
-              : juvixFunCall
+              ) :
+            juvixFunCall
         }
 
 genClosureEval :: ClosureInfo -> Function

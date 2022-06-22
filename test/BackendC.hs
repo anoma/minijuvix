@@ -1,7 +1,7 @@
 module BackendC where
 
-import BackendC.Positive qualified as P
 import BackendC.Examples qualified as E
+import BackendC.Positive qualified as P
 import Base
 
 allTests :: TestTree

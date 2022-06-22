@@ -35,7 +35,6 @@ allTests =
 
 tests :: [ExampleTest]
 tests =
-  [
-    ExampleTest "Validity Predicate example" "ValidityPredicates" "Tests.mjuvix" "ValidityPredicates" "",
+  [ ExampleTest "Validity Predicate example" "ValidityPredicates" "Tests.mjuvix" "ValidityPredicates" "",
     ExampleTest "MiniTicTacToe example" "MiniTicTacToe" "MiniTicTacToe.mjuvix" "MiniTicTacToe" "aaa\n0\n10\n1\n2\n3\n3\n4\n5\n6\n7\n8\n9\n"
   ]
