@@ -12,15 +12,8 @@ genClosures ::
   Mono.Module ->
   Sem r [CCode]
 genClosures Mono.Module {..} = do
-  closureInfos <- concatMapM go (_moduleBody ^. Mono.moduleStatements)
+  closureInfos <- concatMapM (applyOnFunStatement functionDefClosures) (_moduleBody ^. Mono.moduleStatements)
   return (genCClosure =<< nub closureInfos)
-  where
-    go :: Mono.Statement -> Sem r [ClosureInfo]
-    go = \case
-      Mono.StatementFunction d -> functionDefClosures d
-      Mono.StatementForeign {} -> return []
-      Mono.StatementAxiom {} -> return []
-      Mono.StatementInductive {} -> return []
 
 genCClosure :: ClosureInfo -> [CCode]
 genCClosure c =
@@ -64,11 +57,11 @@ genClosureExpression funArgTyps = \case
                         _closureCArity = patterns
                       }
                   ]
-  Mono.ExpressionApplication a -> exprApplication' a
+  Mono.ExpressionApplication a -> exprApplication a
   Mono.ExpressionLiteral {} -> return []
   where
-    exprApplication' :: Mono.Application -> Sem r [ClosureInfo]
-    exprApplication' a = do
+    exprApplication :: Mono.Application -> Sem r [ClosureInfo]
+    exprApplication a = do
       (f, appArgs) <- unfoldApp a
       let rootFunMonoName = Mono.getName f
           rootFunNameId = rootFunMonoName ^. Mono.nameId

@@ -86,6 +86,14 @@ typeToFunType t =
         bimap (map goType) goType (unfoldFunType t)
    in CFunType {..}
 
+applyOnFunStatement ::
+  forall a. Monoid a => (Mono.FunctionDef -> a) -> Mono.Statement -> a
+applyOnFunStatement f = \case
+  Mono.StatementFunction x -> f x
+  Mono.StatementForeign {} -> mempty
+  Mono.StatementAxiom {} -> mempty
+  Mono.StatementInductive {} -> mempty
+
 buildPatternInfoTable :: forall r. Member (Reader Mono.InfoTable) r => [Mono.Type] -> Mono.FunctionClause -> Sem r PatternInfoTable
 buildPatternInfoTable argTyps Mono.FunctionClause {..} =
   PatternInfoTable . HashMap.fromList <$> patBindings

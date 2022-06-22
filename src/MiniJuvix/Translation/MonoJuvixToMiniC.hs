@@ -84,14 +84,7 @@ genCTypes Mono.Module {..} =
 
 genFunctionSigs :: Mono.Module -> [CCode]
 genFunctionSigs Mono.Module {..} =
-  go =<< _moduleBody ^. Mono.moduleStatements
-  where
-    go :: Mono.Statement -> [CCode]
-    go = \case
-      Mono.StatementFunction d -> genFunctionSig d
-      Mono.StatementForeign {} -> []
-      Mono.StatementAxiom {} -> []
-      Mono.StatementInductive {} -> []
+  applyOnFunStatement genFunctionSig =<< _moduleBody ^. Mono.moduleStatements
 
 genFunctionDefs ::
   Members '[Reader Mono.InfoTable] r =>
@@ -104,17 +97,7 @@ genFunctionDefsBody ::
   Mono.ModuleBody ->
   Sem r [CCode]
 genFunctionDefsBody Mono.ModuleBody {..} =
-  concatMapM genFunctionDefsStatement _moduleStatements
-
-genFunctionDefsStatement ::
-  Members '[Reader Mono.InfoTable] r =>
-  Mono.Statement ->
-  Sem r [CCode]
-genFunctionDefsStatement = \case
-  Mono.StatementFunction d -> goFunctionDef d
-  Mono.StatementForeign {} -> return []
-  Mono.StatementAxiom {} -> return []
-  Mono.StatementInductive {} -> return []
+  concatMapM (applyOnFunStatement goFunctionDef) _moduleStatements
 
 isNullary :: Text -> CFunType -> Bool
 isNullary funName funType = null (funType ^. cFunArgTypes) && funName /= Str.main_
