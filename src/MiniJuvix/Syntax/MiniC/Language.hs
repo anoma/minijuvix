@@ -122,6 +122,12 @@ data CDeclType = CDeclType
   }
   deriving stock (Show, Eq)
 
+data CFunType = CFunType
+  { _cFunArgTypes :: [CDeclType],
+    _cFunReturnType :: CDeclType
+  }
+  deriving stock (Show, Eq)
+
 uIntPtrType :: DeclType
 uIntPtrType = DeclTypeDefType "uintptr_t"
 
@@ -337,3 +343,4 @@ makeLenses ''Declaration
 makeLenses ''CDeclType
 makeLenses ''FunctionSig
 makeLenses ''Function
+makeLenses ''CFunType
