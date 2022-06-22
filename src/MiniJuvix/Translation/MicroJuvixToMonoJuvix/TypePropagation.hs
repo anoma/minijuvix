@@ -17,9 +17,10 @@ collectTypeCalls res = run (execState emptyCalls (runReader typesTable (runReade
         -- the list of functions defined in any module with concrete types.
         entries :: [FunctionDef]
         entries =
-          [ f |
-             m <- allModules,
-             StatementFunction f <- m ^. moduleBody . moduleStatements, hasConcreteType f
+          [ f
+            | m <- allModules,
+              StatementFunction f <- m ^. moduleBody . moduleStatements,
+              hasConcreteType f
           ]
           where
             hasConcreteType :: FunctionDef -> Bool

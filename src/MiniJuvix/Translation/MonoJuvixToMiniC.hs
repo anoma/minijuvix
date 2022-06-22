@@ -548,12 +548,14 @@ genClosureApply c =
       juvixFunCall =
         if
             | nPatterns < length args ->
-                [ BodyDecl (
-                    Declaration {_declType=declFunctionType,
-                                 _declIsPtr=True,
-                                 _declName=Just localFunName,
-                                 _declInitializer=Just (ExprInitializer funCall)}
-                           ),
+                [ BodyDecl
+                    ( Declaration
+                        { _declType = declFunctionType,
+                          _declIsPtr = True,
+                          _declName = Just localFunName,
+                          _declInitializer = Just (ExprInitializer funCall)
+                        }
+                    ),
                   BodyStatement . StatementReturn . Just $ juvixFunctionCall funType (ExpressionVar localFunName) (drop nPatterns args)
                 ]
             | otherwise -> [BodyStatement . StatementReturn . Just $ functionCall (ExpressionVar (c ^. closureRootName)) args]
@@ -577,8 +579,8 @@ genClosureApply c =
                               (ExpressionVar "fa0")
                           )
                   }
-              ) :
-            juvixFunCall
+              )
+              : juvixFunCall
         }
 
 genClosureEval :: ClosureInfo -> Function
@@ -884,7 +886,8 @@ goAxiom a = do
     getCode :: BackendItem -> Maybe Text
     getCode b =
       guard (BackendC == b ^. backendItemBackend)
-        $> b ^. backendItemCode
+        $> b
+        ^. backendItemCode
     lookupBackends ::
       Member (Reader Mono.CompileInfoTable) r =>
       NameId ->
@@ -904,7 +907,7 @@ mkInductiveConstructorNames i = mkName . view Mono.constructorName <$> i ^. Mono
 
 mkInductiveTypeDef :: Mono.InductiveDef -> [CCode]
 mkInductiveTypeDef i =
-  [ ExternalDecl structTypeDef ]
+  [ExternalDecl structTypeDef]
   where
     structTypeDef :: Declaration
     structTypeDef =
@@ -924,8 +927,7 @@ mkInductiveTypeDef i =
 
 goInductiveDef :: Mono.InductiveDef -> [CCode]
 goInductiveDef i =
-  [
-    ExternalDecl tagsType
+  [ ExternalDecl tagsType
   ]
     <> (i ^. Mono.inductiveConstructors >>= goInductiveConstructorDef)
     <> [ExternalDecl inductiveDecl]

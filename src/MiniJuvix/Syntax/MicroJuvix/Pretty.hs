@@ -9,9 +9,8 @@ import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Ann
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Ansi qualified as Ansi
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Base
-
-import Prettyprinter.Render.Terminal qualified as Ansi
 import MiniJuvix.Syntax.MicroJuvix.Pretty.Options
+import Prettyprinter.Render.Terminal qualified as Ansi
 
 newtype PPOutput = PPOutput (Doc Ann)
 
