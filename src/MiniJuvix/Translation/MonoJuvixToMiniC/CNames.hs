@@ -2,6 +2,9 @@ module MiniJuvix.Translation.MonoJuvixToMiniC.CNames where
 
 import MiniJuvix.Prelude
 
+funField :: Text
+funField = "fun"
+
 asStruct :: Text -> Text
 asStruct n = n <> "_s"
 

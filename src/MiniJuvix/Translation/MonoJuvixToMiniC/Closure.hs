@@ -13,7 +13,7 @@ genClosures ::
   Sem r [CCode]
 genClosures Mono.Module {..} = do
   closureInfos <- concatMapM go (_moduleBody ^. Mono.moduleStatements)
-  return (genClosure =<< nub closureInfos)
+  return (genCClosure =<< nub closureInfos)
   where
     go :: Mono.Statement -> Sem r [ClosureInfo]
     go = \case
@@ -22,8 +22,8 @@ genClosures Mono.Module {..} = do
       Mono.StatementAxiom {} -> return []
       Mono.StatementInductive {} -> return []
 
-genClosure :: ClosureInfo -> [CCode]
-genClosure c =
+genCClosure :: ClosureInfo -> [CCode]
+genCClosure c =
   [ ExternalDecl (genClosureEnv c),
     ExternalFunc (genClosureApply c),
     ExternalFunc (genClosureEval c)
@@ -116,7 +116,7 @@ genClosureEnv c =
     name :: Text
     name = asEnv (closureNamedId c)
     funDecl :: Declaration
-    funDecl = namedDeclType "fun" uIntPtrType
+    funDecl = namedDeclType funField uIntPtrType
     members :: [Declaration]
     members = uncurry cDeclToNamedDecl <$> zip envArgs (c ^. closureMembers)
 
@@ -242,7 +242,7 @@ genClosureEval c =
                 ( StatementExpr
                     ( ExpressionAssign
                         ( Assign
-                            { _assignLeft = memberAccess Pointer (ExpressionVar localName) "fun",
+                            { _assignLeft = memberAccess Pointer (ExpressionVar localName) funField,
                               _assignRight =
                                 castToType
                                   ( CDeclType

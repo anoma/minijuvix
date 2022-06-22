@@ -2,6 +2,7 @@ module MiniJuvix.Translation.MonoJuvixToMiniC.Base
   ( module MiniJuvix.Translation.MonoJuvixToMiniC.Base,
     module MiniJuvix.Translation.MonoJuvixToMiniC.Types,
     module MiniJuvix.Translation.MonoJuvixToMiniC.CNames,
+    module MiniJuvix.Translation.MonoJuvixToMiniC.CBuilder,
   )
 where
 
@@ -13,13 +14,13 @@ import MiniJuvix.Syntax.MicroJuvix.Language qualified as Micro
 import MiniJuvix.Syntax.MiniC.Language
 import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Translation.MicroJuvixToMonoJuvix qualified as Mono
+import MiniJuvix.Translation.MonoJuvixToMiniC.CBuilder
 import MiniJuvix.Translation.MonoJuvixToMiniC.CNames
 import MiniJuvix.Translation.MonoJuvixToMiniC.Types
 
 unsupported :: Text -> a
 unsupported msg = error (msg <> " Mono to C: not yet supported")
 
--- | a -> (b -> c)  ==> ([a, b], c)
 unfoldFunType :: Mono.Type -> ([Mono.Type], Mono.Type)
 unfoldFunType t = case t of
   Mono.TypeFunction (Mono.Function l r) -> first (l :) (unfoldFunType r)
@@ -60,58 +61,6 @@ mkName n =
     idSuffix :: Text
     idSuffix = "_" <> show (n ^. Mono.nameId . Micro.unNameId)
 
-getType ::
-  Members '[Reader Mono.InfoTable, Reader PatternInfoTable] r =>
-  Mono.Iden ->
-  Sem r (CFunType, CArity)
-getType = \case
-  Mono.IdenFunction n -> do
-    fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoFunctions)
-    return (typeToFunType (fInfo ^. Mono.functionInfoType), fInfo ^. Mono.functionInfoPatterns)
-  Mono.IdenConstructor n -> do
-    fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoConstructors)
-    let argTypes = goType <$> (fInfo ^. Mono.constructorInfoArgs)
-    return
-      ( CFunType
-          { _cFunArgTypes = argTypes,
-            _cFunReturnType =
-              goType
-                (Mono.TypeIden (Mono.TypeIdenInductive (fInfo ^. Mono.constructorInfoInductive)))
-          },
-        length argTypes
-      )
-  Mono.IdenAxiom n -> do
-    fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoAxioms)
-    let t = typeToFunType (fInfo ^. Mono.axiomInfoType)
-    return (t, length (t ^. cFunArgTypes))
-  Mono.IdenVar n -> do
-    t <- (^. bindingInfoType) . HashMap.lookupDefault impossible (n ^. Mono.nameText) <$> asks (^. patternBindings)
-    return (t, length (t ^. cFunArgTypes))
-
-namedArgs :: (Text -> Text) -> [CDeclType] -> [Declaration]
-namedArgs prefix = zipWith goTypeDecl argLabels
-  where
-    argLabels :: [Text]
-    argLabels = prefix . show <$> [0 :: Integer ..]
-
-goTypeDecl :: Text -> CDeclType -> Declaration
-goTypeDecl n CDeclType {..} =
-  Declaration
-    { _declType = _typeDeclType,
-      _declIsPtr = _typeIsPtr,
-      _declName = Just n,
-      _declInitializer = Nothing
-    }
-
-goTypeDecl'' :: CDeclType -> Declaration
-goTypeDecl'' CDeclType {..} =
-  Declaration
-    { _declType = _typeDeclType,
-      _declIsPtr = _typeIsPtr,
-      _declName = Nothing,
-      _declInitializer = Nothing
-    }
-
 goType :: Mono.Type -> CDeclType
 goType t = case t of
   Mono.TypeIden ti -> getMonoType ti
@@ -136,51 +85,6 @@ typeToFunType t =
   let (_cFunArgTypes, _cFunReturnType) =
         bimap (map goType) goType (unfoldFunType t)
    in CFunType {..}
-
-declFunctionType :: DeclType
-declFunctionType = DeclTypeDefType Str.minijuvixFunctionT
-
-declFunctionPtrType :: CDeclType
-declFunctionPtrType =
-  CDeclType
-    { _typeDeclType = declFunctionType,
-      _typeIsPtr = True
-    }
-
-funPtrType :: CFunType -> CDeclType
-funPtrType CFunType {..} =
-  CDeclType
-    { _typeDeclType =
-        DeclFunPtr
-          ( FunPtr
-              { _funPtrReturnType = _cFunReturnType ^. typeDeclType,
-                _funPtrIsPtr = _cFunReturnType ^. typeIsPtr,
-                _funPtrArgs = _cFunArgTypes
-              }
-          ),
-      _typeIsPtr = False
-    }
-
-mallocSizeOf :: Text -> Expression
-mallocSizeOf typeName =
-  functionCall (ExpressionVar Str.malloc) [functionCall (ExpressionVar Str.sizeof) [ExpressionVar typeName]]
-
-juvixFunctionCall :: CFunType -> Expression -> [Expression] -> Expression
-juvixFunctionCall funType funParam args =
-  functionCall (castToType (funPtrType fTyp) (memberAccess Pointer funParam "fun")) (funParam : args)
-  where
-    fTyp :: CFunType
-    fTyp = funType {_cFunArgTypes = declFunctionPtrType : (funType ^. cFunArgTypes)}
-
-cFunTypeToFunSig :: Text -> CFunType -> FunctionSig
-cFunTypeToFunSig name CFunType {..} =
-  FunctionSig
-    { _funcReturnType = _cFunReturnType ^. typeDeclType,
-      _funcIsPtr = _cFunReturnType ^. typeIsPtr,
-      _funcQualifier = None,
-      _funcName = name,
-      _funcArgs = namedArgs asFunArg _cFunArgTypes
-    }
 
 buildPatternInfoTable :: forall r. Member (Reader Mono.InfoTable) r => [Mono.Type] -> Mono.FunctionClause -> Sem r PatternInfoTable
 buildPatternInfoTable argTyps Mono.FunctionClause {..} =
@@ -220,3 +124,31 @@ buildPatternInfoTable argTyps Mono.FunctionClause {..} =
 
         asConstructor :: Expression
         asConstructor = functionCall (ExpressionVar (asCast (mkName constructorName))) [exp]
+
+getType ::
+  Members '[Reader Mono.InfoTable, Reader PatternInfoTable] r =>
+  Mono.Iden ->
+  Sem r (CFunType, CArity)
+getType = \case
+  Mono.IdenFunction n -> do
+    fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoFunctions)
+    return (typeToFunType (fInfo ^. Mono.functionInfoType), fInfo ^. Mono.functionInfoPatterns)
+  Mono.IdenConstructor n -> do
+    fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoConstructors)
+    let argTypes = goType <$> (fInfo ^. Mono.constructorInfoArgs)
+    return
+      ( CFunType
+          { _cFunArgTypes = argTypes,
+            _cFunReturnType =
+              goType
+                (Mono.TypeIden (Mono.TypeIdenInductive (fInfo ^. Mono.constructorInfoInductive)))
+          },
+        length argTypes
+      )
+  Mono.IdenAxiom n -> do
+    fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoAxioms)
+    let t = typeToFunType (fInfo ^. Mono.axiomInfoType)
+    return (t, length (t ^. cFunArgTypes))
+  Mono.IdenVar n -> do
+    t <- (^. bindingInfoType) . HashMap.lookupDefault impossible (n ^. Mono.nameText) <$> asks (^. patternBindings)
+    return (t, length (t ^. cFunArgTypes))
