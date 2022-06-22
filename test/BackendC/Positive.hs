@@ -45,5 +45,6 @@ tests =
     PosTest "Closures with no environment" "ClosureNoEnv",
     PosTest "Closures with environment" "ClosureEnv",
     PosTest "SimpleFungibleTokenImplicit" "SimpleFungibleTokenImplicit",
-    PosTest "Mutually recursive function" "MutuallyRecursive"
+    PosTest "Mutually recursive function" "MutuallyRecursive",
+    PosTest "Nested List type" "NestedList"
   ]
