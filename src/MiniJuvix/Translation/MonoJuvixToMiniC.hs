@@ -770,7 +770,7 @@ getType ::
 getType = \case
   Mono.IdenFunction n -> do
     fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoFunctions)
-    return $ (typeToFunType (fInfo ^. Mono.functionInfoType), fInfo ^. Mono.functionInfoPatterns)
+    return (typeToFunType (fInfo ^. Mono.functionInfoType), fInfo ^. Mono.functionInfoPatterns)
   Mono.IdenConstructor n -> do
     fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoConstructors)
     let argTypes = goType <$> (fInfo ^. Mono.constructorInfoArgs)
@@ -786,7 +786,7 @@ getType = \case
   Mono.IdenAxiom n -> do
     fInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoAxioms)
     let t = typeToFunType (fInfo ^. Mono.axiomInfoType)
-    return $ (t, length (t ^. cFunArgTypes))
+    return (t, length (t ^. cFunArgTypes))
   Mono.IdenVar n -> do
     t <- (^. bindingInfoType) . HashMap.lookupDefault impossible (n ^. Mono.nameText) <$> asks (^. patternBindings)
     return (t, length (t ^. cFunArgTypes))
