@@ -2,51 +2,17 @@ module MiniJuvix.Syntax.MonoJuvix.Language
   ( module MiniJuvix.Syntax.MonoJuvix.Language,
     module MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind,
     module MiniJuvix.Syntax.Concrete.Scoped.Name,
+    module MiniJuvix.Syntax.Abstract.Name,
   )
 where
 
+import MiniJuvix.Builtins.Base
 import MiniJuvix.Prelude
+import MiniJuvix.Syntax.Abstract.Name
 import MiniJuvix.Syntax.Concrete.Language qualified as C
 import MiniJuvix.Syntax.Concrete.Scoped.Name (NameId (..))
 import MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind
-import MiniJuvix.Syntax.Fixity
 import MiniJuvix.Syntax.ForeignBlock
-import Prettyprinter
-
-type FunctionName = Name
-
-type AxiomName = Name
-
-type VarName = Name
-
-type ConstrName = Name
-
-type InductiveName = Name
-
-data Name = Name
-  { _nameText :: Text,
-    _nameId :: NameId,
-    _nameKind :: NameKind,
-    _nameLoc :: C.Interval
-  }
-  deriving stock (Show)
-
-makeLenses ''Name
-
-instance Eq Name where
-  (==) = (==) `on` (^. nameId)
-
-instance Ord Name where
-  compare = compare `on` (^. nameId)
-
-instance Hashable Name where
-  hashWithSalt salt = hashWithSalt salt . (^. nameId)
-
-instance HasNameKind Name where
-  getNameKind = (^. nameKind)
-
-instance Pretty Name where
-  pretty = pretty . (^. nameText)
 
 data Module = Module
   { _moduleName :: Name,

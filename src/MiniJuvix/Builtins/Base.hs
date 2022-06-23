@@ -15,7 +15,7 @@ data BuiltinsEnum
   | BuiltinsNaturalPrint
   | BuiltinsIO
   | BuiltinsIOSequence
-  deriving stock (Eq, Generic)
+  deriving stock (Show, Eq, Generic)
 
 instance Hashable BuiltinsEnum
 

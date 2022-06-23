@@ -116,7 +116,7 @@ matchExpressions = go
         (IdenVar va, IdenVar vb) -> do
           addIfFreeVar va vb
           addIfFreeVar vb va
-          unlessM ((== Just (idenName ib)) <$> gets @(HashMap Name Name) (^. at (idenName ia))) err
+          unlessM ((== Just vb) <$> gets @(HashMap Name Name) (^. at va)) err
         (_, _) -> unless (ia == ib) err
       (ExpressionIden {}, _) -> err
       (_, ExpressionIden {}) -> err

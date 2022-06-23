@@ -12,10 +12,10 @@ builtin natural-plus
 + zero x ≔ x;
 + (suc a) b ≔ suc (a + b);
 
--- builtin IO axiom IO : Type;
+builtin IO axiom IO : Type;
 
--- infixl 1 >>;
--- builtin IO-sequence axiom >> : IO → IO → IO;
--- builtin natural-print axiom printNat : ℕ → IO;
+infixl 1 >>;
+builtin IO-sequence axiom >> : IO → IO → IO;
+builtin natural-print axiom printNat : ℕ → IO;
 
 end;

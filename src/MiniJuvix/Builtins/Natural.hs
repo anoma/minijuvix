@@ -18,41 +18,43 @@ registerNaturalDef d = do
 
 registerZero :: Member Builtins r => InductiveConstructorDef -> Sem r ()
 registerZero d@(InductiveConstructorDef zero ty) = do
-  nat <- getBuiltin (getLoc d) BuiltinsNatural
+  nat <- getBuiltinName (getLoc d) BuiltinsNatural
   unless (ty === nat) (error $ "zero has the wrong type " <> ppSimple ty <> " | " <> ppSimple nat)
   registerBuiltin BuiltinsZero zero
 
 registerSuc :: Member Builtins r => InductiveConstructorDef -> Sem r ()
 registerSuc d@(InductiveConstructorDef suc ty) = do
-  nat <- getBuiltin (getLoc d) BuiltinsNatural
+  nat <- getBuiltinName (getLoc d) BuiltinsNatural
   unless (ty === (nat --> nat)) (error "suc has the wrong type")
   registerBuiltin BuiltinsSuc suc
 
 registerNaturalPrint :: Members '[Builtins] r => AxiomDef -> Sem r ()
 registerNaturalPrint f = do
-  nat <- getBuiltin (getLoc f) BuiltinsNatural
-  io <- getBuiltin (getLoc f) BuiltinsIO
+  nat <- getBuiltinName (getLoc f) BuiltinsNatural
+  io <- getBuiltinName (getLoc f) BuiltinsIO
   unless (f ^. axiomType === (nat --> io)) (error "Natural print has the wrong type signature")
   registerBuiltin BuiltinsNaturalPrint (f ^. axiomName)
 
 registerNaturalPlus :: Members '[Builtins, NameIdGen] r => FunctionDef -> Sem r ()
 registerNaturalPlus f = do
-  nat <- getBuiltin (getLoc f) BuiltinsNatural
-  zero <- toExpression <$> getBuiltin (getLoc f) BuiltinsZero
-  suc <- toExpression <$> getBuiltin (getLoc f) BuiltinsSuc
+  nat <- getBuiltinName (getLoc f) BuiltinsNatural
+  zero <- toExpression <$> getBuiltinName (getLoc f) BuiltinsZero
+  suc <- toExpression <$> getBuiltinName (getLoc f) BuiltinsSuc
   let plus = f ^. funDefName
       ty = f ^. funDefTypeSig
   unless (ty === (nat --> nat --> nat)) (error "Natural plus has the wrong type signature")
   registerBuiltin BuiltinsNaturalPlus plus
-  n <- freshVar "n"
-  m <- freshVar "m"
-  let freeVars = HashSet.fromList [n, m]
+  varn <- freshVar "n"
+  varm <- freshVar "m"
+  let n = toExpression varn
+      m = toExpression varm
+      freeVars = HashSet.fromList [varn, varm]
       a =% b = (a ==% b) freeVars
       (.+.) :: (IsExpression a, IsExpression b) => a -> b -> Expression
       x .+. y = plus @@ x @@ y
       exClauses :: [(Expression, Expression)]
       exClauses =
-        [ (zero .+. m, toExpression m),
+        [ (zero .+. m, m),
           ((suc @@ n) .+. m, suc @@ (n .+. m))
         ]
       clauses :: [(Expression, Expression)]

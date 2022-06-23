@@ -10,23 +10,25 @@ import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Language.Extra
 
 data Builtins m a where
-  GetBuiltin :: Interval -> BuiltinsEnum -> Builtins m Name
+  GetBuiltinName :: Interval -> BuiltinsEnum -> Builtins m Name
+  GetBuiltinEnum :: Name -> Builtins m (Maybe BuiltinsEnum)
   RegisterBuiltin :: BuiltinsEnum -> Name -> Builtins m ()
 
 makeSem ''Builtins
 
-newtype BuiltinsState = BuiltinsState
-  { _builtinsTable :: HashMap BuiltinsEnum Name
+data BuiltinsState = BuiltinsState
+  { _builtinsTable :: HashMap BuiltinsEnum Name,
+    _builtinsNameTable :: HashMap Name BuiltinsEnum
   }
 
 makeLenses ''BuiltinsState
 
 iniState :: BuiltinsState
-iniState = BuiltinsState mempty
+iniState = BuiltinsState mempty mempty
 
 re :: forall r a. Member (Error MiniJuvixError) r => Sem (Builtins ': r) a -> Sem (State BuiltinsState ': r) a
 re = reinterpret $ \case
-  GetBuiltin i b -> fromMaybeM notDefined (gets (^. builtinsTable . at b))
+  GetBuiltinName i b -> fromMaybeM notDefined (gets (^. builtinsTable . at b))
     where
       notDefined :: Sem (State BuiltinsState : r) x
       notDefined =
@@ -36,10 +38,13 @@ re = reinterpret $ \case
               { _notDefinedBuiltin = b,
                 _notDefinedLoc = i
               }
+  GetBuiltinEnum n -> gets (^. builtinsNameTable . at n)
   RegisterBuiltin b n -> do
     s <- gets (^. builtinsTable . at b)
     case s of
-      Nothing -> modify (over builtinsTable (set (at b) (Just n)))
+      Nothing -> do
+        modify (over builtinsTable (set (at b) (Just n)))
+        modify (over builtinsNameTable (set (at n) (Just b)))
       Just {} -> alreadyDefined
     where
       alreadyDefined :: Sem (State BuiltinsState : r) x
