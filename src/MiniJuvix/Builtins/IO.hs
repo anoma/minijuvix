@@ -7,10 +7,10 @@ import MiniJuvix.Syntax.Abstract.Language.Extra
 registerIO :: Member Builtins r => AxiomDef -> Sem r ()
 registerIO d = do
   unless (d ^. axiomType === smallUniverse) (error "IO should be in the small universe")
-  registerBuiltin BuiltinsIO (d ^. axiomName)
+  registerBuiltin BuiltinIO (d ^. axiomName)
 
 registerIOSequence :: Member Builtins r => AxiomDef -> Sem r ()
 registerIOSequence d = do
-  io <- getBuiltinName (getLoc d) BuiltinsIO
+  io <- getBuiltinName (getLoc d) BuiltinIO
   unless (d ^. axiomType === (io --> io --> io)) (error "IO sequence have type IO → IO")
-  registerBuiltin BuiltinsIOSequence (d ^. axiomName)
+  registerBuiltin BuiltinIOSequence (d ^. axiomName)

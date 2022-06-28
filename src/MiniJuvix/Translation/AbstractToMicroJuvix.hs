@@ -121,6 +121,7 @@ goAxiomDef a = do
   return
     AxiomDef
       { _axiomName = a ^. Abstract.axiomName,
+        _axiomBuiltin = a ^. Abstract.axiomBuiltin,
         _axiomType = _axiomType'
       }
 
@@ -162,7 +163,8 @@ goFunctionDef f = do
     FunctionDef
       { _funDefName = _funDefName',
         _funDefType = _funDefType',
-        _funDefClauses = _funDefClauses'
+        _funDefClauses = _funDefClauses',
+        _funDefBuiltin = f ^. Abstract.funDefBuiltin
       }
   where
     _funDefName' :: Name
@@ -282,6 +284,7 @@ goInductiveDef i =
             InductiveDef
               { _inductiveName = indTypeName,
                 _inductiveParameters = inductiveParameters',
+                _inductiveBuiltin = i ^. Abstract.inductiveBuiltin,
                 _inductiveConstructors = inductiveConstructors'
               }
   where

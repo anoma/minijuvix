@@ -1,13 +1,12 @@
 module MiniJuvix.Builtins.Error where
 
-import MiniJuvix.Builtins.Base
 import MiniJuvix.Prelude
-import MiniJuvix.Prelude.Error
 import MiniJuvix.Prelude.Pretty
 import MiniJuvix.Termination.Error.Pretty
+import MiniJuvix.Syntax.Concrete.Builtins
 
 data AlreadyDefined = AlreadyDefined
-  { _alreadyDefinedBuiltin :: BuiltinsEnum,
+  { _alreadyDefinedBuiltin :: BuiltinPrim,
     _alreadyDefinedLoc :: Interval
   }
 
@@ -28,7 +27,7 @@ instance ToGenericError AlreadyDefined where
       msg = "The builtin" <+> hh (pretty (e ^. alreadyDefinedBuiltin)) <+> "has already been defined"
 
 data NotDefined = NotDefined
-  { _notDefinedBuiltin :: BuiltinsEnum,
+  { _notDefinedBuiltin :: BuiltinPrim,
     _notDefinedLoc :: Interval
   }
 

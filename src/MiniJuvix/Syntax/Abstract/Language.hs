@@ -51,6 +51,7 @@ data FunctionDef = FunctionDef
   { _funDefName :: FunctionName,
     _funDefTypeSig :: Expression,
     _funDefClauses :: NonEmpty FunctionClause,
+    _funDefBuiltin :: Maybe BuiltinFunction,
     _funDefTerminating :: Bool
   }
   deriving stock (Eq, Show)
@@ -191,6 +192,7 @@ data InductiveConstructorDef = InductiveConstructorDef
 
 data AxiomDef = AxiomDef
   { _axiomName :: AxiomName,
+    _axiomBuiltin :: Maybe BuiltinAxiom,
     _axiomType :: Expression
   }
   deriving stock (Eq, Show)

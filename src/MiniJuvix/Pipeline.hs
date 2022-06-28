@@ -141,6 +141,7 @@ pipelineMiniHaskell ::
 pipelineMiniHaskell = MiniHaskell.entryMiniHaskell
 
 pipelineMiniC ::
+  Member Builtins r =>
   MonoJuvix.MonoJuvixResult ->
   Sem r MiniC.MiniCResult
 pipelineMiniC = MiniC.entryMiniC

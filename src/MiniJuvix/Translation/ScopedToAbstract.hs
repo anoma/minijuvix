@@ -144,6 +144,7 @@ goFunctionDef ::
 goFunctionDef TypeSignature {..} clauses = do
   let _funDefName = goSymbol _sigName
       _funDefTerminating = _sigTerminating
+      _funDefBuiltin = _sigBuiltin
   _funDefClauses <- mapM goFunctionClause clauses
   _funDefTypeSig <- goExpression _sigType
   let fun = Abstract.FunctionDef {..}
@@ -382,6 +383,7 @@ goAxiom a = do
   let axiom =
         Abstract.AxiomDef
           { _axiomType = _axiomType',
+            _axiomBuiltin = a ^. axiomBuiltin,
             _axiomName = goSymbol (a ^. axiomName)
           }
   whenJust (a ^. axiomBuiltin) (registerBuiltinAxiom axiom)

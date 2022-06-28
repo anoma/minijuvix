@@ -3,13 +3,14 @@ module MiniJuvix.Syntax.MonoJuvix.Language
     module MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind,
     module MiniJuvix.Syntax.Concrete.Scoped.Name,
     module MiniJuvix.Syntax.Abstract.Name,
+    module MiniJuvix.Syntax.Concrete.Builtins
   )
 where
 
-import MiniJuvix.Builtins.Base
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Name
 import MiniJuvix.Syntax.Concrete.Language qualified as C
+import MiniJuvix.Syntax.Concrete.Builtins
 import MiniJuvix.Syntax.Concrete.Scoped.Name (NameId (..))
 import MiniJuvix.Syntax.Concrete.Scoped.Name.NameKind
 import MiniJuvix.Syntax.ForeignBlock
@@ -31,13 +32,15 @@ data Statement
 
 data AxiomDef = AxiomDef
   { _axiomName :: AxiomName,
+    _axiomBuiltin :: Maybe BuiltinAxiom,
     _axiomType :: Type
   }
 
 data FunctionDef = FunctionDef
   { _funDefName :: FunctionName,
     _funDefType :: Type,
-    _funDefClauses :: NonEmpty FunctionClause
+    _funDefClauses :: NonEmpty FunctionClause,
+    _funDefBuiltin :: Maybe BuiltinFunction
   }
 
 data FunctionClause = FunctionClause
@@ -94,6 +97,7 @@ data Pattern
 
 data InductiveDef = InductiveDef
   { _inductiveName :: InductiveName,
+    _inductiveBuiltin :: Maybe BuiltinInductive,
     _inductiveConstructors :: [InductiveConstructorDef]
   }
 

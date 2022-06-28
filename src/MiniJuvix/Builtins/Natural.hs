@@ -11,39 +11,39 @@ registerNaturalDef :: Member Builtins r => InductiveDef -> Sem r ()
 registerNaturalDef d = do
   unless (null (d ^. inductiveParameters)) (error "Naturals should have no type parameters")
   unless (d ^. inductiveType === smallUniverse) (error "Naturals should be in the small universe")
-  registerBuiltin BuiltinsNatural (d ^. inductiveName)
+  registerBuiltin BuiltinNatural (d ^. inductiveName)
   case d ^. inductiveConstructors of
     [c1, c2] -> registerZero c1 >> registerSuc c2
     _ -> error "Natural numbers should have exactly two constructors"
 
 registerZero :: Member Builtins r => InductiveConstructorDef -> Sem r ()
 registerZero d@(InductiveConstructorDef zero ty) = do
-  nat <- getBuiltinName (getLoc d) BuiltinsNatural
+  nat <- getBuiltinName (getLoc d) BuiltinNatural
   unless (ty === nat) (error $ "zero has the wrong type " <> ppSimple ty <> " | " <> ppSimple nat)
-  registerBuiltin BuiltinsZero zero
+  registerBuiltin BuiltinNaturalZero zero
 
 registerSuc :: Member Builtins r => InductiveConstructorDef -> Sem r ()
 registerSuc d@(InductiveConstructorDef suc ty) = do
-  nat <- getBuiltinName (getLoc d) BuiltinsNatural
+  nat <- getBuiltinName (getLoc d) BuiltinNatural
   unless (ty === (nat --> nat)) (error "suc has the wrong type")
-  registerBuiltin BuiltinsSuc suc
+  registerBuiltin BuiltinNaturalSuc suc
 
 registerNaturalPrint :: Members '[Builtins] r => AxiomDef -> Sem r ()
 registerNaturalPrint f = do
-  nat <- getBuiltinName (getLoc f) BuiltinsNatural
-  io <- getBuiltinName (getLoc f) BuiltinsIO
+  nat <- getBuiltinName (getLoc f) BuiltinNatural
+  io <- getBuiltinName (getLoc f) BuiltinIO
   unless (f ^. axiomType === (nat --> io)) (error "Natural print has the wrong type signature")
-  registerBuiltin BuiltinsNaturalPrint (f ^. axiomName)
+  registerBuiltin BuiltinNaturalPrint (f ^. axiomName)
 
 registerNaturalPlus :: Members '[Builtins, NameIdGen] r => FunctionDef -> Sem r ()
 registerNaturalPlus f = do
-  nat <- getBuiltinName (getLoc f) BuiltinsNatural
-  zero <- toExpression <$> getBuiltinName (getLoc f) BuiltinsZero
-  suc <- toExpression <$> getBuiltinName (getLoc f) BuiltinsSuc
+  nat <- getBuiltinName (getLoc f) BuiltinNatural
+  zero <- toExpression <$> getBuiltinName (getLoc f) BuiltinNaturalZero
+  suc <- toExpression <$> getBuiltinName (getLoc f) BuiltinNaturalSuc
   let plus = f ^. funDefName
       ty = f ^. funDefTypeSig
   unless (ty === (nat --> nat --> nat)) (error "Natural plus has the wrong type signature")
-  registerBuiltin BuiltinsNaturalPlus plus
+  registerBuiltin BuiltinNaturalPlus plus
   varn <- freshVar "n"
   varm <- freshVar "m"
   let n = toExpression varn

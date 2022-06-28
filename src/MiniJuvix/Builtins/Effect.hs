@@ -1,24 +1,28 @@
 module MiniJuvix.Builtins.Effect
   ( module MiniJuvix.Builtins.Effect,
-    module MiniJuvix.Builtins.Base,
   )
 where
 
-import MiniJuvix.Builtins.Base
 import MiniJuvix.Builtins.Error
 import MiniJuvix.Prelude
 import MiniJuvix.Syntax.Abstract.Language.Extra
 
 data Builtins m a where
-  GetBuiltinName :: Interval -> BuiltinsEnum -> Builtins m Name
-  GetBuiltinEnum :: Name -> Builtins m (Maybe BuiltinsEnum)
-  RegisterBuiltin :: BuiltinsEnum -> Name -> Builtins m ()
+  GetBuiltinName' :: Interval -> BuiltinPrim -> Builtins m Name
+  -- GetBuiltin :: Name -> Builtins m (Maybe BuiltinPrims)
+  RegisterBuiltin' :: BuiltinPrim -> Name -> Builtins m ()
 
 makeSem ''Builtins
 
+registerBuiltin :: (IsBuiltin a, Member Builtins r) => a -> Name -> Sem r ()
+registerBuiltin = registerBuiltin' . toBuiltinPrim
+
+getBuiltinName :: (IsBuiltin a, Member Builtins r) => Interval -> a -> Sem r Name
+getBuiltinName i = getBuiltinName' i . toBuiltinPrim
+
 data BuiltinsState = BuiltinsState
-  { _builtinsTable :: HashMap BuiltinsEnum Name,
-    _builtinsNameTable :: HashMap Name BuiltinsEnum
+  { _builtinsTable :: HashMap BuiltinPrim Name,
+    _builtinsNameTable :: HashMap Name BuiltinPrim
   }
 
 makeLenses ''BuiltinsState
@@ -28,7 +32,7 @@ iniState = BuiltinsState mempty mempty
 
 re :: forall r a. Member (Error MiniJuvixError) r => Sem (Builtins ': r) a -> Sem (State BuiltinsState ': r) a
 re = reinterpret $ \case
-  GetBuiltinName i b -> fromMaybeM notDefined (gets (^. builtinsTable . at b))
+  GetBuiltinName' i b -> fromMaybeM notDefined (gets (^. builtinsTable . at b))
     where
       notDefined :: Sem (State BuiltinsState : r) x
       notDefined =
@@ -38,8 +42,8 @@ re = reinterpret $ \case
               { _notDefinedBuiltin = b,
                 _notDefinedLoc = i
               }
-  GetBuiltinEnum n -> gets (^. builtinsNameTable . at n)
-  RegisterBuiltin b n -> do
+  -- GetBuiltin n -> gets (^. builtinsNameTable . at n)
+  RegisterBuiltin' b n -> do
     s <- gets (^. builtinsTable . at b)
     case s of
       Nothing -> do

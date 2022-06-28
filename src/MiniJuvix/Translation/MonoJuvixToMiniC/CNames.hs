@@ -2,6 +2,24 @@ module MiniJuvix.Translation.MonoJuvixToMiniC.CNames where
 
 import MiniJuvix.Prelude
 
+zero :: Text
+zero = "zero"
+
+suc :: Text
+suc = "suc"
+
+printNat :: Text
+printNat = "printNat"
+
+int_ :: Text
+int_ = "int"
+
+ioseq :: Text
+ioseq = "sequence"
+
+natplus :: Text
+natplus = "natplus"
+
 funField :: Text
 funField = "fun"
 
@@ -22,6 +40,12 @@ asNullary n = n <> "_nullary"
 
 asCast :: Text -> Text
 asCast n = "as_" <> n
+
+asProjName :: Text -> Text -> Text
+asProjName argName n = "proj_" <> argName <> "_" <> n
+
+asProj :: Int -> Text -> Text
+asProj argIdx n = asProjName (asCtorArg (show argIdx)) n
 
 asIs :: Text -> Text
 asIs n = "is_" <> n

@@ -3,6 +3,7 @@ module MiniJuvix.Prelude.Base
     module Control.Applicative,
     module Control.Monad.Extra,
     module Control.Monad.Fix,
+    module Data.Bitraversable,
     module Data.Bool,
     module Data.Char,
     module Data.Either.Extra,
@@ -69,6 +70,7 @@ import Control.Applicative
 import Control.Monad.Extra
 import Control.Monad.Fix
 import Data.Bifunctor hiding (first, second)
+import Data.Bitraversable
 import Data.Bool
 import Data.ByteString.Lazy (ByteString)
 import Data.Char

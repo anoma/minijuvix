@@ -12,6 +12,13 @@ builtin natural-plus
 + zero x ≔ x;
 + (suc a) b ≔ suc (a + b);
 
+mult : ℕ → ℕ → ℕ;
+mult zero _ ≔ zero;
+mult (suc n) m ≔ m + (mult n m);
+
+plusOne : ℕ → ℕ;
+plusOne ≔ suc;
+
 builtin IO axiom IO : Type;
 
 infixl 1 >>;
