@@ -2,6 +2,7 @@
 #define MINIC_RUNTIME_H_
 
 #include "nat.h"
+#include "io.h"
 
 typedef __SIZE_TYPE__ size_t;
 typedef __UINT8_TYPE__ uint8_t;
@@ -182,6 +183,10 @@ int putStr(const char* str) {
 
 int putStrLn(const char* str) {
     return putStr(str) || putStr("\n");
+}
+
+prim_io prim_printNat(prim_nat n) {
+    return putStrLn(intToStr(n));
 }
 
 // Tries to parse str as a positive integer.

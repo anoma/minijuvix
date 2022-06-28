@@ -1,4 +1,4 @@
-module All;
+module Input;
 
 builtin natural
 inductive ℕ {
@@ -24,5 +24,8 @@ builtin IO axiom IO : Type;
 infixl 1 >>;
 builtin IO-sequence axiom >> : IO → IO → IO;
 builtin natural-print axiom printNat : ℕ → IO;
+
+main : IO;
+main ≔ printNat (mult 3 (2 + 2)) >> printNat 2;
 
 end;

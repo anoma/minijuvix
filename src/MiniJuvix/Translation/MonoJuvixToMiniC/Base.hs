@@ -71,23 +71,18 @@ goType t = case t of
     getMonoType :: Mono.TypeIden -> Sem r CDeclType
     getMonoType = \case
       Mono.TypeIdenInductive mn -> do
-        inductiveInfo <- HashMap.lookupDefault impossible mn <$> asks (^. Mono.infoInductives)
-        return $
-          case inductiveInfo ^. Mono.inductiveInfoBuiltin of
-            Just builtin ->
-              CDeclType
-                { _typeDeclType = DeclTypeDefType (fromJust (builtinInductiveName builtin)),
-                  _typeIsPtr = False
-                }
-            _ ->
-              CDeclType
-                { _typeDeclType = DeclTypeDefType (asTypeDef (mkName mn)),
-                  _typeIsPtr = True
-                }
-      Mono.TypeIdenAxiom mn ->
+        (isPtr, name) <- getInductiveCName mn
+        return
+          ( CDeclType
+              { _typeDeclType = DeclTypeDefType name,
+                _typeIsPtr = isPtr
+              }
+          )
+      Mono.TypeIdenAxiom mn -> do
+        axiomName <- getAxiomCName mn
         return
           CDeclType
-            { _typeDeclType = DeclTypeDefType (mkName mn),
+            { _typeDeclType = DeclTypeDefType axiomName,
               _typeIsPtr = False
             }
 
@@ -113,6 +108,24 @@ getConstructorCName n = do
     ( case ctorInfo ^. Mono.constructorInfoBuiltin of
         Just builtin -> fromJust (builtinConstructorName builtin)
         Nothing -> mkName n
+    )
+
+getAxiomCName :: Members '[Reader Mono.InfoTable] r => Mono.Name -> Sem r Text
+getAxiomCName n = do
+  axiomInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoAxioms)
+  return
+    ( case axiomInfo ^. Mono.axiomInfoBuiltin of
+        Just builtin -> fromJust (builtinAxiomName builtin)
+        Nothing -> mkName n
+    )
+
+getInductiveCName :: Members '[Reader Mono.InfoTable] r => Mono.Name -> Sem r (Bool, Text)
+getInductiveCName n = do
+  inductiveInfo <- HashMap.lookupDefault impossible n <$> asks (^. Mono.infoInductives)
+  return
+    ( case inductiveInfo ^. Mono.inductiveInfoBuiltin of
+        Just builtin -> (False, fromJust (builtinInductiveName builtin))
+        Nothing -> (True, asTypeDef (mkName n))
     )
 
 buildPatternInfoTable :: forall r. Member (Reader Mono.InfoTable) r => [Mono.Type] -> Mono.FunctionClause -> Sem r PatternInfoTable

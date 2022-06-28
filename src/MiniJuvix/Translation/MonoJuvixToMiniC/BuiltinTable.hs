@@ -11,12 +11,12 @@ builtinConstructorName = \case
 
 builtinInductiveName :: BuiltinInductive -> Maybe Text
 builtinInductiveName = \case
-  BuiltinNatural -> Just int_
+  BuiltinNatural -> Just nat
 
 builtinAxiomName :: BuiltinAxiom -> Maybe Text
 builtinAxiomName = \case
   BuiltinNaturalPrint -> Just printNat
-  BuiltinIO -> Just int_
+  BuiltinIO -> Just io
   BuiltinIOSequence -> Just ioseq
 
 builtinFunctionName :: BuiltinFunction -> Maybe Text

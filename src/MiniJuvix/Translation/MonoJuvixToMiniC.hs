@@ -333,7 +333,7 @@ goIden = \case
   Mono.IdenConstructor n -> ExpressionVar <$> getConstructorCName n
   Mono.IdenVar n ->
     (^. bindingInfoExpr) . HashMap.lookupDefault impossible (n ^. Mono.nameText) <$> asks (^. patternBindings)
-  Mono.IdenAxiom n -> return (ExpressionVar (mkName n))
+  Mono.IdenAxiom n -> ExpressionVar <$> getAxiomCName n
 
 goApplication :: forall r. Members '[Reader PatternInfoTable, Builtins, Reader Mono.InfoTable] r => Mono.Application -> Sem r Expression
 goApplication a = do
@@ -363,13 +363,19 @@ goApplication a = do
           | otherwise -> do
               idenExp <- goIden iden
               return $ functionCall idenExp (reverse fArgs)
-    _ -> do
+    Mono.IdenConstructor n -> returnFunCall iden fArgs n
+    Mono.IdenAxiom n -> returnFunCall iden fArgs n
+  where
+    f :: Sem r (Mono.Iden, [Expression])
+    f = unfoldApp a
+
+    returnFunCall :: Mono.Iden -> [Expression] -> Mono.Name -> Sem r Expression
+    returnFunCall iden fArgs name = do
       (idenType, _) <- getType iden
       ( if length fArgs < length (idenType ^. cFunArgTypes)
           then
             ( do
-                let name = mkName (Mono.getName iden)
-                    evalName = asEval (name <> "_" <> show (length fArgs))
+                let evalName = asEval (mkName name <> "_" <> show (length fArgs))
                 return $ functionCall (ExpressionVar evalName) (reverse fArgs)
             )
           else
@@ -378,9 +384,6 @@ goApplication a = do
                 return $ functionCall idenExp (reverse fArgs)
             )
         )
-  where
-    f :: Sem r (Mono.Iden, [Expression])
-    f = unfoldApp a
 
     unfoldApp :: Mono.Application -> Sem r (Mono.Iden, [Expression])
     unfoldApp Mono.Application {..} = case _appLeft of
