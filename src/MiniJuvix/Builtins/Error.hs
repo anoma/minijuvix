@@ -2,8 +2,8 @@ module MiniJuvix.Builtins.Error where
 
 import MiniJuvix.Prelude
 import MiniJuvix.Prelude.Pretty
-import MiniJuvix.Termination.Error.Pretty
 import MiniJuvix.Syntax.Concrete.Builtins
+import MiniJuvix.Termination.Error.Pretty
 
 data AlreadyDefined = AlreadyDefined
   { _alreadyDefinedBuiltin :: BuiltinPrim,

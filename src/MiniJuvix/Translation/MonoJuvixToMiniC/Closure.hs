@@ -1,11 +1,11 @@
 module MiniJuvix.Translation.MonoJuvixToMiniC.Closure where
 
 import MiniJuvix.Prelude
+import MiniJuvix.Syntax.Concrete.Builtins (IsBuiltin (toBuiltinPrim))
 import MiniJuvix.Syntax.MiniC.Language
-import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Syntax.MonoJuvix.InfoTable qualified as Mono
+import MiniJuvix.Syntax.MonoJuvix.Language qualified as Mono
 import MiniJuvix.Translation.MonoJuvixToMiniC.Base
-import MiniJuvix.Syntax.Concrete.Builtins (IsBuiltin(toBuiltinPrim))
 
 genClosures ::
   forall r.
@@ -180,8 +180,10 @@ genClosureApply c =
                     ),
                   BodyStatement . StatementReturn . Just $ juvixFunctionCall funType (ExpressionVar localFunName) (drop nPatterns args)
                 ]
-            | otherwise -> [BodyStatement . StatementReturn . Just
-                            $ functionCall (ExpressionVar (closureRootFunction c)) args]
+            | otherwise ->
+                [ BodyStatement . StatementReturn . Just $
+                    functionCall (ExpressionVar (closureRootFunction c)) args
+                ]
       envArg :: BodyItem
       envArg =
         BodyDecl

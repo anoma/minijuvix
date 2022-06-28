@@ -2,23 +2,26 @@ module MiniJuvix.Translation.MonoJuvixToMiniC.CNames where
 
 import MiniJuvix.Prelude
 
+primPrefix :: Text -> Text
+primPrefix = ("prim_" <>)
+
 zero :: Text
-zero = "zero"
+zero = primPrefix "zero"
 
 suc :: Text
-suc = "suc"
+suc = primPrefix "suc"
 
 printNat :: Text
-printNat = "printNat"
+printNat = primPrefix "printNat"
 
 int_ :: Text
 int_ = "int"
 
 ioseq :: Text
-ioseq = "sequence"
+ioseq = primPrefix "sequence"
 
 natplus :: Text
-natplus = "natplus"
+natplus = primPrefix "natplus"
 
 funField :: Text
 funField = "fun"

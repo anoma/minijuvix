@@ -19,8 +19,8 @@ instance IsBuiltin BuiltinFunction where
 instance IsBuiltin BuiltinAxiom where
   toBuiltinPrim = BuiltinsAxiom
 
-data BuiltinPrim =
-  BuiltinsInductive BuiltinInductive
+data BuiltinPrim
+  = BuiltinsInductive BuiltinInductive
   | BuiltinsConstructor BuiltinConstructor
   | BuiltinsFunction BuiltinFunction
   | BuiltinsAxiom BuiltinAxiom

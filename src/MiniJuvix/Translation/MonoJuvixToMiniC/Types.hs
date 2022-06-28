@@ -41,6 +41,6 @@ closureRootFunction :: ClosureInfo -> Text
 closureRootFunction c = case c ^. closureBuiltin of
   Just b -> fromMaybe unsup (builtinName b)
     where
-    unsup :: a
-    unsup = error ("unsupported builtin " <> show b)
+      unsup :: a
+      unsup = error ("unsupported builtin " <> show b)
   Nothing -> c ^. closureRootName
