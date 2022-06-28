@@ -2,25 +2,25 @@
 #define NAT_H_
 
 #include <stdbool.h>
-#define zero 0
+#define prim_zero 0
 
-int suc(int n) {
+int prim_suc(int n) {
     return n + 1;
 }
 
-bool is_zero(int n) {
+bool is_prim_zero(int n) {
     return n == 0;
 }
 
-bool is_suc(int n) {
+bool is_prim_suc(int n) {
     return n != 0;
 }
 
-int proj_ca0_suc(int n) {
+int proj_ca0_prim_suc(int n) {
     return n - 1;
 }
 
-int natplus(int a, int b) {
+int prim_natplus(int a, int b) {
     return a + b;
 }
 
