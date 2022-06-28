@@ -166,6 +166,7 @@ fillHoles m = goe
       ExpressionIden {} -> x
       ExpressionApplication a -> ExpressionApplication (goApp a)
       ExpressionLiteral {} -> x
+      ExpressionUniverse {} -> x
       ExpressionHole h -> goHole h
       ExpressionFunction f -> ExpressionFunction (goFunction f)
       where
@@ -209,6 +210,7 @@ expressionAsType = go
       ExpressionIden i -> TypeIden <$> goIden i
       ExpressionApplication a -> TypeApp <$> goApp a
       ExpressionLiteral {} -> Nothing
+      ExpressionUniverse {} -> Just TypeUniverse
       ExpressionFunction f -> TypeFunction <$> goFunction f
       ExpressionHole h -> Just (TypeHole h)
     goFunction :: FunctionExpression -> Maybe Function
@@ -337,6 +339,7 @@ substitutionE m = go
       ExpressionIden i -> goIden i
       ExpressionApplication a -> ExpressionApplication (goApp a)
       ExpressionLiteral {} -> x
+      ExpressionUniverse {} -> x
       ExpressionHole {} -> x
       ExpressionFunction f -> ExpressionFunction (goFunction f)
     goApp :: Application -> Application

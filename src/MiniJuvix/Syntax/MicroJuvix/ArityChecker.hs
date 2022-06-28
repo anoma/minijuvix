@@ -113,6 +113,7 @@ guessArity = \case
   ExpressionLiteral {} -> return (Just arityLiteral)
   ExpressionApplication a -> appHelper a
   ExpressionIden i -> idenHelper i
+  ExpressionUniverse _ -> return (Just arityUniverse)
   where
     idenHelper :: Iden -> Sem r (Maybe Arity)
     idenHelper i = case i of
@@ -138,6 +139,7 @@ guessArity = \case
         arif :: Sem r (Maybe Arity)
         arif = case f of
           ExpressionHole {} -> return Nothing
+          ExpressionUniverse {} -> return (Just arityUniverse)
           ExpressionApplication {} -> impossible
           ExpressionFunction {} -> return (Just ArityUnit)
           ExpressionLiteral {} -> return (Just arityLiteral)
@@ -151,6 +153,9 @@ arityLiteral =
       { _functionArityLeft = ParamImplicit,
         _functionArityRight = ArityUnit
       }
+
+arityUniverse :: Arity
+arityUniverse = ArityUnit
 
 checkLhs ::
   forall r.
@@ -321,6 +326,7 @@ checkExpression hintArity expr = case expr of
   ExpressionApplication a -> goApp a
   ExpressionLiteral {} -> appHelper expr []
   ExpressionFunction {} -> return expr
+  ExpressionUniverse {} -> return expr
   ExpressionHole {} -> return expr
   where
     goApp :: Application -> Sem r Expression
@@ -332,6 +338,7 @@ checkExpression hintArity expr = case expr of
         ExpressionHole {} -> mapM (secondM (checkExpression ArityUnknown)) args
         ExpressionIden i -> idenArity i >>= helper (getLoc i)
         ExpressionLiteral l -> helper (getLoc l) arityLiteral
+        ExpressionUniverse l -> helper (getLoc l) arityUniverse
         ExpressionFunction f ->
           throw
             ( ErrFunctionApplied

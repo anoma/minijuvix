@@ -14,7 +14,6 @@ import MiniJuvix.Syntax.MicroJuvix.Error
 import MiniJuvix.Syntax.MicroJuvix.Language
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
-import MiniJuvix.Syntax.Universe
 import MiniJuvix.Syntax.Usage
 import MiniJuvix.Termination.Checker
 

@@ -112,6 +112,7 @@ goFunctionExpression (FunctionExpression l r) = do
 goExpression :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => Expression -> Sem r ()
 goExpression = \case
   ExpressionIden {} -> return ()
+  ExpressionUniverse {} -> return ()
   ExpressionApplication a -> goApplication a
   ExpressionFunction a -> goFunctionExpression a
   ExpressionLiteral {} -> return ()

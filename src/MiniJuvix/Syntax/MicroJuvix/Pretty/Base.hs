@@ -77,12 +77,16 @@ instance PrettyCode FunctionExpression where
     r' <- ppLeftExpression funFixity (f ^. functionExpressionRight)
     return (l' <+> kwArrow <+> r')
 
+instance PrettyCode SmallUniverse where
+  ppCode _ = return kwType
+
 instance PrettyCode Expression where
   ppCode = \case
     ExpressionIden i -> ppCode i
     ExpressionHole h -> ppCode h
     ExpressionApplication a -> ppCode a
     ExpressionFunction f -> ppCode f
+    ExpressionUniverse u -> ppCode u
     ExpressionLiteral l -> return (pretty l)
 
 keyword :: Text -> Doc Ann

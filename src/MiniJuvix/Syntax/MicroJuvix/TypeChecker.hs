@@ -312,7 +312,15 @@ inferExpression' e = case e of
   ExpressionLiteral l -> goLiteral l
   ExpressionFunction f -> goExpressionFunction f
   ExpressionHole h -> freshMetavar h
+  ExpressionUniverse u -> goUniverse u
   where
+    goUniverse :: SmallUniverse -> Sem r TypedExpression
+    goUniverse u =
+      return
+        TypedExpression
+          { _typedType = TypeUniverse,
+            _typedExpression = ExpressionUniverse u
+          }
     goExpressionFunction :: FunctionExpression -> Sem r TypedExpression
     goExpressionFunction (FunctionExpression l r) = do
       l' <- checkExpression TypeUniverse l

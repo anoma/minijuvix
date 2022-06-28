@@ -293,6 +293,7 @@ goExpression = go
       Micro.ExpressionLiteral l -> return (ExpressionLiteral l)
       Micro.ExpressionApplication a -> goApp a
       Micro.ExpressionFunction {} -> impossible
+      Micro.ExpressionUniverse {} -> impossible
       Micro.ExpressionHole {} -> impossible
     goApp :: Micro.Application -> Sem r Expression
     goApp a = do

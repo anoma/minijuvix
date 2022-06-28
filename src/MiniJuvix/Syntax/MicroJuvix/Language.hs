@@ -3,6 +3,7 @@ module MiniJuvix.Syntax.MicroJuvix.Language
     module MiniJuvix.Syntax.Abstract.Name,
     module MiniJuvix.Syntax.Concrete.Loc,
     module MiniJuvix.Syntax.IsImplicit,
+    module MiniJuvix.Syntax.Universe,
     module MiniJuvix.Syntax.Hole,
     module MiniJuvix.Syntax.Wildcard,
     module MiniJuvix.Syntax.Concrete.LiteralLoc,
@@ -18,6 +19,7 @@ import MiniJuvix.Syntax.Concrete.Loc
 import MiniJuvix.Syntax.ForeignBlock
 import MiniJuvix.Syntax.Hole
 import MiniJuvix.Syntax.IsImplicit
+import MiniJuvix.Syntax.Universe
 import MiniJuvix.Syntax.Wildcard
 
 data Module = Module
@@ -82,6 +84,7 @@ data Expression
   | ExpressionFunction FunctionExpression
   | ExpressionLiteral LiteralLoc
   | ExpressionHole Hole
+  | ExpressionUniverse SmallUniverse
 
 data Application = Application
   { _appLeft :: Expression,
@@ -206,6 +209,7 @@ instance HasAtomicity Expression where
     ExpressionLiteral l -> atomicity l
     ExpressionFunction f -> atomicity f
     ExpressionHole {} -> Atom
+    ExpressionUniverse u -> atomicity u
 
 instance HasAtomicity Function where
   atomicity = const (Aggregate funFixity)
@@ -244,6 +248,7 @@ instance HasLoc Expression where
     ExpressionLiteral l -> getLoc l
     ExpressionFunction f -> getLoc f
     ExpressionHole h -> getLoc h
+    ExpressionUniverse u -> getLoc u
 
 instance HasLoc Iden where
   getLoc = \case
