@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout our repository
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - uses: r-lib/actions/setup-pandoc@v1
         with:
