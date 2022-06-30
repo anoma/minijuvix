@@ -210,7 +210,7 @@ goTypeUniverse u
   | isSmallUni u = TypeUniverse
   | otherwise = unsupported "big universes"
 
-goType :: Abstract.Expression -> Sem r Type
+goType :: Abstract.Expression -> Sem r Expression
 goType e = case e of
   Abstract.ExpressionIden i -> return (TypeIden (goTypeIden i))
   Abstract.ExpressionUniverse u -> return (goTypeUniverse u)

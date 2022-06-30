@@ -12,13 +12,18 @@ data Universe = Universe
 newtype SmallUniverse = SmallUniverse
   { _smallUniverseLoc :: Interval
   }
-  deriving stock (Show)
+  deriving stock (Generic)
+
+instance Eq SmallUniverse where
+  _ == _ = True
+
+instance Hashable SmallUniverse
+
+getUniverseLevel :: Universe -> Natural
+getUniverseLevel Universe {..} = fromMaybe defaultLevel _universeLevel
 
 instance Eq Universe where
-  (Universe a _) == (Universe b _) = f a == f b
-    where
-      f :: Maybe Natural -> Natural
-      f = fromMaybe defaultLevel
+  (==) = (==) `on` getUniverseLevel
 
 defaultLevel :: Natural
 defaultLevel = 0
@@ -33,7 +38,7 @@ smallUniverse :: Interval -> Universe
 smallUniverse = Universe (Just smallLevel)
 
 isSmallUniverse :: Universe -> Bool
-isSmallUniverse = (== smallLevel) . fromMaybe defaultLevel . (^. universeLevel)
+isSmallUniverse = (== smallLevel) . getUniverseLevel
 
 instance HasAtomicity Universe where
   atomicity u = case u ^. universeLevel of

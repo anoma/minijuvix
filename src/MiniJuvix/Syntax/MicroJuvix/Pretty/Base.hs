@@ -52,14 +52,6 @@ instance PrettyCode Iden where
     IdenAxiom a -> ppCode a
     IdenInductive a -> ppCode a
 
-instance PrettyCode TypeApplication where
-  ppCode (TypeApplication l r i) = do
-    l' <- ppLeftExpression appFixity l
-    r' <- case i of
-      Explicit -> ppRightExpression appFixity r
-      Implicit -> braces <$> ppCode r
-    return (l' <+> r')
-
 instance PrettyCode Application where
   ppCode a = do
     l' <- ppLeftExpression appFixity (a ^. appLeft)
@@ -86,6 +78,7 @@ instance PrettyCode Expression where
     ExpressionHole h -> ppCode h
     ExpressionApplication a -> ppCode a
     ExpressionFunction f -> ppCode f
+    ExpressionFunction2 f -> ppCode f
     ExpressionUniverse u -> ppCode u
     ExpressionLiteral l -> return (pretty l)
 
@@ -152,41 +145,23 @@ instance PrettyCode BackendItem where
     return $
       backend <+> kwMapsto <+> pretty _backendItemCode
 
-instance PrettyCode TypeAbstraction where
-  ppCode (TypeAbstraction v i r) = do
-    v' <- ppCode v
-    let l' = implicitDelim i (v' <+> colon <+> kwType)
-    r' <- ppRightExpression funFixity r
-    return $ l' <+> kwArrow <+> r'
+instance PrettyCode FunctionParameter where
+  ppCode FunctionParameter {..} = do
+    case _paramName of
+      Nothing -> ppLeftExpression funFixity _paramType
+      Just n -> do
+        paramName' <- ppCode n
+        paramType' <- ppCode _paramType
+        return $ implicitDelim _paramImplicit (paramName' <+> paramType')
 
-instance PrettyCode Function where
-  ppCode (Function l r) = do
-    l' <- ppLeftExpression funFixity l
-    r' <- ppRightExpression funFixity r
-    return $ l' <+> kwArrow <+> r'
-
-instance PrettyCode TypeIden where
-  ppCode = \case
-    TypeIdenInductive i -> ppCode i
-    TypeIdenAxiom i -> ppCode i
-    TypeIdenVariable i -> ppCode i
-
-instance PrettyCode FunctionArgType where
-  ppCode = \case
-    FunctionArgTypeType t -> ppCode t
-    FunctionArgTypeAbstraction (_, v) -> ppCode v
+instance PrettyCode Function2 where
+  ppCode (Function2 l r) = do
+    funParameter' <- ppCode l
+    funReturn' <- ppRightExpression funFixity r
+    return $ funParameter' <+> kwArrow <+> funReturn'
 
 instance PrettyCode Hole where
   ppCode _ = return kwHole
-
-instance PrettyCode Type where
-  ppCode = \case
-    TypeIden i -> ppCode i
-    TypeFunction f -> ppCode f
-    TypeUniverse -> return kwType
-    TypeApp a -> ppCode a
-    TypeAbs a -> ppCode a
-    TypeHole h -> ppCode h
 
 instance PrettyCode InductiveConstructorDef where
   ppCode c = do

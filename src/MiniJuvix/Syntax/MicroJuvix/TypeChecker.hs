@@ -85,27 +85,17 @@ checkFunctionDef FunctionDef {..} = runInferenceDef $ do
         ..
       }
 
-checkFunctionDefType :: forall r. Members '[Inference] r => Type -> Sem r ()
-checkFunctionDefType = go
+checkFunctionDefType :: forall r. Members '[Inference] r => Expression -> Sem r ()
+checkFunctionDefType = traverseOf_ expressions helper
   where
-    go :: Type -> Sem r ()
-    go t = case t of
-      TypeHole h -> void (freshMetavar h)
-      TypeIden {} -> return ()
-      TypeApp a -> goApp a
-      TypeFunction f -> goFunction f
-      TypeAbs f -> goAbs f
-      TypeUniverse -> return ()
-    goApp :: TypeApplication -> Sem r ()
-    goApp (TypeApplication a b _) = go a >> go b
-    goFunction :: Function -> Sem r ()
-    goFunction (Function a b) = go a >> go b
-    goAbs :: TypeAbstraction -> Sem r ()
-    goAbs (TypeAbstraction _ _ b) = go b
+    helper :: Expression -> Sem r ()
+    helper = \case
+      ExpressionHole h -> void (freshMetavar h)
+      _ -> return ()
 
 checkExpression ::
   Members '[Reader InfoTable, Error TypeCheckerError, NameIdGen, Reader LocalVars, Inference] r =>
-  Type ->
+  Expression ->
   Expression ->
   Sem r Expression
 checkExpression expectedTy e = do
@@ -129,13 +119,13 @@ inferExpression ::
   Sem r Expression
 inferExpression = fmap (^. typedExpression) . inferExpression'
 
-lookupVar :: Member (Reader LocalVars) r => Name -> Sem r Type
+lookupVar :: Member (Reader LocalVars) r => Name -> Sem r Expression
 lookupVar v = HashMap.lookupDefault impossible v <$> asks (^. localTypes)
 
 checkFunctionClauseBody ::
   Members '[Reader InfoTable, Error TypeCheckerError, NameIdGen, Inference] r =>
   LocalVars ->
-  Type ->
+  Expression ->
   Expression ->
   Sem r Expression
 checkFunctionClauseBody locals expectedTy body =
@@ -171,25 +161,23 @@ checkFunctionClause info FunctionClause {..} = do
 checkPatterns ::
   Members '[Reader InfoTable, Error TypeCheckerError] r =>
   FunctionName ->
-  [(FunctionArgType, Pattern)] ->
+  [(FunctionParameter, Pattern)] ->
   Sem r LocalVars
 checkPatterns name = execState emptyLocalVars . mapM_ (uncurry (checkPattern name))
 
-typeOfArg :: FunctionArgType -> Type
-typeOfArg a = case a of
-  FunctionArgTypeAbstraction {} -> TypeUniverse
-  FunctionArgTypeType ty -> ty
+typeOfArg :: FunctionParameter -> Expression
+typeOfArg = (^. paramType)
 
 checkPattern ::
   forall r.
   Members '[Reader InfoTable, Error TypeCheckerError, State LocalVars] r =>
   FunctionName ->
-  FunctionArgType ->
+  FunctionParameter ->
   Pattern ->
   Sem r ()
 checkPattern funName = go
   where
-    go :: FunctionArgType -> Pattern -> Sem r ()
+    go :: FunctionParameter -> Pattern -> Sem r ()
     go argTy p = do
       tyVarMap <- fmap (TypeIden . TypeIdenVariable) . (^. localTyMap) <$> get
       let ty = substitution tyVarMap (typeOfArg argTy)
@@ -201,8 +189,8 @@ checkPattern funName = go
         PatternBraces {} -> impossible
         PatternVariable v -> do
           modify (addType v ty)
-          case argTy of
-            FunctionArgTypeAbstraction (_, v') -> do
+          case argTy ^. paramName of
+            Just v' -> do
               modify (over localTyMap (HashMap.insert v' v))
             _ -> return ()
         PatternConstructorApp a -> do
@@ -218,7 +206,7 @@ checkPattern funName = go
             )
           goConstr a tyArgs
       where
-        goConstr :: ConstructorApp -> [(InductiveParameter, Type)] -> Sem r ()
+        goConstr :: ConstructorApp -> [(InductiveParameter, Expression)] -> Sem r ()
         goConstr app@(ConstructorApp c ps) ctx = do
           (_, psTys) <- constructorArgTypes <$> lookupConstructor c
           let psTys' = map (substituteIndParams ctx) psTys
@@ -236,7 +224,7 @@ checkPattern funName = go
                     }
                 )
             )
-    checkSaturatedInductive :: Type -> Sem r (InductiveName, [(InductiveParameter, Type)])
+    checkSaturatedInductive :: Expression -> Sem r (InductiveName, [(InductiveParameter, Expression)])
     checkSaturatedInductive ty = do
       (ind, args) <- viewInductiveApp ty
       params <-
@@ -277,7 +265,7 @@ freshHole l = do
   void (freshMetavar h)
   return h
 
--- | Returns {A : Type} → A
+-- | Returns {A : Expression} → A
 literalType :: Members '[NameIdGen] r => LiteralLoc -> Sem r TypedExpression
 literalType l = do
   uid <- freshNameId
@@ -288,12 +276,16 @@ literalType l = do
             _nameKind = KNameLocal,
             _nameLoc = getLoc l
           }
+      param = FunctionParameter {
+        _paramName = Just typeVar,
+        _paramImplicit = Implicit,
+        _paramType = smallUniverse (getLoc l)
+        }
       type_ =
-        TypeAbs
-          TypeAbstraction
-            { _typeAbsVar = typeVar,
-              _typeAbsImplicit = Implicit,
-              _typeAbsBody = TypeIden (TypeIdenVariable typeVar)
+        ExpressionFunction2
+          Function2
+            { _function2Left = param,
+              _function2Right = ExpressionIden (IdenVar typeVar)
             }
   return
     TypedExpression
@@ -347,65 +339,47 @@ inferExpression' e = case e of
         kind <- inductiveType v
         return (TypedExpression kind (ExpressionIden i))
     inferApplication :: Application -> Sem r TypedExpression
-    inferApplication a = inferExpression' leftExp >>= helper
-      where
-        i = a ^. appImplicit
-        leftExp = a ^. appLeft
-        helper :: TypedExpression -> Sem r TypedExpression
-        helper l = case l ^. typedType of
-          TypeFunction f -> do
-            r <- checkExpression (f ^. funLeft) (a ^. appRight)
-            return
-              TypedExpression
-                { _typedExpression =
-                    ExpressionApplication
-                      Application
-                        { _appLeft = l ^. typedExpression,
-                          _appRight = r,
-                          _appImplicit = i
-                        },
-                  _typedType = f ^. funRight
-                }
-          TypeAbs ta -> do
-            r <- checkExpression TypeUniverse (a ^. appRight)
-            let tr = expressionAsType' r
-            return
-              TypedExpression
-                { _typedExpression =
-                    ExpressionApplication
-                      Application
-                        { _appLeft = l ^. typedExpression,
-                          _appRight = r,
-                          _appImplicit = i
-                        },
-                  _typedType = substituteType1 (ta ^. typeAbsVar, tr) (ta ^. typeAbsBody)
-                }
-          -- When we have have an application with a hole on the left: '_@1 x'
-          -- We assume that it is a type application and thus 'x' must be a type.
-          -- where @2 is fresh.
-          -- Not sure if this is always desirable.
-          TypeHole h -> do
+    inferApplication (Application l r _) = do
+      l' <- inferExpression' l
+      case l' ^. typedType of
+        ExpressionFunction2 (Function2 (FunctionParameter mv i funL) funR) -> do
+          r' <- checkExpression funL r
+          return
+            TypedExpression
+              { _typedExpression =
+                  ExpressionApplication
+                    Application
+                      { _appLeft = l' ^. typedExpression,
+                        _appRight = r,
+                        _appImplicit = i
+                      },
+                _typedType = substitutionApp (mv, r') funR
+              }
+        -- When we have have an application with a hole on the left: '_@1 x'
+        -- We assume that it is a type application and thus 'x' must be a type.
+        -- where @2 is fresh.
+        -- Not sure if this is always desirable.
+        ExpressionHole h -> do
             q <- queryMetavar h
             case q of
-              Just ty -> helper (set typedType ty l)
+              Just ty -> helper (set typedType ty l')
               Nothing -> do
-                r <- checkExpression TypeUniverse (a ^. appRight)
+                r <- checkExpression (smallUniverse (getLoc h)) r
                 h' <- freshHole (getLoc h)
-                let tr = expressionAsType' r
-                    fun = Function tr (TypeHole h')
-                unlessM (matchTypes (TypeHole h) (TypeFunction fun)) impossible
+                let fun = Function r (ExpressionHole h')
+                unlessM (matchTypes (ExpressionHole h) (TypeFunction fun)) impossible
                 return
                   TypedExpression
                     { _typedType = TypeHole h',
                       _typedExpression =
                         ExpressionApplication
                           Application
-                            { _appLeft = l ^. typedExpression,
+                            { _appLeft = l' ^. typedExpression,
                               _appRight = r,
                               _appImplicit = i
                             }
                     }
-          _ -> throw tyErr
+        _ -> throw tyErr
             where
               tyErr :: TypeCheckerError
               tyErr =
@@ -416,19 +390,89 @@ inferExpression' e = case e of
                         _expectedFunctionTypeType = l ^. typedType
                       }
                   )
+    -- inferApplication :: Application -> Sem r TypedExpression
+    -- inferApplication a = inferExpression' leftExp >>= helper
+    --   where
+    --     i = a ^. appImplicit
+    --     leftExp = a ^. appLeft
+    --     helper :: TypedExpression -> Sem r TypedExpression
+    --     helper l = case l ^. typedType of
+    --       TypeFunction f -> do
+    --         r <- checkExpression (f ^. funLeft) (a ^. appRight)
+    --         return
+    --           TypedExpression
+    --             { _typedExpression =
+    --                 ExpressionApplication
+    --                   Application
+    --                     { _appLeft = l ^. typedExpression,
+    --                       _appRight = r,
+    --                       _appImplicit = i
+    --                     },
+    --               _typedType = f ^. funRight
+    --             }
+    --       TypeAbs ta -> do
+    --         r <- checkExpression TypeUniverse (a ^. appRight)
+    --         let tr = expressionAsType' r
+    --         return
+    --           TypedExpression
+    --             { _typedExpression =
+    --                 ExpressionApplication
+    --                   Application
+    --                     { _appLeft = l ^. typedExpression,
+    --                       _appRight = r,
+    --                       _appImplicit = i
+    --                     },
+    --               _typedType = substituteType1 (ta ^. typeAbsVar, tr) (ta ^. typeAbsBody)
+    --             }
+    --       -- When we have have an application with a hole on the left: '_@1 x'
+    --       -- We assume that it is a type application and thus 'x' must be a type.
+    --       -- where @2 is fresh.
+    --       -- Not sure if this is always desirable.
+    --       TypeHole h -> do
+    --         q <- queryMetavar h
+    --         case q of
+    --           Just ty -> helper (set typedType ty l)
+    --           Nothing -> do
+    --             r <- checkExpression TypeUniverse (a ^. appRight)
+    --             h' <- freshHole (getLoc h)
+    --             let tr = expressionAsType' r
+    --                 fun = Function tr (TypeHole h')
+    --             unlessM (matchTypes (TypeHole h) (TypeFunction fun)) impossible
+    --             return
+    --               TypedExpression
+    --                 { _typedType = TypeHole h',
+    --                   _typedExpression =
+    --                     ExpressionApplication
+    --                       Application
+    --                         { _appLeft = l ^. typedExpression,
+    --                           _appRight = r,
+    --                           _appImplicit = i
+    --                         }
+    --                 }
+    --       _ -> throw tyErr
+    --         where
+    --           tyErr :: TypeCheckerError
+    --           tyErr =
+    --             ErrExpectedFunctionType
+    --               ( ExpectedFunctionType
+    --                   { _expectedFunctionTypeExpression = e,
+    --                     _expectedFunctionTypeApp = leftExp,
+    --                     _expectedFunctionTypeType = l ^. typedType
+    --                   }
+    --               )
 
 viewInductiveApp ::
   Member (Error TypeCheckerError) r =>
-  Type ->
-  Sem r (InductiveName, [Type])
+  Expression ->
+  Sem r (InductiveName, [Expression])
 viewInductiveApp ty = case t of
-  TypeIden (TypeIdenInductive n) -> return (n, as)
+  ExpressionIden (IdenInductive n) -> return (n, as)
   _ -> throw (ErrImpracticalPatternMatching (ImpracticalPatternMatching ty))
   where
     (t, as) = viewTypeApp ty
 
-viewTypeApp :: Type -> (Type, [Type])
+viewTypeApp :: Expression -> (Expression, [Expression])
 viewTypeApp t = case t of
-  TypeApp (TypeApplication l r _) ->
+  ExpressionApplication (Application l r _) ->
     second (`snoc` r) (viewTypeApp l)
   _ -> (t, [])

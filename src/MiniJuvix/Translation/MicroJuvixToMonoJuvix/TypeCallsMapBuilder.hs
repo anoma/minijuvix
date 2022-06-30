@@ -59,6 +59,14 @@ goInductiveParameter _ = return ()
 goInductiveConstructorDef :: Members '[State TypeCallsMap, Reader Caller] r => InductiveConstructorDef -> Sem r ()
 goInductiveConstructorDef c = mapM_ goType (c ^. constructorParameters)
 
+goParam :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => FunctionParameter -> Sem r ()
+goParam (FunctionParameter _ _ ty) = goExpression ty
+
+goFunction2 :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => Function2 -> Sem r ()
+goFunction2 (Function2 l r) = do
+  goParam l
+  goExpression r
+
 goFunction :: Members '[State TypeCallsMap, Reader Caller] r => Function -> Sem r ()
 goFunction (Function l r) = do
   goType l
@@ -115,6 +123,7 @@ goExpression = \case
   ExpressionUniverse {} -> return ()
   ExpressionApplication a -> goApplication a
   ExpressionFunction a -> goFunctionExpression a
+  ExpressionFunction2 a -> goFunction2 a
   ExpressionLiteral {} -> return ()
   ExpressionHole {} -> impossible
 

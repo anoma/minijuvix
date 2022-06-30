@@ -110,6 +110,7 @@ guessArity ::
 guessArity = \case
   ExpressionHole {} -> return Nothing
   ExpressionFunction {} -> return (Just ArityUnit)
+  ExpressionFunction2 {} -> return (Just ArityUnit)
   ExpressionLiteral {} -> return (Just arityLiteral)
   ExpressionApplication a -> appHelper a
   ExpressionIden i -> idenHelper i
@@ -142,6 +143,7 @@ guessArity = \case
           ExpressionUniverse {} -> return (Just arityUniverse)
           ExpressionApplication {} -> impossible
           ExpressionFunction {} -> return (Just ArityUnit)
+          ExpressionFunction2  {} -> return (Just ArityUnit)
           ExpressionLiteral {} -> return (Just arityLiteral)
           ExpressionIden i -> idenHelper i
 
@@ -273,8 +275,41 @@ idenArity = \case
   IdenFunction f -> lookupFunction f >>= typeArity . (^. functionInfoDef . funDefType)
   IdenConstructor c -> constructorType c >>= typeArity
   IdenVar v -> getLocalArity v
-  IdenAxiom a -> lookupAxiom a >>= typeArity . (^. axiomInfoType)
+  IdenAxiom a -> lookupAxiom a >>= typeArity2 . (^. axiomInfoType)
   IdenInductive i -> inductiveType i >>= typeArity
+
+typeArity2 :: forall r. Members '[Reader InfoTable] r => Expression -> Sem r Arity
+typeArity2 = go
+  where
+    go :: Expression -> Sem r Arity
+    go = \case
+      ExpressionIden i -> goIden i
+      ExpressionApplication {} -> return ArityUnit
+      ExpressionFunction2 f -> ArityFunction <$> goFun f
+      ExpressionFunction {} -> impossible
+      ExpressionLiteral {} -> impossible
+      ExpressionHole {} -> return ArityUnknown
+      ExpressionUniverse {} -> return ArityUnit
+
+    goFun :: Function2 -> Sem r FunctionArity
+    goFun (Function2 l r) = do
+      r' <- go r
+      return (FunctionArity l' r')
+      where
+      l' :: ArityParameter
+      l' = case l ^. paramImplicit of
+        Implicit -> ParamImplicit
+        Explicit -> ParamExplicit ArityUnit
+
+    goIden :: Iden -> Sem r Arity
+    goIden = \case
+      IdenFunction {} -> impossible
+      IdenConstructor {} -> impossible
+      IdenVar {} -> return ArityUnknown
+      IdenInductive {} -> return ArityUnit
+      IdenAxiom ax -> do
+        ty <- (^. axiomInfoType) <$> lookupAxiom ax
+        go ty
 
 typeArity :: forall r. Members '[Reader InfoTable] r => Type -> Sem r Arity
 typeArity = go
@@ -293,8 +328,8 @@ typeArity = go
       TypeIdenVariable {} -> return ArityUnknown
       TypeIdenInductive {} -> return ArityUnit
       TypeIdenAxiom ax -> do
-        ty <- (^. axiomInfoType) <$> lookupAxiom ax
-        go ty
+        _ <- (^. axiomInfoType) <$> lookupAxiom ax
+        impossible
 
     goFun :: Function -> Sem r FunctionArity
     goFun (Function l r) = do
@@ -326,9 +361,22 @@ checkExpression hintArity expr = case expr of
   ExpressionApplication a -> goApp a
   ExpressionLiteral {} -> appHelper expr []
   ExpressionFunction {} -> return expr
+  ExpressionFunction2 x -> ExpressionFunction2 <$> goFunction x
   ExpressionUniverse {} -> return expr
   ExpressionHole {} -> return expr
   where
+    goParam :: FunctionParameter -> Sem r FunctionParameter
+    goParam (FunctionParameter v i ty) = do
+      ty' <- checkExpression ArityUnit ty
+      return (FunctionParameter v i ty')
+
+    goFunction :: Function2 -> Sem r Function2
+    goFunction (Function2 l r) = do
+      l' <- goParam l
+      -- TODO: l' determines the arity of r
+      r' <- checkExpression undefined r
+      return (Function2 l' r')
+
     goApp :: Application -> Sem r Expression
     goApp = uncurry appHelper . second toList . unfoldApplication'
 
@@ -344,6 +392,14 @@ checkExpression hintArity expr = case expr of
             ( ErrFunctionApplied
                 FunctionApplied
                   { _functionAppliedFunction = f,
+                    _functionAppliedArguments = args
+                  }
+            )
+        ExpressionFunction2 f ->
+          throw
+            ( ErrFunctionApplied
+                FunctionApplied
+                  { _functionAppliedFunction = undefined,
                     _functionAppliedArguments = args
                   }
             )
