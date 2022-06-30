@@ -39,13 +39,13 @@ The MiniJuvix programming language allows developers to write programs with a hi
 
 The language features:
 
-- [X] Unicode syntax
-- [X] parametric polymorphism
-- [X] inductive and parametric data types
-- [X] higher-order functions
-- [X] implicit arguments
-- [X] holes in programs
-- [X] axioms for non-computable terms
+- unicode syntax
+- parametric polymorphism
+- inductive and parametric data types
+- higher-order functions
+- implicit arguments
+- holes in programs
+- axioms for non-computable terms
 
 Additionally, the foreign and compile blocks syntax enable developers to compile a program to different backends including the =C= language. The MiniJuvix module system further permits splitting programs into several modules to build libraries which can be later documented by generating HTML files based on the codebase, see for example, [[https://heliaxdev.github.io/minijuvix-stdlib/][the Minijuvix standard library's website]]. For futher details, please refer to [[https://heliaxdev.github.io/minijuvix/][the MiniJuvix book]] which icludes our [[https://heliaxdev.github.io/minijuvix/introduction/changelog.html][latest updates]].
 
