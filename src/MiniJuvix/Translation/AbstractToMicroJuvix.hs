@@ -224,23 +224,24 @@ goIden i = case i of
   Abstract.IdenAxiom a -> IdenAxiom (a ^. Abstract.axiomRefName)
   Abstract.IdenInductive a -> IdenInductive (a ^. Abstract.inductiveRefName)
 
-goExpressionFunction :: forall r. Abstract.Function -> Sem r FunctionExpression
+goExpressionFunction :: forall r. Abstract.Function -> Sem r Function2
 goExpressionFunction f = do
   l' <- goParam (f ^. Abstract.funParameter)
   r' <- goExpression (f ^. Abstract.funReturn)
-  return (FunctionExpression l' r')
+  return (Function2 l' r')
   where
-    goParam :: Abstract.FunctionParameter -> Sem r Expression
+    goParam :: Abstract.FunctionParameter -> Sem r FunctionParameter
     goParam p
-      | isJust (p ^. Abstract.paramName) = unsupported "named type parameters"
-      | isOmegaUsage (p ^. Abstract.paramUsage) = goExpression (p ^. Abstract.paramType)
+      | isOmegaUsage (p ^. Abstract.paramUsage) = do
+          ty' <- goExpression (p ^. Abstract.paramType)
+          return (FunctionParameter (p ^. Abstract.paramName) (p ^. Abstract.paramImplicit) ty')
       | otherwise = unsupported "usages"
 
 goExpression :: Abstract.Expression -> Sem r Expression
 goExpression e = case e of
   Abstract.ExpressionIden i -> return (ExpressionIden (goIden i))
   Abstract.ExpressionUniverse {} -> unsupported "universes in expression"
-  Abstract.ExpressionFunction f -> ExpressionFunction <$> goExpressionFunction f
+  Abstract.ExpressionFunction f -> ExpressionFunction2 <$> goExpressionFunction f
   Abstract.ExpressionApplication a -> ExpressionApplication <$> goApplication a
   Abstract.ExpressionLiteral l -> return (ExpressionLiteral l)
   Abstract.ExpressionHole h -> return (ExpressionHole h)
