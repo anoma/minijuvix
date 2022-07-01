@@ -65,6 +65,17 @@ goModule (Module n par b) = case par of
       SModuleTop -> goSymbol (S.topModulePathName n)
       SModuleLocal -> goSymbol n
 
+goModuleOrCache ::
+  forall r.
+  Members '[InfoTableBuilder, Error ScoperError, Builtins, NameIdGen, State ModulesCache] r =>
+  Module 'Scoped 'ModuleTop ->
+  Sem r Abstract.Module
+goModuleOrCache m = do
+  cache <- gets (^. cachedModules)
+  let moduleNameId :: S.NameId
+      moduleNameId = m ^. Concrete.modulePath . S.nameId
+  maybe (goModule m) return (cache ^. at moduleNameId)
+
 goName :: S.Name -> Abstract.Name
 goName = goSymbol . S.nameUnqualify
 
@@ -122,11 +133,7 @@ goStatement ::
 goStatement (Indexed idx s) =
   fmap (Indexed idx) <$> case s of
     StatementAxiom d -> Just . Abstract.StatementAxiom <$> goAxiom d
-    StatementImport (Import t) -> do
-      cache <- gets (^. cachedModules)
-      let moduleNameId :: S.NameId
-          moduleNameId = t ^. Concrete.modulePath . S.nameId
-      Just . Abstract.StatementImport <$> maybe (goModule t) return (cache ^. at moduleNameId)
+    StatementImport (Import t) -> Just . Abstract.StatementImport <$> goModuleOrCache t
     StatementOperator {} -> return Nothing
     StatementOpenModule o -> goOpenModule o
     StatementEval {} -> unsupported "eval statements"
@@ -148,7 +155,7 @@ goOpenModule o
       case o ^. openModuleName of
         ModuleRef' (SModuleTop :&: m) ->
           Just . Abstract.StatementImport
-            <$> goModule (m ^. moduleRefModule)
+            <$> goModuleOrCache (m ^. moduleRefModule)
         _ -> impossible
   | otherwise = return Nothing
 
