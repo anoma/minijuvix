@@ -355,13 +355,13 @@ foldApplication f = \case
   ((i, a) : as) -> foldApplication (ExpressionApplication (Application f a i)) as
 
 unfoldApplication' :: Application -> (Expression, NonEmpty (IsImplicit, Expression))
-unfoldApplication' (Application l' r' i') = second (|: (i', r')) (unfoldExpression l')
-  where
-    unfoldExpression :: Expression -> (Expression, [(IsImplicit, Expression)])
-    unfoldExpression e = case e of
-      ExpressionApplication (Application l r i) ->
-        second (`snoc` (i, r)) (unfoldExpression l)
-      _ -> (e, [])
+unfoldApplication' (Application l' r' i') = second (|: (i', r')) (unfoldExpressionApp l')
+
+unfoldExpressionApp :: Expression -> (Expression, [(IsImplicit, Expression)])
+unfoldExpressionApp e = case e of
+  ExpressionApplication (Application l r i) ->
+    second (`snoc` (i, r)) (unfoldExpressionApp l)
+  _ -> (e, [])
 
 unfoldApplication :: Application -> (Expression, NonEmpty Expression)
 unfoldApplication = fmap (fmap snd) . unfoldApplication'
@@ -370,17 +370,6 @@ unfoldApplication = fmap (fmap snd) . unfoldApplication'
 -- unfoldType = \case
 --   TypeApp (TypeApplication l r _) -> second (`snoc` r) (unfoldType l)
 --   t -> (t, [])
-
--- foldTypeApp :: Type -> [Type] -> Type
--- foldTypeApp ty = \case
---   [] -> ty
---   (p : ps) -> foldTypeApp (TypeApp (TypeApplication ty p Explicit)) ps
-
--- foldTypeAppName :: Name -> [Name] -> Type
--- foldTypeAppName tyName indParams =
---   foldTypeApp
---     (TypeIden (TypeIdenInductive tyName))
---     (map (TypeIden . TypeIdenVariable) indParams)
 
 -- getTypeName :: Type -> Maybe Name
 -- getTypeName = \case
