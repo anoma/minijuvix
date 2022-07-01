@@ -13,10 +13,10 @@ import MiniJuvix.Syntax.Abstract.Language qualified as Abstract
 import MiniJuvix.Syntax.MicroJuvix.Error
 import MiniJuvix.Syntax.MicroJuvix.Language
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
+import MiniJuvix.Syntax.MicroJuvix.Language.Extra (unfoldExpressionApp)
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
 import MiniJuvix.Syntax.Usage
 import MiniJuvix.Termination.Checker
-import MiniJuvix.Syntax.MicroJuvix.Language.Extra (unfoldExpressionApp)
 
 newtype TranslationState = TranslationState
   { -- | Top modules are supposed to be included at most once.
@@ -129,7 +129,7 @@ goFunctionParameter :: Abstract.FunctionParameter -> Sem r FunctionParameter
 goFunctionParameter f = case f ^. Abstract.paramName of
   Just var
     | isSmallType (f ^. Abstract.paramType) && isOmegaUsage (f ^. Abstract.paramUsage) ->
-        return (FunctionParameter (Just var) (f ^. Abstract.paramImplicit)  (smallUniverse (getLoc var)))
+        return (FunctionParameter (Just var) (f ^. Abstract.paramImplicit) (smallUniverse (getLoc var)))
     | otherwise -> unsupported "named function arguments only for small types without usages"
   Nothing
     | isOmegaUsage (f ^. Abstract.paramUsage) -> unnamedParameter <$> goType (f ^. Abstract.paramType)

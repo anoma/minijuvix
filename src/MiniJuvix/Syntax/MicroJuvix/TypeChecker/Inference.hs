@@ -39,24 +39,24 @@ closeState = \case
       where
         goHole :: Hole -> Sem r' Expression
         goHole h =
-          let st = fromJust (m ^. at h) in
-          case st of
-            Fresh -> throw (ErrUnsolvedMeta (UnsolvedMeta h))
-            Refined t -> do
-              s <- gets @(HashMap Hole Expression) (^. at h)
-              case s of
-                Just noHolesTy -> return noHolesTy
-                Nothing -> do
-                  x <- goExpression t
-                  modify (HashMap.insert h x)
-                  return x
+          let st = fromJust (m ^. at h)
+           in case st of
+                Fresh -> throw (ErrUnsolvedMeta (UnsolvedMeta h))
+                Refined t -> do
+                  s <- gets @(HashMap Hole Expression) (^. at h)
+                  case s of
+                    Just noHolesTy -> return noHolesTy
+                    Nothing -> do
+                      x <- goExpression t
+                      modify (HashMap.insert h x)
+                      return x
         goExpression :: Expression -> Sem r' Expression
         goExpression = traverseOf expressions aux
-         where
-         aux :: Expression -> Sem r' Expression
-         aux = \case
-           ExpressionHole h -> goHole h
-           e -> return e
+          where
+            aux :: Expression -> Sem r' Expression
+            aux = \case
+              ExpressionHole h -> goHole h
+              e -> return e
 
 getMetavar :: Member (State InferenceState) r => Hole -> Sem r MetavarState
 getMetavar h = gets (fromJust . (^. inferenceMap . at h))
@@ -123,7 +123,7 @@ re = reinterpret $ \case
           (ExpressionFunction2 {}, _) -> return False
           (_, ExpressionFunction2 {}) -> return False
           (ExpressionUniverse u, ExpressionUniverse u') -> return (u == u')
-          (ExpressionUniverse {} , _) -> return False
+          (ExpressionUniverse {}, _) -> return False
           (_, ExpressionUniverse {}) -> return False
           (ExpressionHole h, a) -> goHole h a
           (a, ExpressionHole h) -> goHole h a
@@ -146,16 +146,16 @@ re = reinterpret $ \case
             goApplication :: Application -> Application -> Sem r Bool
             goApplication (Application f x _) (Application f' x' _) = andM [go f f', go x x']
             goFunction2 :: Function2 -> Function2 -> Sem r Bool
-            goFunction2 (Function2 (FunctionParameter m1 i1 l1) r1)
-                        (Function2 (FunctionParameter m2 i2 l2) r2)
-             | i1 == i2 = do
-                 let local' :: Sem r x -> Sem r x
-                     local' = case (m1, m2) of
-                        (Just v1, Just v2) -> local (HashMap.insert v1 v2)
-                        _ -> id
-                 andM [go l1 l2, local' (go r1 r2)]
-             | otherwise = return False
-
+            goFunction2
+              (Function2 (FunctionParameter m1 i1 l1) r1)
+              (Function2 (FunctionParameter m2 i2 l2) r2)
+                | i1 == i2 = do
+                    let local' :: Sem r x -> Sem r x
+                        local' = case (m1, m2) of
+                          (Just v1, Just v2) -> local (HashMap.insert v1 v2)
+                          _ -> id
+                    andM [go l1 l2, local' (go r1 r2)]
+                | otherwise = return False
 
 runInference :: Member (Error TypeCheckerError) r => Sem (Inference ': r) Expression -> Sem r Expression
 runInference a = do

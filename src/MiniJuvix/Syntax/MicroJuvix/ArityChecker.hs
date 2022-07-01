@@ -143,7 +143,7 @@ guessArity = \case
           ExpressionUniverse {} -> return (Just arityUniverse)
           ExpressionApplication {} -> impossible
           ExpressionFunction {} -> return (Just ArityUnit)
-          ExpressionFunction2  {} -> return (Just ArityUnit)
+          ExpressionFunction2 {} -> return (Just ArityUnit)
           ExpressionLiteral {} -> return (Just arityLiteral)
           ExpressionIden i -> idenHelper i
 
@@ -296,10 +296,10 @@ typeArity2 = go
       r' <- go r
       return (FunctionArity l' r')
       where
-      l' :: ArityParameter
-      l' = case l ^. paramImplicit of
-        Implicit -> ParamImplicit
-        Explicit -> ParamExplicit ArityUnit
+        l' :: ArityParameter
+        l' = case l ^. paramImplicit of
+          Implicit -> ParamImplicit
+          Explicit -> ParamExplicit ArityUnit
 
     goIden :: Iden -> Sem r Arity
     goIden = \case
@@ -336,7 +336,6 @@ typeArity = go
         _ <- (^. axiomInfoType) <$> lookupAxiom ax
         impossible
 
-
     goParam :: FunctionParameter -> Sem r ArityParameter
     goParam (FunctionParameter _ i e) =
       case i of
@@ -353,24 +352,24 @@ typeArity = go
             _functionArityRight = r'
           }
 
-    -- goFun :: Function -> Sem r FunctionArity
-    -- goFun (Function l r) = do
-    --   l' <- ParamExplicit <$> go l
-    --   r' <- go r
-    --   return
-    --     FunctionArity
-    --       { _functionArityLeft = l',
-    --         _functionArityRight = r'
-    --       }
-    -- goAbs :: TypeAbstraction -> Sem r FunctionArity
-    -- goAbs t = do
-    --   r' <- go (t ^. typeAbsBody)
-    --   return (FunctionArity l r')
-    --   where
-    --     l :: ArityParameter
-    --     l = case t ^. typeAbsImplicit of
-    --       Implicit -> ParamImplicit
-    --       Explicit -> ParamExplicit ArityUnit
+-- goFun :: Function -> Sem r FunctionArity
+-- goFun (Function l r) = do
+--   l' <- ParamExplicit <$> go l
+--   r' <- go r
+--   return
+--     FunctionArity
+--       { _functionArityLeft = l',
+--         _functionArityRight = r'
+--       }
+-- goAbs :: TypeAbstraction -> Sem r FunctionArity
+-- goAbs t = do
+--   r' <- go (t ^. typeAbsBody)
+--   return (FunctionArity l r')
+--   where
+--     l :: ArityParameter
+--     l = case t ^. typeAbsImplicit of
+--       Implicit -> ParamImplicit
+--       Explicit -> ParamExplicit ArityUnit
 
 checkExpression ::
   forall r.

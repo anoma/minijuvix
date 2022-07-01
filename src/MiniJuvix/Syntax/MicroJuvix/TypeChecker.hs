@@ -113,7 +113,8 @@ checkExpression expectedTy e = do
             }
         )
 
-checkFunctionParameter ::  Members '[Reader InfoTable, Error TypeCheckerError, NameIdGen, Reader LocalVars, Inference] r =>
+checkFunctionParameter ::
+  Members '[Reader InfoTable, Error TypeCheckerError, NameIdGen, Reader LocalVars, Inference] r =>
   FunctionParameter ->
   Sem r FunctionParameter
 checkFunctionParameter (FunctionParameter mv i e) = do
@@ -283,11 +284,12 @@ literalType l = do
             _nameKind = KNameLocal,
             _nameLoc = getLoc l
           }
-      param = FunctionParameter {
-        _paramName = Just typeVar,
-        _paramImplicit = Implicit,
-        _paramType = smallUniverse (getLoc l)
-        }
+      param =
+        FunctionParameter
+          { _paramName = Just typeVar,
+            _paramImplicit = Implicit,
+            _paramType = smallUniverse (getLoc l)
+          }
       type_ =
         ExpressionFunction2
           Function2
@@ -350,25 +352,25 @@ inferExpression' e = case e of
     inferApplication :: Application -> Sem r TypedExpression
     inferApplication (Application l r i) = inferExpression' l >>= helper
       where
-      helper :: TypedExpression -> Sem r TypedExpression
-      helper l' = case l' ^. typedType of
-        ExpressionFunction2 (Function2 (FunctionParameter mv _ funL) funR) -> do
-          r' <- checkExpression funL r
-          return
-            TypedExpression
-              { _typedExpression =
-                  ExpressionApplication
-                    Application
-                      { _appLeft = l' ^. typedExpression,
-                        _appRight = r,
-                        _appImplicit = i
-                      },
-                _typedType = substitutionApp (mv, r') funR
-              }
-        -- When we have have an application with a hole on the left: '_@1 x'
-        -- We assume that it is a type application and thus 'x' must be a type.
-        -- Not sure if this is always desirable.
-        ExpressionHole h -> do
+        helper :: TypedExpression -> Sem r TypedExpression
+        helper l' = case l' ^. typedType of
+          ExpressionFunction2 (Function2 (FunctionParameter mv _ funL) funR) -> do
+            r' <- checkExpression funL r
+            return
+              TypedExpression
+                { _typedExpression =
+                    ExpressionApplication
+                      Application
+                        { _appLeft = l' ^. typedExpression,
+                          _appRight = r,
+                          _appImplicit = i
+                        },
+                  _typedType = substitutionApp (mv, r') funR
+                }
+          -- When we have have an application with a hole on the left: '_@1 x'
+          -- We assume that it is a type application and thus 'x' must be a type.
+          -- Not sure if this is always desirable.
+          ExpressionHole h -> do
             q <- queryMetavar h
             case q of
               Just ty -> helper (set typedType ty l')
@@ -388,7 +390,7 @@ inferExpression' e = case e of
                               _appImplicit = i
                             }
                     }
-        _ -> throw tyErr
+          _ -> throw tyErr
             where
               tyErr :: TypeCheckerError
               tyErr =
@@ -399,76 +401,77 @@ inferExpression' e = case e of
                         _expectedFunctionTypeType = l' ^. typedType
                       }
                   )
-    -- inferApplication :: Application -> Sem r TypedExpression
-    -- inferApplication a = inferExpression' leftExp >>= helper
-    --   where
-    --     i = a ^. appImplicit
-    --     leftExp = a ^. appLeft
-    --     helper :: TypedExpression -> Sem r TypedExpression
-    --     helper l = case l ^. typedType of
-    --       TypeFunction f -> do
-    --         r <- checkExpression (f ^. funLeft) (a ^. appRight)
-    --         return
-    --           TypedExpression
-    --             { _typedExpression =
-    --                 ExpressionApplication
-    --                   Application
-    --                     { _appLeft = l ^. typedExpression,
-    --                       _appRight = r,
-    --                       _appImplicit = i
-    --                     },
-    --               _typedType = f ^. funRight
-    --             }
-    --       TypeAbs ta -> do
-    --         r <- checkExpression TypeUniverse (a ^. appRight)
-    --         let tr = expressionAsType' r
-    --         return
-    --           TypedExpression
-    --             { _typedExpression =
-    --                 ExpressionApplication
-    --                   Application
-    --                     { _appLeft = l ^. typedExpression,
-    --                       _appRight = r,
-    --                       _appImplicit = i
-    --                     },
-    --               _typedType = substituteType1 (ta ^. typeAbsVar, tr) (ta ^. typeAbsBody)
-    --             }
-    --       -- When we have have an application with a hole on the left: '_@1 x'
-    --       -- We assume that it is a type application and thus 'x' must be a type.
-    --       -- where @2 is fresh.
-    --       -- Not sure if this is always desirable.
-    --       TypeHole h -> do
-    --         q <- queryMetavar h
-    --         case q of
-    --           Just ty -> helper (set typedType ty l)
-    --           Nothing -> do
-    --             r <- checkExpression TypeUniverse (a ^. appRight)
-    --             h' <- freshHole (getLoc h)
-    --             let tr = expressionAsType' r
-    --                 fun = Function tr (TypeHole h')
-    --             unlessM (matchTypes (TypeHole h) (TypeFunction fun)) impossible
-    --             return
-    --               TypedExpression
-    --                 { _typedType = TypeHole h',
-    --                   _typedExpression =
-    --                     ExpressionApplication
-    --                       Application
-    --                         { _appLeft = l ^. typedExpression,
-    --                           _appRight = r,
-    --                           _appImplicit = i
-    --                         }
-    --                 }
-    --       _ -> throw tyErr
-    --         where
-    --           tyErr :: TypeCheckerError
-    --           tyErr =
-    --             ErrExpectedFunctionType
-    --               ( ExpectedFunctionType
-    --                   { _expectedFunctionTypeExpression = e,
-    --                     _expectedFunctionTypeApp = leftExp,
-    --                     _expectedFunctionTypeType = l ^. typedType
-    --                   }
-    --               )
+
+-- inferApplication :: Application -> Sem r TypedExpression
+-- inferApplication a = inferExpression' leftExp >>= helper
+--   where
+--     i = a ^. appImplicit
+--     leftExp = a ^. appLeft
+--     helper :: TypedExpression -> Sem r TypedExpression
+--     helper l = case l ^. typedType of
+--       TypeFunction f -> do
+--         r <- checkExpression (f ^. funLeft) (a ^. appRight)
+--         return
+--           TypedExpression
+--             { _typedExpression =
+--                 ExpressionApplication
+--                   Application
+--                     { _appLeft = l ^. typedExpression,
+--                       _appRight = r,
+--                       _appImplicit = i
+--                     },
+--               _typedType = f ^. funRight
+--             }
+--       TypeAbs ta -> do
+--         r <- checkExpression TypeUniverse (a ^. appRight)
+--         let tr = expressionAsType' r
+--         return
+--           TypedExpression
+--             { _typedExpression =
+--                 ExpressionApplication
+--                   Application
+--                     { _appLeft = l ^. typedExpression,
+--                       _appRight = r,
+--                       _appImplicit = i
+--                     },
+--               _typedType = substituteType1 (ta ^. typeAbsVar, tr) (ta ^. typeAbsBody)
+--             }
+--       -- When we have have an application with a hole on the left: '_@1 x'
+--       -- We assume that it is a type application and thus 'x' must be a type.
+--       -- where @2 is fresh.
+--       -- Not sure if this is always desirable.
+--       TypeHole h -> do
+--         q <- queryMetavar h
+--         case q of
+--           Just ty -> helper (set typedType ty l)
+--           Nothing -> do
+--             r <- checkExpression TypeUniverse (a ^. appRight)
+--             h' <- freshHole (getLoc h)
+--             let tr = expressionAsType' r
+--                 fun = Function tr (TypeHole h')
+--             unlessM (matchTypes (TypeHole h) (TypeFunction fun)) impossible
+--             return
+--               TypedExpression
+--                 { _typedType = TypeHole h',
+--                   _typedExpression =
+--                     ExpressionApplication
+--                       Application
+--                         { _appLeft = l ^. typedExpression,
+--                           _appRight = r,
+--                           _appImplicit = i
+--                         }
+--                 }
+--       _ -> throw tyErr
+--         where
+--           tyErr :: TypeCheckerError
+--           tyErr =
+--             ErrExpectedFunctionType
+--               ( ExpectedFunctionType
+--                   { _expectedFunctionTypeExpression = e,
+--                     _expectedFunctionTypeApp = leftExp,
+--                     _expectedFunctionTypeType = l ^. typedType
+--                   }
+--               )
 
 viewInductiveApp ::
   Member (Error TypeCheckerError) r =>

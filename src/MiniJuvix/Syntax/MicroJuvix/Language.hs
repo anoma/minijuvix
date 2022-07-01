@@ -153,8 +153,7 @@ data FunctionParameter = FunctionParameter
 instance Hashable FunctionParameter
 
 data Function2 = Function2
-  {
-    _function2Left :: FunctionParameter,
+  { _function2Left :: FunctionParameter,
     _function2Right :: Expression
   }
   deriving stock (Eq, Generic)
@@ -214,9 +213,9 @@ instance HasLoc FunctionExpression where
 instance HasLoc FunctionParameter where
   getLoc f = v (getLoc (f ^. paramType))
     where
-    v = case getLoc <$> f ^. paramName of
-      Nothing -> id
-      Just i -> (i <>)
+      v = case getLoc <$> f ^. paramName of
+        Nothing -> id
+        Just i -> (i <>)
 
 instance HasLoc Function2 where
   getLoc (Function2 l r) = getLoc l <> getLoc r

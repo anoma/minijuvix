@@ -163,10 +163,10 @@ hasHoles = has holes
 subsHoles :: HasExpressions a => HashMap Hole Expression -> a -> a
 subsHoles s = over expressions helper
   where
-  helper :: Expression -> Expression
-  helper e = case e of
-    ExpressionHole h -> fromMaybe e (s ^. at h)
-    _ -> e
+    helper :: Expression -> Expression
+    helper e = case e of
+      ExpressionHole h -> fromMaybe e (s ^. at h)
+      _ -> e
 
 instance HasExpressions FunctionClause where
   expressions f (FunctionClause n ps b) = do
@@ -324,7 +324,7 @@ foldFunType l r = case l of
   [] -> r
   (a : as) ->
     let r' = foldFunType as r
-    in ExpressionFunction2 (Function2 a r')
+     in ExpressionFunction2 (Function2 a r')
 
 -- -- | a -> (b -> c)  ==> ([a, b], c)
 unfoldFunType :: Expression -> ([FunctionParameter], Expression)
