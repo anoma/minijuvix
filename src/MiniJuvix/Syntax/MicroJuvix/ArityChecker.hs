@@ -109,7 +109,6 @@ guessArity ::
   Sem r (Maybe Arity)
 guessArity = \case
   ExpressionHole {} -> return Nothing
-  ExpressionFunction {} -> return (Just ArityUnit)
   ExpressionFunction2 {} -> return (Just ArityUnit)
   ExpressionLiteral {} -> return (Just arityLiteral)
   ExpressionApplication a -> appHelper a
@@ -142,7 +141,6 @@ guessArity = \case
           ExpressionHole {} -> return Nothing
           ExpressionUniverse {} -> return (Just arityUniverse)
           ExpressionApplication {} -> impossible
-          ExpressionFunction {} -> return (Just ArityUnit)
           ExpressionFunction2 {} -> return (Just ArityUnit)
           ExpressionLiteral {} -> return (Just arityLiteral)
           ExpressionIden i -> idenHelper i
@@ -275,41 +273,40 @@ idenArity = \case
   IdenFunction f -> lookupFunction f >>= typeArity . (^. functionInfoDef . funDefType)
   IdenConstructor c -> constructorType c >>= typeArity
   IdenVar v -> getLocalArity v
-  IdenAxiom a -> lookupAxiom a >>= typeArity2 . (^. axiomInfoType)
+  IdenAxiom a -> lookupAxiom a >>= typeArity . (^. axiomInfoType)
   IdenInductive i -> inductiveType i >>= typeArity
 
-typeArity2 :: forall r. Members '[Reader InfoTable] r => Expression -> Sem r Arity
-typeArity2 = go
-  where
-    go :: Expression -> Sem r Arity
-    go = \case
-      ExpressionIden i -> goIden i
-      ExpressionApplication {} -> return ArityUnit
-      ExpressionFunction2 f -> ArityFunction <$> goFun f
-      ExpressionFunction {} -> impossible
-      ExpressionLiteral {} -> impossible
-      ExpressionHole {} -> return ArityUnknown
-      ExpressionUniverse {} -> return ArityUnit
+-- typeArity2 :: forall r. Members '[Reader InfoTable] r => Expression -> Sem r Arity
+-- typeArity2 = go
+--   where
+--     go :: Expression -> Sem r Arity
+--     go = \case
+--       ExpressionIden i -> goIden i
+--       ExpressionApplication {} -> return ArityUnit
+--       ExpressionFunction2 f -> ArityFunction <$> goFun f
+--       ExpressionLiteral {} -> impossible
+--       ExpressionHole {} -> return ArityUnknown
+--       ExpressionUniverse {} -> return ArityUnit
 
-    goFun :: Function2 -> Sem r FunctionArity
-    goFun (Function2 l r) = do
-      r' <- go r
-      return (FunctionArity l' r')
-      where
-        l' :: ArityParameter
-        l' = case l ^. paramImplicit of
-          Implicit -> ParamImplicit
-          Explicit -> ParamExplicit ArityUnit
+--     goFun :: Function2 -> Sem r FunctionArity
+--     goFun (Function2 l r) = do
+--       r' <- go r
+--       return (FunctionArity l' r')
+--       where
+--         l' :: ArityParameter
+--         l' = case l ^. paramImplicit of
+--           Implicit -> ParamImplicit
+--           Explicit -> ParamExplicit ArityUnit
 
-    goIden :: Iden -> Sem r Arity
-    goIden = \case
-      IdenFunction {} -> impossible
-      IdenConstructor {} -> impossible
-      IdenVar {} -> return ArityUnknown
-      IdenInductive {} -> return ArityUnit
-      IdenAxiom ax -> do
-        ty <- (^. axiomInfoType) <$> lookupAxiom ax
-        go ty
+--     goIden :: Iden -> Sem r Arity
+--     goIden = \case
+--       IdenFunction {} -> impossible
+--       IdenConstructor {} -> impossible
+--       IdenVar {} -> return ArityUnknown
+--       IdenInductive {} -> return ArityUnit
+--       IdenAxiom ax -> do
+--         ty <- (^. axiomInfoType) <$> lookupAxiom ax
+--         go ty
 
 -- | let x be some expression of type T. The argument of this function is T and it returns
 -- the arity of x.
@@ -320,7 +317,6 @@ typeArity = go
     go = \case
       ExpressionIden i -> goIden i
       ExpressionApplication {} -> return ArityUnit
-      ExpressionFunction {} -> impossible
       ExpressionLiteral {} -> return ArityUnknown
       ExpressionFunction2 f -> ArityFunction <$> goFun2 f
       ExpressionHole {} -> return ArityUnknown
@@ -332,9 +328,7 @@ typeArity = go
       IdenInductive {} -> return ArityUnit
       IdenFunction {} -> return ArityUnknown -- we need normalization to determine the arity
       IdenConstructor {} -> return ArityUnknown -- will be a type error
-      IdenAxiom ax -> do
-        _ <- (^. axiomInfoType) <$> lookupAxiom ax
-        impossible
+      IdenAxiom ax -> lookupAxiom ax >>= go . (^. axiomInfoType)
 
     goParam :: FunctionParameter -> Sem r ArityParameter
     goParam (FunctionParameter _ i e) =
@@ -381,7 +375,6 @@ checkExpression hintArity expr = case expr of
   ExpressionIden {} -> appHelper expr []
   ExpressionApplication a -> goApp a
   ExpressionLiteral {} -> appHelper expr []
-  ExpressionFunction {} -> return expr
   ExpressionFunction2 {} -> return expr
   ExpressionUniverse {} -> return expr
   ExpressionHole {} -> return expr
@@ -396,7 +389,6 @@ checkExpression hintArity expr = case expr of
         ExpressionIden i -> idenArity i >>= helper (getLoc i)
         ExpressionLiteral l -> helper (getLoc l) arityLiteral
         ExpressionUniverse l -> helper (getLoc l) arityUniverse
-        ExpressionFunction {} -> impossible
         ExpressionFunction2 f ->
           throw
             ( ErrFunctionApplied

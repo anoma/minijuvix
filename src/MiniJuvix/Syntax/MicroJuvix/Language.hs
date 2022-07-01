@@ -76,18 +76,9 @@ data TypedExpression = TypedExpression
     _typedExpression :: Expression
   }
 
-data FunctionExpression = FunctionExpression
-  { _functionExpressionLeft :: Expression,
-    _functionExpressionRight :: Expression
-  }
-  deriving stock (Eq, Generic)
-
-instance Hashable FunctionExpression
-
 data Expression
   = ExpressionIden Iden
   | ExpressionApplication Application
-  | ExpressionFunction FunctionExpression
   | ExpressionFunction2 Function2
   | ExpressionLiteral LiteralLoc
   | ExpressionHole Hole
@@ -162,7 +153,6 @@ instance Hashable Function2
 
 makeLenses ''Module
 makeLenses ''Include
-makeLenses ''FunctionExpression
 makeLenses ''FunctionDef
 makeLenses ''FunctionClause
 makeLenses ''InductiveDef
@@ -179,18 +169,14 @@ makeLenses ''ConstructorApp
 instance HasAtomicity Application where
   atomicity = const (Aggregate appFixity)
 
-instance HasAtomicity FunctionExpression where
-  atomicity = const (Aggregate funFixity)
-
 instance HasAtomicity Expression where
   atomicity e = case e of
     ExpressionIden {} -> Atom
     ExpressionApplication a -> atomicity a
     ExpressionLiteral l -> atomicity l
-    ExpressionFunction f -> atomicity f
     ExpressionHole {} -> Atom
     ExpressionUniverse u -> atomicity u
-    ExpressionFunction2 u -> atomicity u
+    ExpressionFunction2 f -> atomicity f
 
 instance HasAtomicity Function2 where
   atomicity = const (Aggregate funFixity)
@@ -207,9 +193,6 @@ instance HasAtomicity Pattern where
     PatternWildcard {} -> Atom
     PatternBraces {} -> Atom
 
-instance HasLoc FunctionExpression where
-  getLoc (FunctionExpression l r) = getLoc l <> getLoc r
-
 instance HasLoc FunctionParameter where
   getLoc f = v (getLoc (f ^. paramType))
     where
@@ -225,7 +208,6 @@ instance HasLoc Expression where
     ExpressionIden i -> getLoc i
     ExpressionApplication a -> getLoc (a ^. appLeft)
     ExpressionLiteral l -> getLoc l
-    ExpressionFunction f -> getLoc f
     ExpressionHole h -> getLoc h
     ExpressionUniverse u -> getLoc u
     ExpressionFunction2 u -> getLoc u

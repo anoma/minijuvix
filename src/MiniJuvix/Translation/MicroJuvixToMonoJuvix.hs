@@ -293,7 +293,6 @@ goExpression = go
       Micro.ExpressionIden i -> return (ExpressionIden (goIden i))
       Micro.ExpressionLiteral l -> return (ExpressionLiteral l)
       Micro.ExpressionApplication a -> goApp a
-      Micro.ExpressionFunction {} -> impossible
       Micro.ExpressionFunction2 {} -> impossible
       Micro.ExpressionUniverse {} -> impossible
       Micro.ExpressionHole {} -> impossible
@@ -511,7 +510,6 @@ goType = go . (^. Micro.unconcreteType)
       Micro.ExpressionUniverse {} -> return TypeUniverse
       Micro.ExpressionHole {} -> impossible
       Micro.ExpressionLiteral {} -> impossible
-      Micro.ExpressionFunction {} -> impossible
       Micro.ExpressionFunction2 f -> TypeFunction <$> goFunction f
       Micro.ExpressionApplication a -> goApp a
     goApp :: Micro.Application -> Sem r Type

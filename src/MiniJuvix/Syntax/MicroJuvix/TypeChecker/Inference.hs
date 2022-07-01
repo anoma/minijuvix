@@ -111,22 +111,19 @@ re = reinterpret $ \case
           Sem r Bool
         go a' b' = case (a', b') of
           (ExpressionIden a, ExpressionIden b) -> goIden a b
-          (ExpressionIden {}, _) -> return False
-          (_, ExpressionIden {}) -> return False
           (ExpressionApplication a, ExpressionApplication b) -> goApplication a b
-          (ExpressionApplication {}, _) -> return False
-          (_, ExpressionApplication {}) -> return False
-          (ExpressionFunction {}, ExpressionFunction {}) -> impossible
-          (ExpressionFunction {}, _) -> return False
-          (_, ExpressionFunction {}) -> return False
           (ExpressionFunction2 a, ExpressionFunction2 b) -> goFunction2 a b
-          (ExpressionFunction2 {}, _) -> return False
-          (_, ExpressionFunction2 {}) -> return False
           (ExpressionUniverse u, ExpressionUniverse u') -> return (u == u')
-          (ExpressionUniverse {}, _) -> return False
-          (_, ExpressionUniverse {}) -> return False
           (ExpressionHole h, a) -> goHole h a
           (a, ExpressionHole h) -> goHole h a
+          (ExpressionIden {}, _) -> return False
+          (_, ExpressionIden {}) -> return False
+          (ExpressionApplication {}, _) -> return False
+          (_, ExpressionApplication {}) -> return False
+          (ExpressionFunction2 {}, _) -> return False
+          (_, ExpressionFunction2 {}) -> return False
+          (ExpressionUniverse {}, _) -> return False
+          (_, ExpressionUniverse {}) -> return False
           (ExpressionLiteral l, ExpressionLiteral l') -> return (l == l')
           where
             goHole :: Hole -> Expression -> Sem r Bool

@@ -94,7 +94,6 @@ mkConcreteType = fmap ConcreteType . go
         r' <- go r
         return (ExpressionApplication (Application l' r' i))
       ExpressionUniverse {} -> return t
-      ExpressionFunction {} -> impossible
       ExpressionFunction2 (Function2 l r) -> do
         l' <- goParam l
         r' <- go r
@@ -120,7 +119,6 @@ instance HasExpressions Expression where
   expressions f e = case e of
     ExpressionIden {} -> pure e
     ExpressionApplication a -> ExpressionApplication <$> expressions f a
-    ExpressionFunction {} -> impossible
     ExpressionFunction2 fun -> ExpressionFunction2 <$> expressions f fun
     ExpressionLiteral {} -> pure e
     ExpressionUniverse {} -> pure e
@@ -148,7 +146,6 @@ _ExpressionHole :: Traversal' Expression Hole
 _ExpressionHole f e = case e of
   ExpressionIden {} -> pure e
   ExpressionApplication {} -> pure e
-  ExpressionFunction {} -> impossible
   ExpressionFunction2 {} -> pure e
   ExpressionLiteral {} -> pure e
   ExpressionUniverse {} -> pure e
@@ -160,6 +157,7 @@ holes = expressions . _ExpressionHole
 hasHoles :: HasExpressions a => a -> Bool
 hasHoles = has holes
 
+-- TODO this mofo dont work
 subsHoles :: HasExpressions a => HashMap Hole Expression -> a -> a
 subsHoles s = over expressions helper
   where
@@ -288,20 +286,17 @@ substitutionE m = go
     go x = case x of
       ExpressionIden i -> goIden i
       ExpressionApplication a -> ExpressionApplication (goApp a)
-      ExpressionFunction2 a -> ExpressionFunction2 (goAbs a)
+      ExpressionFunction2 a -> ExpressionFunction2 (goFun a)
       ExpressionLiteral {} -> x
       ExpressionUniverse {} -> x
       ExpressionHole {} -> x
-      ExpressionFunction f -> ExpressionFunction (goFunction f)
 
     goParam :: FunctionParameter -> FunctionParameter
     goParam (FunctionParameter v i ty) = FunctionParameter v i (go ty)
-    goAbs :: Function2 -> Function2
-    goAbs (Function2 l r) = Function2 (goParam l) (go r)
+    goFun :: Function2 -> Function2
+    goFun (Function2 l r) = Function2 (goParam l) (go r)
     goApp :: Application -> Application
     goApp (Application l r i) = Application (go l) (go r) i
-    goFunction :: FunctionExpression -> FunctionExpression
-    goFunction (FunctionExpression l r) = FunctionExpression (go l) (go r)
     goIden :: Iden -> Expression
     goIden i = case i of
       IdenVar v

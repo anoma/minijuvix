@@ -67,11 +67,6 @@ goFunction2 (Function2 l r) = do
   goParam l
   goExpression r
 
-goFunction :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => Function2 -> Sem r ()
-goFunction (Function2 l r) = do
-  goParam l
-  goExpression r
-
 registerTypeCall :: Members '[State TypeCallsMap] r => Caller -> TypeCall -> Sem r ()
 registerTypeCall caller t = modify (over typeCallsMap addElem)
   where
@@ -123,20 +118,11 @@ goApplication a = do
 --           }
 --     _ -> return ()
 
-goFunctionExpression ::
-  Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r =>
-  FunctionExpression ->
-  Sem r ()
-goFunctionExpression (FunctionExpression l r) = do
-  goExpression l
-  goExpression r
-
 goExpression :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => Expression -> Sem r ()
 goExpression = \case
   ExpressionIden {} -> return ()
   ExpressionUniverse {} -> return ()
   ExpressionApplication a -> goApplication a
-  ExpressionFunction a -> goFunctionExpression a
   ExpressionFunction2 a -> goFunction2 a
   ExpressionLiteral {} -> return ()
   ExpressionHole {} -> impossible

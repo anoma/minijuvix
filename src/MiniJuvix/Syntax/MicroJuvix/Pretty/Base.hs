@@ -63,12 +63,6 @@ instance PrettyCode Application where
 instance PrettyCode TypedExpression where
   ppCode e = ppCode (e ^. typedExpression)
 
-instance PrettyCode FunctionExpression where
-  ppCode f = do
-    l' <- ppLeftExpression funFixity (f ^. functionExpressionLeft)
-    r' <- ppLeftExpression funFixity (f ^. functionExpressionRight)
-    return (l' <+> kwArrow <+> r')
-
 instance PrettyCode SmallUniverse where
   ppCode _ = return kwType
 
@@ -77,7 +71,6 @@ instance PrettyCode Expression where
     ExpressionIden i -> ppCode i
     ExpressionHole h -> ppCode h
     ExpressionApplication a -> ppCode a
-    ExpressionFunction f -> ppCode f
     ExpressionFunction2 f -> ppCode f
     ExpressionUniverse u -> ppCode u
     ExpressionLiteral l -> return (pretty l)
@@ -111,6 +104,9 @@ kwColon = keyword Str.colon
 
 kwData :: Doc Ann
 kwData = keyword Str.data_
+
+kwAssign :: Doc Ann
+kwAssign = keyword Str.assignUnicode
 
 kwEquals :: Doc Ann
 kwEquals = keyword Str.equal
@@ -233,7 +229,7 @@ instance PrettyCode FunctionClause where
     funName <- ppCode (c ^. clauseName)
     clausePatterns' <- mapM ppCodeAtom (c ^. clausePatterns)
     clauseBody' <- ppCode (c ^. clauseBody)
-    return $ funName <+> hsep clausePatterns' <+> kwEquals <+> clauseBody'
+    return $ funName <+> hsep clausePatterns' <+> kwAssign <+> clauseBody'
 
 instance PrettyCode Backend where
   ppCode = \case

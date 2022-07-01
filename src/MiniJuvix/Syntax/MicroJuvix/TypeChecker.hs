@@ -85,13 +85,25 @@ checkFunctionDef FunctionDef {..} = runInferenceDef $ do
         ..
       }
 
-checkFunctionDefType :: forall r. Members '[Inference] r => Expression -> Sem r ()
-checkFunctionDefType = traverseOf_ expressions helper
+checkFunctionDefType2 :: forall r. Members '[Inference] r => Expression -> Sem r ()
+checkFunctionDefType2 = traverseOf_ expressions helper
   where
     helper :: Expression -> Sem r ()
     helper = \case
       ExpressionHole h -> void (freshMetavar h)
       _ -> return ()
+
+checkFunctionDefType :: forall r. Members '[Inference] r => Expression -> Sem r ()
+checkFunctionDefType = go
+  where
+    go :: Expression -> Sem r ()
+    go = \case
+      ExpressionFunction2 (Function2 _ r) -> go r
+      ExpressionIden {} -> return ()
+      ExpressionHole h -> void $ freshMetavar h
+      ExpressionApplication (Application l r _) -> go l >> go r
+      ExpressionLiteral {} -> impossible
+      ExpressionUniverse {} -> return ()
 
 checkExpression ::
   Members '[Reader InfoTable, Error TypeCheckerError, NameIdGen, Reader LocalVars, Inference] r =>
@@ -311,7 +323,6 @@ inferExpression' e = case e of
   ExpressionIden i -> inferIden i
   ExpressionApplication a -> inferApplication a
   ExpressionLiteral l -> goLiteral l
-  ExpressionFunction {} -> impossible
   ExpressionFunction2 f -> goExpressionFunction f
   ExpressionHole h -> freshMetavar h
   ExpressionUniverse u -> goUniverse u
