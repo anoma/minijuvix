@@ -311,44 +311,66 @@ typeArity2 = go
         ty <- (^. axiomInfoType) <$> lookupAxiom ax
         go ty
 
-typeArity :: forall r. Members '[Reader InfoTable] r => Type -> Sem r Arity
+-- | let x be some expression of type T. The argument of this function is T and it returns
+-- the arity of x.
+typeArity :: forall r. Members '[Reader InfoTable] r => Expression -> Sem r Arity
 typeArity = go
   where
-    go :: Type -> Sem r Arity
+    go :: Expression -> Sem r Arity
     go = \case
-      TypeIden i -> goIden i
-      TypeApp {} -> return ArityUnit
-      TypeFunction f -> ArityFunction <$> goFun f
-      TypeAbs f -> ArityFunction <$> goAbs f
-      TypeHole {} -> return ArityUnknown
-      TypeUniverse {} -> return ArityUnit
+      ExpressionIden i -> goIden i
+      ExpressionApplication {} -> return ArityUnit
+      ExpressionFunction {} -> impossible
+      ExpressionLiteral {} -> return ArityUnknown
+      ExpressionFunction2 f -> ArityFunction <$> goFun2 f
+      ExpressionHole {} -> return ArityUnknown
+      ExpressionUniverse {} -> return ArityUnit
 
-    goIden :: TypeIden -> Sem r Arity
+    goIden :: Iden -> Sem r Arity
     goIden = \case
-      TypeIdenVariable {} -> return ArityUnknown
-      TypeIdenInductive {} -> return ArityUnit
-      TypeIdenAxiom ax -> do
+      IdenVar {} -> return ArityUnknown
+      IdenInductive {} -> return ArityUnit
+      IdenFunction {} -> return ArityUnknown -- we need normalization to determine the arity
+      IdenConstructor {} -> return ArityUnknown -- will be a type error
+      IdenAxiom ax -> do
         _ <- (^. axiomInfoType) <$> lookupAxiom ax
         impossible
 
-    goFun :: Function -> Sem r FunctionArity
-    goFun (Function l r) = do
-      l' <- ParamExplicit <$> go l
+
+    goParam :: FunctionParameter -> Sem r ArityParameter
+    goParam (FunctionParameter _ i e) =
+      case i of
+        Implicit -> return ParamImplicit
+        Explicit -> ParamExplicit <$> go e
+
+    goFun2 :: Function2 -> Sem r FunctionArity
+    goFun2 (Function2 l r) = do
+      l' <- goParam l
       r' <- go r
       return
         FunctionArity
           { _functionArityLeft = l',
             _functionArityRight = r'
           }
-    goAbs :: TypeAbstraction -> Sem r FunctionArity
-    goAbs t = do
-      r' <- go (t ^. typeAbsBody)
-      return (FunctionArity l r')
-      where
-        l :: ArityParameter
-        l = case t ^. typeAbsImplicit of
-          Implicit -> ParamImplicit
-          Explicit -> ParamExplicit ArityUnit
+
+    -- goFun :: Function -> Sem r FunctionArity
+    -- goFun (Function l r) = do
+    --   l' <- ParamExplicit <$> go l
+    --   r' <- go r
+    --   return
+    --     FunctionArity
+    --       { _functionArityLeft = l',
+    --         _functionArityRight = r'
+    --       }
+    -- goAbs :: TypeAbstraction -> Sem r FunctionArity
+    -- goAbs t = do
+    --   r' <- go (t ^. typeAbsBody)
+    --   return (FunctionArity l r')
+    --   where
+    --     l :: ArityParameter
+    --     l = case t ^. typeAbsImplicit of
+    --       Implicit -> ParamImplicit
+    --       Explicit -> ParamExplicit ArityUnit
 
 checkExpression ::
   forall r.
@@ -361,22 +383,10 @@ checkExpression hintArity expr = case expr of
   ExpressionApplication a -> goApp a
   ExpressionLiteral {} -> appHelper expr []
   ExpressionFunction {} -> return expr
-  ExpressionFunction2 x -> ExpressionFunction2 <$> goFunction x
+  ExpressionFunction2 {} -> return expr
   ExpressionUniverse {} -> return expr
   ExpressionHole {} -> return expr
   where
-    goParam :: FunctionParameter -> Sem r FunctionParameter
-    goParam (FunctionParameter v i ty) = do
-      ty' <- checkExpression ArityUnit ty
-      return (FunctionParameter v i ty')
-
-    goFunction :: Function2 -> Sem r Function2
-    goFunction (Function2 l r) = do
-      l' <- goParam l
-      -- TODO: l' determines the arity of r
-      r' <- checkExpression undefined r
-      return (Function2 l' r')
-
     goApp :: Application -> Sem r Expression
     goApp = uncurry appHelper . second toList . unfoldApplication'
 
@@ -387,19 +397,12 @@ checkExpression hintArity expr = case expr of
         ExpressionIden i -> idenArity i >>= helper (getLoc i)
         ExpressionLiteral l -> helper (getLoc l) arityLiteral
         ExpressionUniverse l -> helper (getLoc l) arityUniverse
-        ExpressionFunction f ->
-          throw
-            ( ErrFunctionApplied
-                FunctionApplied
-                  { _functionAppliedFunction = f,
-                    _functionAppliedArguments = args
-                  }
-            )
+        ExpressionFunction {} -> impossible
         ExpressionFunction2 f ->
           throw
             ( ErrFunctionApplied
                 FunctionApplied
-                  { _functionAppliedFunction = undefined,
+                  { _functionAppliedFunction = f,
                     _functionAppliedArguments = args
                   }
             )

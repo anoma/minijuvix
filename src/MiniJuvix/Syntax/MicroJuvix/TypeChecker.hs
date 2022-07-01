@@ -113,6 +113,13 @@ checkExpression expectedTy e = do
             }
         )
 
+checkFunctionParameter ::  Members '[Reader InfoTable, Error TypeCheckerError, NameIdGen, Reader LocalVars, Inference] r =>
+  FunctionParameter ->
+  Sem r FunctionParameter
+checkFunctionParameter (FunctionParameter mv i e) = do
+  e' <- checkExpression (smallUniverse (getLoc e)) e
+  return (FunctionParameter mv i e')
+
 inferExpression ::
   Members '[Reader InfoTable, Error TypeCheckerError, NameIdGen, Reader LocalVars, Inference] r =>
   Expression ->
@@ -145,9 +152,9 @@ checkFunctionClause info FunctionClause {..} = do
       | otherwise -> do
           locals <- checkPatterns _clauseName (zipExact patTys _clausePatterns)
           let bodyTy' =
-                substitution
+                substitutionE
                   ( fmap
-                      (TypeIden . TypeIdenVariable)
+                      (ExpressionIden . IdenVar)
                       (locals ^. localTyMap)
                   )
                   bodyTy
@@ -179,8 +186,8 @@ checkPattern funName = go
   where
     go :: FunctionParameter -> Pattern -> Sem r ()
     go argTy p = do
-      tyVarMap <- fmap (TypeIden . TypeIdenVariable) . (^. localTyMap) <$> get
-      let ty = substitution tyVarMap (typeOfArg argTy)
+      tyVarMap <- fmap (ExpressionIden . IdenVar) . (^. localTyMap) <$> get
+      let ty = substitutionE tyVarMap (typeOfArg argTy)
           unbrace = \case
             PatternBraces b -> b
             x -> x
@@ -211,7 +218,7 @@ checkPattern funName = go
           (_, psTys) <- constructorArgTypes <$> lookupConstructor c
           let psTys' = map (substituteIndParams ctx) psTys
               expectedNum = length psTys
-          let w = map FunctionArgTypeType psTys'
+          let w = map unnamedParameter psTys'
           when (expectedNum /= length ps) (throw (appErr app expectedNum))
           zipWithM_ go w ps
         appErr :: ConstructorApp -> Int -> TypeCheckerError
@@ -302,7 +309,8 @@ inferExpression' e = case e of
   ExpressionIden i -> inferIden i
   ExpressionApplication a -> inferApplication a
   ExpressionLiteral l -> goLiteral l
-  ExpressionFunction f -> goExpressionFunction f
+  ExpressionFunction {} -> impossible
+  ExpressionFunction2 f -> goExpressionFunction f
   ExpressionHole h -> freshMetavar h
   ExpressionUniverse u -> goUniverse u
   where
@@ -310,14 +318,15 @@ inferExpression' e = case e of
     goUniverse u =
       return
         TypedExpression
-          { _typedType = TypeUniverse,
+          { _typedType = ExpressionUniverse u,
             _typedExpression = ExpressionUniverse u
           }
-    goExpressionFunction :: FunctionExpression -> Sem r TypedExpression
-    goExpressionFunction (FunctionExpression l r) = do
-      l' <- checkExpression TypeUniverse l
-      r' <- checkExpression TypeUniverse r
-      return (TypedExpression TypeUniverse (ExpressionFunction (FunctionExpression l' r')))
+    goExpressionFunction :: Function2 -> Sem r TypedExpression
+    goExpressionFunction (Function2 l r) = do
+      let uni = smallUniverse (getLoc l)
+      l' <- checkFunctionParameter l
+      r' <- checkExpression uni r
+      return (TypedExpression uni (ExpressionFunction2 (Function2 l' r')))
     goLiteral :: LiteralLoc -> Sem r TypedExpression
     goLiteral = literalType
 
@@ -339,10 +348,11 @@ inferExpression' e = case e of
         kind <- inductiveType v
         return (TypedExpression kind (ExpressionIden i))
     inferApplication :: Application -> Sem r TypedExpression
-    inferApplication (Application l r _) = do
-      l' <- inferExpression' l
-      case l' ^. typedType of
-        ExpressionFunction2 (Function2 (FunctionParameter mv i funL) funR) -> do
+    inferApplication (Application l r i) = inferExpression' l >>= helper
+      where
+      helper :: TypedExpression -> Sem r TypedExpression
+      helper l' = case l' ^. typedType of
+        ExpressionFunction2 (Function2 (FunctionParameter mv _ funL) funR) -> do
           r' <- checkExpression funL r
           return
             TypedExpression
@@ -357,25 +367,24 @@ inferExpression' e = case e of
               }
         -- When we have have an application with a hole on the left: '_@1 x'
         -- We assume that it is a type application and thus 'x' must be a type.
-        -- where @2 is fresh.
         -- Not sure if this is always desirable.
         ExpressionHole h -> do
             q <- queryMetavar h
             case q of
               Just ty -> helper (set typedType ty l')
               Nothing -> do
-                r <- checkExpression (smallUniverse (getLoc h)) r
+                r' <- checkExpression (smallUniverse (getLoc h)) r
                 h' <- freshHole (getLoc h)
-                let fun = Function r (ExpressionHole h')
-                unlessM (matchTypes (ExpressionHole h) (TypeFunction fun)) impossible
+                let fun = Function2 (unnamedParameter r') (ExpressionHole h')
+                unlessM (matchTypes (ExpressionHole h) (ExpressionFunction2 fun)) impossible
                 return
                   TypedExpression
-                    { _typedType = TypeHole h',
+                    { _typedType = ExpressionHole h',
                       _typedExpression =
                         ExpressionApplication
                           Application
                             { _appLeft = l' ^. typedExpression,
-                              _appRight = r,
+                              _appRight = r',
                               _appImplicit = i
                             }
                     }
@@ -386,8 +395,8 @@ inferExpression' e = case e of
                 ErrExpectedFunctionType
                   ( ExpectedFunctionType
                       { _expectedFunctionTypeExpression = e,
-                        _expectedFunctionTypeApp = leftExp,
-                        _expectedFunctionTypeType = l ^. typedType
+                        _expectedFunctionTypeApp = l,
+                        _expectedFunctionTypeType = l' ^. typedType
                       }
                   )
     -- inferApplication :: Application -> Sem r TypedExpression
