@@ -34,21 +34,21 @@ goStatement = \case
 goInclude :: Members '[State TypeCallsMap, Reader InfoTable] r => Include -> Sem r ()
 goInclude i = goModule (i ^. includeModule)
 
-goAxiomDef :: Members '[State TypeCallsMap] r => AxiomDef -> Sem r ()
+goAxiomDef :: Members '[State TypeCallsMap, Reader InfoTable] r => AxiomDef -> Sem r ()
 goAxiomDef a =
   runReader
     (CallerAxiom (a ^. axiomName))
-    (goType (a ^. axiomType))
+    (goExpression (a ^. axiomType))
 
 goFunctionDef :: Members '[State TypeCallsMap, Reader InfoTable] r => FunctionDef -> Sem r ()
 goFunctionDef d = runReader (CallerFunction (d ^. funDefName)) $ do
-  goType (d ^. funDefType)
+  goExpression (d ^. funDefType)
   mapM_ goFunctionClause (d ^. funDefClauses)
 
 goFunctionClause :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => FunctionClause -> Sem r ()
 goFunctionClause c = goExpression (c ^. clauseBody)
 
-goInductiveDef :: Members '[State TypeCallsMap] r => InductiveDef -> Sem r ()
+goInductiveDef :: Members '[State TypeCallsMap, Reader InfoTable] r => InductiveDef -> Sem r ()
 goInductiveDef d = runReader (CallerInductive (d ^. inductiveName)) $ do
   mapM_ goInductiveParameter (d ^. inductiveParameters)
   mapM_ goInductiveConstructorDef (d ^. inductiveConstructors)
@@ -56,8 +56,8 @@ goInductiveDef d = runReader (CallerInductive (d ^. inductiveName)) $ do
 goInductiveParameter :: InductiveParameter -> Sem r ()
 goInductiveParameter _ = return ()
 
-goInductiveConstructorDef :: Members '[State TypeCallsMap, Reader Caller] r => InductiveConstructorDef -> Sem r ()
-goInductiveConstructorDef c = mapM_ goType (c ^. constructorParameters)
+goInductiveConstructorDef :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => InductiveConstructorDef -> Sem r ()
+goInductiveConstructorDef c = mapM_ goExpression (c ^. constructorParameters)
 
 goParam :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => FunctionParameter -> Sem r ()
 goParam (FunctionParameter _ _ ty) = goExpression ty
@@ -67,10 +67,10 @@ goFunction2 (Function2 l r) = do
   goParam l
   goExpression r
 
-goFunction :: Members '[State TypeCallsMap, Reader Caller] r => Function -> Sem r ()
-goFunction (Function l r) = do
-  goType l
-  goType r
+goFunction :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => Function2 -> Sem r ()
+goFunction (Function2 l r) = do
+  goParam l
+  goExpression r
 
 registerTypeCall :: Members '[State TypeCallsMap] r => Caller -> TypeCall -> Sem r ()
 registerTypeCall caller t = modify (over typeCallsMap addElem)
@@ -82,32 +82,46 @@ registerTypeCall caller t = modify (over typeCallsMap addElem)
           Nothing -> HashSet.singleton t
           Just l -> HashSet.insert t l
 
-goTypeApplication :: Members '[State TypeCallsMap, Reader Caller] r => TypeApplication -> Sem r ()
-goTypeApplication a = do
-  let (t, args) = unfoldTypeApplication a
-  mapM_ goType args
-  case t of
-    TypeIden (TypeIdenInductive n) -> do
-      caller <- ask
-      registerTypeCall
-        caller
-        TypeCall'
-          { _typeCallIden = InductiveIden n,
-            _typeCallArguments = args
-          }
+goApplication :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => Application -> Sem r ()
+goApplication a = do
+  let (f, args) = unfoldApplication a
+  mapM_ goExpression args
+  case f of
+    ExpressionIden (IdenFunction fun) -> do
+      funTy <- (^. functionInfoDef . funDefType) <$> lookupFunction fun
+      let numTyArgs = length (fst (unfoldTypeAbsType funTy))
+      when (numTyArgs > 0) $ do
+        let tyArgs = take' numTyArgs args
+        caller <- ask
+        registerTypeCall
+          caller
+          TypeCall'
+            { _typeCallIden = FunctionIden fun,
+              _typeCallArguments = tyArgs
+            }
+    -- Note: cosntructors do not need to be checked as they are already covered
+    -- by inspecting the types
     _ -> return ()
+  where
+    take' :: Int -> NonEmpty a -> NonEmpty a
+    take' n l
+      | 0 < n = fromMaybe impossible . nonEmpty . NonEmpty.take n $ l
+      | otherwise = error ("take' non-positive: " <> show n)
 
-goTypeAbstraction :: Members '[State TypeCallsMap, Reader Caller] r => TypeAbstraction -> Sem r ()
-goTypeAbstraction t = goType (t ^. typeAbsBody)
-
-goType :: Members '[State TypeCallsMap, Reader Caller] r => Type -> Sem r ()
-goType = \case
-  TypeIden {} -> return ()
-  TypeApp a -> goTypeApplication a
-  TypeHole {} -> impossible
-  TypeUniverse -> return ()
-  TypeFunction f -> goFunction f
-  TypeAbs a -> goTypeAbstraction a
+-- goTyApplication :: Members '[State TypeCallsMap, Reader Caller] r => Application -> Sem r ()
+-- goTyApplication a = do
+--   let (t, args) = unfoldTypeApplication a
+--   mapM_ goExpression args
+--   case t of
+--     ExpressionIden (IdenInductive n) -> do
+--       caller <- ask
+--       registerTypeCall
+--         caller
+--         TypeCall'
+--           { _typeCallIden = InductiveIden n,
+--             _typeCallArguments = args
+--           }
+--     _ -> return ()
 
 goFunctionExpression ::
   Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r =>
@@ -126,29 +140,3 @@ goExpression = \case
   ExpressionFunction2 a -> goFunction2 a
   ExpressionLiteral {} -> return ()
   ExpressionHole {} -> impossible
-
-goApplication :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => Application -> Sem r ()
-goApplication a = do
-  let (f, args) = unfoldApplication a
-  mapM_ goExpression args
-  case f of
-    ExpressionIden (IdenFunction fun) -> do
-      funTy <- (^. functionInfoDef . funDefType) <$> lookupFunction fun
-      let numTyArgs = length (fst (unfoldTypeAbsType funTy))
-      when (numTyArgs > 0) $ do
-        let tyArgs = fmap expressionAsType' (take' numTyArgs args)
-        caller <- ask
-        registerTypeCall
-          caller
-          TypeCall'
-            { _typeCallIden = FunctionIden fun,
-              _typeCallArguments = tyArgs
-            }
-    -- Note: cosntructors do not need to be checked as they are already covered
-    -- by inspecting the types
-    _ -> return ()
-  where
-    take' :: Int -> NonEmpty a -> NonEmpty a
-    take' n l
-      | 0 < n = fromMaybe impossible . nonEmpty . NonEmpty.take n $ l
-      | otherwise = error ("take' non-positive: " <> show n)

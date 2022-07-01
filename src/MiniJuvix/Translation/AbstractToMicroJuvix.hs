@@ -13,7 +13,6 @@ import MiniJuvix.Syntax.Abstract.Language qualified as Abstract
 import MiniJuvix.Syntax.MicroJuvix.Error
 import MiniJuvix.Syntax.MicroJuvix.Language
 import MiniJuvix.Syntax.MicroJuvix.Language.Extra
-import MiniJuvix.Syntax.MicroJuvix.Language.Extra (unfoldExpressionApp)
 import MiniJuvix.Syntax.MicroJuvix.MicroJuvixResult
 import MiniJuvix.Syntax.Usage
 import MiniJuvix.Termination.Checker

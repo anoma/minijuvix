@@ -332,14 +332,6 @@ unfoldFunType t = case t of
   ExpressionFunction2 (Function2 l r) -> first (l :) (unfoldFunType r)
   _ -> ([], t)
 
--- unfoldFunConcreteType :: ConcreteType -> ([ConcreteType], ConcreteType)
--- unfoldFunConcreteType = bimap (map mkConcreteType') mkConcreteType' . go . (^. unconcreteType)
---   where
---     go :: Type -> ([Type], Type)
---     go t = case t of
---       TypeFunction (Function l r) -> first (l :) (go r)
---       _ -> ([], t)
-
 unfoldTypeAbsType :: Expression -> ([VarName], Expression)
 unfoldTypeAbsType t = case t of
   ExpressionFunction2 (Function2 (FunctionParameter (Just var) _ _) r) ->
