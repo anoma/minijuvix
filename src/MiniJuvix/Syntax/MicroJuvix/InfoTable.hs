@@ -114,7 +114,7 @@ inductiveType v = do
       (ExpressionUniverse (SmallUniverse (getLoc v)))
       ps
   where
-    typeAbs var = Function2 (typeAbstraction var)
+    typeAbs var = Function2 (typeAbstraction Explicit var)
 
 constructorArgTypes :: ConstructorInfo -> ([VarName], [Expression])
 constructorArgTypes i =
@@ -127,9 +127,7 @@ constructorType c = do
   info <- lookupConstructor c
   let (inductiveParams, constrArgs) = constructorArgTypes info
       args =
-        -- map (\ty -> FunctionArgTypeAbstraction (Implicit, ty)) inductiveParams
-        --   ++ map FunctionArgTypeType constrArgs
-        map typeAbstraction inductiveParams
+        map (typeAbstraction Implicit) inductiveParams
           ++ map unnamedParameter constrArgs
       ind = ExpressionIden (IdenInductive (info ^. constructorInfoInductive))
       saturatedTy =
@@ -139,7 +137,7 @@ constructorType c = do
                 ( Application
                     { _appLeft = t,
                       _appRight = ExpressionIden (IdenVar v),
-                      _appImplicit = Implicit
+                      _appImplicit = Explicit
                     }
                 )
           )

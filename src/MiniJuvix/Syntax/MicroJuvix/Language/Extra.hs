@@ -113,32 +113,32 @@ mkConcreteType = fmap ConcreteType . go
       return (FunctionParameter m i e')
 
 class HasExpressions a where
-  expressions :: Traversal' a Expression
+  leafExpressions :: Traversal' a Expression
 
 instance HasExpressions Expression where
-  expressions f e = case e of
-    ExpressionIden {} -> pure e
-    ExpressionApplication a -> ExpressionApplication <$> expressions f a
-    ExpressionFunction2 fun -> ExpressionFunction2 <$> expressions f fun
-    ExpressionLiteral {} -> pure e
-    ExpressionUniverse {} -> pure e
-    ExpressionHole {} -> pure e
+  leafExpressions f e = case e of
+    ExpressionIden {} -> f e
+    ExpressionApplication a -> ExpressionApplication <$> leafExpressions f a
+    ExpressionFunction2 fun -> ExpressionFunction2 <$> leafExpressions f fun
+    ExpressionLiteral {} -> f e
+    ExpressionUniverse {} -> f e
+    ExpressionHole {} -> f e
 
 instance HasExpressions FunctionParameter where
-  expressions f (FunctionParameter m i e) = do
-    e' <- expressions f e
+  leafExpressions f (FunctionParameter m i e) = do
+    e' <- leafExpressions f e
     pure (FunctionParameter m i e')
 
 instance HasExpressions Function2 where
-  expressions f (Function2 l r) = do
-    l' <- expressions f l
-    r' <- expressions f r
+  leafExpressions f (Function2 l r) = do
+    l' <- leafExpressions f l
+    r' <- leafExpressions f r
     pure (Function2 l' r')
 
 instance HasExpressions Application where
-  expressions f (Application l r i) = do
-    l' <- expressions f l
-    r' <- expressions f r
+  leafExpressions f (Application l r i) = do
+    l' <- leafExpressions f l
+    r' <- leafExpressions f r
     pure (Application l' r' i)
 
 -- | Prism
@@ -152,14 +152,13 @@ _ExpressionHole f e = case e of
   ExpressionHole h -> ExpressionHole <$> f h
 
 holes :: HasExpressions a => Traversal' a Hole
-holes = expressions . _ExpressionHole
+holes = leafExpressions . _ExpressionHole
 
 hasHoles :: HasExpressions a => a -> Bool
 hasHoles = has holes
 
--- TODO this mofo dont work
 subsHoles :: HasExpressions a => HashMap Hole Expression -> a -> a
-subsHoles s = over expressions helper
+subsHoles s = over leafExpressions helper
   where
     helper :: Expression -> Expression
     helper e = case e of
@@ -167,14 +166,15 @@ subsHoles s = over expressions helper
       _ -> e
 
 instance HasExpressions FunctionClause where
-  expressions f (FunctionClause n ps b) = do
-    b' <- expressions f b
+  leafExpressions f (FunctionClause n ps b) = do
+    b' <- leafExpressions f b
     pure (FunctionClause n ps b')
 
 instance HasExpressions FunctionDef where
-  expressions f (FunctionDef name ty clauses bi) = do
-    clauses' <- traverse (expressions f) clauses
-    return (FunctionDef name ty clauses' bi)
+  leafExpressions f (FunctionDef name ty clauses bi) = do
+    clauses' <- traverse (leafExpressions f) clauses
+    ty' <- leafExpressions f ty
+    return (FunctionDef name ty' clauses' bi)
 
 fillHolesFunctionDef :: HashMap Hole Expression -> FunctionDef -> FunctionDef
 fillHolesFunctionDef = subsHoles
@@ -188,8 +188,8 @@ fillHoles = subsHoles
 substituteIndParams :: [(InductiveParameter, Expression)] -> Expression -> Expression
 substituteIndParams = substitutionE . HashMap.fromList . map (first (^. inductiveParamName))
 
-typeAbstraction :: Name -> FunctionParameter
-typeAbstraction var = FunctionParameter (Just var) Explicit (ExpressionUniverse (SmallUniverse (getLoc var)))
+typeAbstraction :: IsImplicit -> Name -> FunctionParameter
+typeAbstraction i var = FunctionParameter (Just var) i (ExpressionUniverse (SmallUniverse (getLoc var)))
 
 unnamedParameter :: Expression -> FunctionParameter
 unnamedParameter = FunctionParameter Nothing Explicit
@@ -315,11 +315,12 @@ smallUniverse = ExpressionUniverse . SmallUniverse
 
 -- | [a, b] c ==> a -> (b -> c)
 foldFunType :: [FunctionParameter] -> Expression -> Expression
-foldFunType l r = case l of
-  [] -> r
-  (a : as) ->
-    let r' = foldFunType as r
-     in ExpressionFunction2 (Function2 a r')
+foldFunType l r = go l
+  where
+  go :: [FunctionParameter] -> Expression
+  go  = \case
+    [] -> r
+    arg : args ->  ExpressionFunction2 (Function2 arg (go args))
 
 -- -- | a -> (b -> c)  ==> ([a, b], c)
 unfoldFunType :: Expression -> ([FunctionParameter], Expression)

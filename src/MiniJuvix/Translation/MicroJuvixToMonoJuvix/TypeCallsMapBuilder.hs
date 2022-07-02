@@ -82,18 +82,29 @@ goApplication a = do
   let (f, args) = unfoldApplication a
   mapM_ goExpression args
   case f of
-    ExpressionIden (IdenFunction fun) -> do
-      funTy <- (^. functionInfoDef . funDefType) <$> lookupFunction fun
-      let numTyArgs = length (fst (unfoldTypeAbsType funTy))
-      when (numTyArgs > 0) $ do
-        let tyArgs = take' numTyArgs args
+    ExpressionIden i -> case i of
+      (IdenFunction fun) -> do
+        funTy <- (^. functionInfoDef . funDefType) <$> lookupFunction fun
+        let numTyArgs = length (fst (unfoldTypeAbsType funTy))
+        when (numTyArgs > 0) $ do
+          let tyArgs = take' numTyArgs args
+          caller <- ask
+          registerTypeCall
+            caller
+            TypeCall'
+              { _typeCallIden = FunctionIden fun,
+                _typeCallArguments = tyArgs
+              }
+      (IdenInductive ind) -> do
         caller <- ask
         registerTypeCall
           caller
           TypeCall'
-            { _typeCallIden = FunctionIden fun,
-              _typeCallArguments = tyArgs
+            { _typeCallIden = InductiveIden ind,
+              _typeCallArguments = args
             }
+      _ -> return ()
+
     -- Note: cosntructors do not need to be checked as they are already covered
     -- by inspecting the types
     _ -> return ()

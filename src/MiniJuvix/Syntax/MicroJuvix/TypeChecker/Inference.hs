@@ -51,7 +51,7 @@ closeState = \case
                       modify (HashMap.insert h x)
                       return x
         goExpression :: Expression -> Sem r' Expression
-        goExpression = traverseOf expressions aux
+        goExpression = traverseOf leafExpressions aux
           where
             aux :: Expression -> Sem r' Expression
             aux = \case
