@@ -113,21 +113,6 @@ goApplication a = do
       | 0 < n = fromMaybe impossible . nonEmpty . NonEmpty.take n $ l
       | otherwise = error ("take' non-positive: " <> show n)
 
--- goTyApplication :: Members '[State TypeCallsMap, Reader Caller] r => Application -> Sem r ()
--- goTyApplication a = do
---   let (t, args) = unfoldTypeApplication a
---   mapM_ goExpression args
---   case t of
---     ExpressionIden (IdenInductive n) -> do
---       caller <- ask
---       registerTypeCall
---         caller
---         TypeCall'
---           { _typeCallIden = InductiveIden n,
---             _typeCallArguments = args
---           }
---     _ -> return ()
-
 goExpression :: Members '[State TypeCallsMap, Reader Caller, Reader InfoTable] r => Expression -> Sem r ()
 goExpression = \case
   ExpressionIden {} -> return ()

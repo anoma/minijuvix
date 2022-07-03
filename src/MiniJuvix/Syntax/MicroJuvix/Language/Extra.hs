@@ -194,13 +194,6 @@ typeAbstraction i var = FunctionParameter (Just var) i (ExpressionUniverse (Smal
 unnamedParameter :: Expression -> FunctionParameter
 unnamedParameter = FunctionParameter Nothing Explicit
 
--- substitutionArg :: VarName -> VarName -> FunctionParameter -> FunctionParameter
--- substitutionArg from v a = case a of
---   FunctionArgTypeAbstraction {} -> a
---   FunctionArgTypeType ty ->
---     FunctionArgTypeType
---       (substitutionE (HashMap.singleton from (ExpressionIden (IdenVar v))) ty)
-
 renameToSubsE :: Rename -> SubsE
 renameToSubsE = fmap (ExpressionIden . IdenVar)
 
@@ -306,13 +299,6 @@ substitutionE m = go
 smallUniverse :: Interval -> Expression
 smallUniverse = ExpressionUniverse . SmallUniverse
 
--- fromFunctionArgType :: FunctionArgType -> FunctionParameter
--- fromFunctionArgType = \case
---   FunctionArgTypeAbstraction (i, var) ->
---     FunctionParameter (Just var) i (smallUniverse (getLoc var))
---   FunctionArgTypeType t ->
---     FunctionParameter Nothing Explicit t
-
 -- | [a, b] c ==> a -> (b -> c)
 foldFunType :: [FunctionParameter] -> Expression -> Expression
 foldFunType l r = go l
@@ -353,17 +339,6 @@ unfoldExpressionApp e = case e of
 
 unfoldApplication :: Application -> (Expression, NonEmpty Expression)
 unfoldApplication = fmap (fmap snd) . unfoldApplication'
-
--- unfoldType :: Type -> (Type, [Type])
--- unfoldType = \case
---   TypeApp (TypeApplication l r _) -> second (`snoc` r) (unfoldType l)
---   t -> (t, [])
-
--- getTypeName :: Type -> Maybe Name
--- getTypeName = \case
---   (TypeIden (TypeIdenInductive tyName)) -> Just tyName
---   (TypeApp (TypeApplication l _ _)) -> getTypeName l
---   _ -> Nothing
 
 reachableModules :: Module -> [Module]
 reachableModules = fst . run . runOutputList . evalState (mempty :: HashSet Name) . go

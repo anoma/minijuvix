@@ -276,38 +276,6 @@ idenArity = \case
   IdenAxiom a -> lookupAxiom a >>= typeArity . (^. axiomInfoType)
   IdenInductive i -> inductiveType i >>= typeArity
 
--- typeArity2 :: forall r. Members '[Reader InfoTable] r => Expression -> Sem r Arity
--- typeArity2 = go
---   where
---     go :: Expression -> Sem r Arity
---     go = \case
---       ExpressionIden i -> goIden i
---       ExpressionApplication {} -> return ArityUnit
---       ExpressionFunction f -> ArityFunction <$> goFun f
---       ExpressionLiteral {} -> impossible
---       ExpressionHole {} -> return ArityUnknown
---       ExpressionUniverse {} -> return ArityUnit
-
---     goFun :: Function -> Sem r FunctionArity
---     goFun (Function l r) = do
---       r' <- go r
---       return (FunctionArity l' r')
---       where
---         l' :: ArityParameter
---         l' = case l ^. paramImplicit of
---           Implicit -> ParamImplicit
---           Explicit -> ParamExplicit ArityUnit
-
---     goIden :: Iden -> Sem r Arity
---     goIden = \case
---       IdenFunction {} -> impossible
---       IdenConstructor {} -> impossible
---       IdenVar {} -> return ArityUnknown
---       IdenInductive {} -> return ArityUnit
---       IdenAxiom ax -> do
---         ty <- (^. axiomInfoType) <$> lookupAxiom ax
---         go ty
-
 -- | let x be some expression of type T. The argument of this function is T and it returns
 -- the arity of x.
 typeArity :: forall r. Members '[Reader InfoTable] r => Expression -> Sem r Arity
@@ -345,25 +313,6 @@ typeArity = go
           { _functionArityLeft = l',
             _functionArityRight = r'
           }
-
--- goFun :: Function -> Sem r FunctionArity
--- goFun (Function l r) = do
---   l' <- ParamExplicit <$> go l
---   r' <- go r
---   return
---     FunctionArity
---       { _functionArityLeft = l',
---         _functionArityRight = r'
---       }
--- goAbs :: TypeAbstraction -> Sem r FunctionArity
--- goAbs t = do
---   r' <- go (t ^. typeAbsBody)
---   return (FunctionArity l r')
---   where
---     l :: ArityParameter
---     l = case t ^. typeAbsImplicit of
---       Implicit -> ParamImplicit
---       Explicit -> ParamExplicit ArityUnit
 
 checkExpression ::
   forall r.
