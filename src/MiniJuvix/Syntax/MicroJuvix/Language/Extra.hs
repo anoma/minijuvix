@@ -317,10 +317,10 @@ smallUniverse = ExpressionUniverse . SmallUniverse
 foldFunType :: [FunctionParameter] -> Expression -> Expression
 foldFunType l r = go l
   where
-  go :: [FunctionParameter] -> Expression
-  go  = \case
-    [] -> r
-    arg : args ->  ExpressionFunction2 (Function2 arg (go args))
+    go :: [FunctionParameter] -> Expression
+    go = \case
+      [] -> r
+      arg : args -> ExpressionFunction2 (Function2 arg (go args))
 
 -- -- | a -> (b -> c)  ==> ([a, b], c)
 unfoldFunType :: Expression -> ([FunctionParameter], Expression)

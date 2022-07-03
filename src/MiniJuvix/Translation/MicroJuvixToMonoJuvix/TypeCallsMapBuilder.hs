@@ -104,7 +104,6 @@ goApplication a = do
               _typeCallArguments = args
             }
       _ -> return ()
-
     -- Note: cosntructors do not need to be checked as they are already covered
     -- by inspecting the types
     _ -> return ()
