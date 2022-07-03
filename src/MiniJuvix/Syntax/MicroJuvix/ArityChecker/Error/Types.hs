@@ -177,7 +177,7 @@ instance ToGenericError TooManyArguments where
         | otherwise = "were not expected"
 
 data FunctionApplied = FunctionApplied
-  { _functionAppliedFunction :: Function2,
+  { _functionAppliedFunction :: Function,
     _functionAppliedArguments :: [(IsImplicit, Expression)]
   }
 
@@ -193,7 +193,7 @@ instance ToGenericError FunctionApplied where
     where
       i = getLocSpan (fun :| map snd args)
       args = e ^. functionAppliedArguments
-      fun = ExpressionFunction2 (e ^. functionAppliedFunction)
+      fun = ExpressionFunction (e ^. functionAppliedFunction)
       msg =
         "A function type cannot be applied."
           <> softline

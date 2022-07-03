@@ -293,7 +293,7 @@ goExpression = go
       Micro.ExpressionIden i -> return (ExpressionIden (goIden i))
       Micro.ExpressionLiteral l -> return (ExpressionLiteral l)
       Micro.ExpressionApplication a -> goApp a
-      Micro.ExpressionFunction2 {} -> impossible
+      Micro.ExpressionFunction {} -> impossible
       Micro.ExpressionUniverse {} -> impossible
       Micro.ExpressionHole {} -> impossible
     goApp :: Micro.Application -> Sem r Expression
@@ -510,7 +510,7 @@ goType = go . (^. Micro.unconcreteType)
       Micro.ExpressionUniverse {} -> return TypeUniverse
       Micro.ExpressionHole {} -> impossible
       Micro.ExpressionLiteral {} -> impossible
-      Micro.ExpressionFunction2 f -> TypeFunction <$> goFunction f
+      Micro.ExpressionFunction f -> TypeFunction <$> goFunction f
       Micro.ExpressionApplication a -> goApp a
     goApp :: Micro.Application -> Sem r Type
     goApp a = case f of
@@ -526,8 +526,8 @@ goType = go . (^. Micro.unconcreteType)
       _ -> impossible
       where
         (f, args) = Micro.unfoldApplication a
-    goFunction :: Micro.Function2 -> Sem r Function
-    goFunction (Micro.Function2 l r) = do
+    goFunction :: Micro.Function -> Sem r Function
+    goFunction (Micro.Function l r) = do
       l' <- go (l ^. Micro.paramType)
       r' <- go r
       return (Function l' r')

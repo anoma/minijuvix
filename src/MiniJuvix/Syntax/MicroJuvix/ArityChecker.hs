@@ -109,7 +109,7 @@ guessArity ::
   Sem r (Maybe Arity)
 guessArity = \case
   ExpressionHole {} -> return Nothing
-  ExpressionFunction2 {} -> return (Just ArityUnit)
+  ExpressionFunction {} -> return (Just ArityUnit)
   ExpressionLiteral {} -> return (Just arityLiteral)
   ExpressionApplication a -> appHelper a
   ExpressionIden i -> idenHelper i
@@ -141,7 +141,7 @@ guessArity = \case
           ExpressionHole {} -> return Nothing
           ExpressionUniverse {} -> return (Just arityUniverse)
           ExpressionApplication {} -> impossible
-          ExpressionFunction2 {} -> return (Just ArityUnit)
+          ExpressionFunction {} -> return (Just ArityUnit)
           ExpressionLiteral {} -> return (Just arityLiteral)
           ExpressionIden i -> idenHelper i
 
@@ -283,13 +283,13 @@ idenArity = \case
 --     go = \case
 --       ExpressionIden i -> goIden i
 --       ExpressionApplication {} -> return ArityUnit
---       ExpressionFunction2 f -> ArityFunction <$> goFun f
+--       ExpressionFunction f -> ArityFunction <$> goFun f
 --       ExpressionLiteral {} -> impossible
 --       ExpressionHole {} -> return ArityUnknown
 --       ExpressionUniverse {} -> return ArityUnit
 
---     goFun :: Function2 -> Sem r FunctionArity
---     goFun (Function2 l r) = do
+--     goFun :: Function -> Sem r FunctionArity
+--     goFun (Function l r) = do
 --       r' <- go r
 --       return (FunctionArity l' r')
 --       where
@@ -318,7 +318,7 @@ typeArity = go
       ExpressionIden i -> goIden i
       ExpressionApplication {} -> return ArityUnit
       ExpressionLiteral {} -> return ArityUnknown
-      ExpressionFunction2 f -> ArityFunction <$> goFun2 f
+      ExpressionFunction f -> ArityFunction <$> goFun2 f
       ExpressionHole {} -> return ArityUnknown
       ExpressionUniverse {} -> return ArityUnit
 
@@ -336,8 +336,8 @@ typeArity = go
         Implicit -> return ParamImplicit
         Explicit -> ParamExplicit <$> go e
 
-    goFun2 :: Function2 -> Sem r FunctionArity
-    goFun2 (Function2 l r) = do
+    goFun2 :: Function -> Sem r FunctionArity
+    goFun2 (Function l r) = do
       l' <- goParam l
       r' <- go r
       return
@@ -375,7 +375,7 @@ checkExpression hintArity expr = case expr of
   ExpressionIden {} -> appHelper expr []
   ExpressionApplication a -> goApp a
   ExpressionLiteral {} -> appHelper expr []
-  ExpressionFunction2 {} -> return expr
+  ExpressionFunction {} -> return expr
   ExpressionUniverse {} -> return expr
   ExpressionHole {} -> return expr
   where
@@ -389,7 +389,7 @@ checkExpression hintArity expr = case expr of
         ExpressionIden i -> idenArity i >>= helper (getLoc i)
         ExpressionLiteral l -> helper (getLoc l) arityLiteral
         ExpressionUniverse l -> helper (getLoc l) arityUniverse
-        ExpressionFunction2 f ->
+        ExpressionFunction f ->
           throw
             ( ErrFunctionApplied
                 FunctionApplied

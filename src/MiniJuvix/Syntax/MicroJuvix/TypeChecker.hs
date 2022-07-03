@@ -289,10 +289,10 @@ literalType l = do
             _paramType = smallUniverse (getLoc l)
           }
       type_ =
-        ExpressionFunction2
-          Function2
-            { _function2Left = param,
-              _function2Right = ExpressionIden (IdenVar typeVar)
+        ExpressionFunction
+          Function
+            { _functionLeft = param,
+              _functionRight = ExpressionIden (IdenVar typeVar)
             }
   return
     TypedExpression
@@ -309,7 +309,7 @@ inferExpression' e = case e of
   ExpressionIden i -> inferIden i
   ExpressionApplication a -> inferApplication a
   ExpressionLiteral l -> goLiteral l
-  ExpressionFunction2 f -> goExpressionFunction f
+  ExpressionFunction f -> goExpressionFunction f
   ExpressionHole h -> freshMetavar h
   ExpressionUniverse u -> goUniverse u
   where
@@ -320,12 +320,12 @@ inferExpression' e = case e of
           { _typedType = ExpressionUniverse u,
             _typedExpression = ExpressionUniverse u
           }
-    goExpressionFunction :: Function2 -> Sem r TypedExpression
-    goExpressionFunction (Function2 l r) = do
+    goExpressionFunction :: Function -> Sem r TypedExpression
+    goExpressionFunction (Function l r) = do
       let uni = smallUniverse (getLoc l)
       l' <- checkFunctionParameter l
       r' <- checkExpression uni r
-      return (TypedExpression uni (ExpressionFunction2 (Function2 l' r')))
+      return (TypedExpression uni (ExpressionFunction (Function l' r')))
     goLiteral :: LiteralLoc -> Sem r TypedExpression
     goLiteral = literalType
 
@@ -351,7 +351,7 @@ inferExpression' e = case e of
       where
         helper :: TypedExpression -> Sem r TypedExpression
         helper l' = case l' ^. typedType of
-          ExpressionFunction2 (Function2 (FunctionParameter mv _ funL) funR) -> do
+          ExpressionFunction (Function (FunctionParameter mv _ funL) funR) -> do
             r' <- checkExpression funL r
             return
               TypedExpression
@@ -374,8 +374,8 @@ inferExpression' e = case e of
               Nothing -> do
                 r' <- checkExpression (smallUniverse (getLoc h)) r
                 h' <- freshHole (getLoc h)
-                let fun = Function2 (unnamedParameter r') (ExpressionHole h')
-                unlessM (matchTypes (ExpressionHole h) (ExpressionFunction2 fun)) impossible
+                let fun = Function (unnamedParameter r') (ExpressionHole h')
+                unlessM (matchTypes (ExpressionHole h) (ExpressionFunction fun)) impossible
                 return
                   TypedExpression
                     { _typedType = ExpressionHole h',

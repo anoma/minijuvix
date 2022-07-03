@@ -139,11 +139,11 @@ isOmegaUsage u = case u of
   UsageOmega -> True
   _ -> False
 
-goFunction :: Abstract.Function -> Sem r Function2
+goFunction :: Abstract.Function -> Sem r Function
 goFunction (Abstract.Function l r) = do
   l' <- goFunctionParameter l
   r' <- goType r
-  return (Function2 l' r')
+  return (Function l' r')
 
 goFunctionDef :: Abstract.FunctionDef -> Sem r FunctionDef
 goFunctionDef f = do
@@ -206,7 +206,7 @@ goType e = case e of
   Abstract.ExpressionIden i -> return (ExpressionIden (goTypeIden i))
   Abstract.ExpressionUniverse u -> return (goTypeUniverse u)
   Abstract.ExpressionApplication a -> ExpressionApplication <$> goTypeApplication a
-  Abstract.ExpressionFunction f -> ExpressionFunction2 <$> goFunction f
+  Abstract.ExpressionFunction f -> ExpressionFunction <$> goFunction f
   Abstract.ExpressionLiteral {} -> unsupported "literals in types"
   Abstract.ExpressionHole h -> return (ExpressionHole h)
 
@@ -224,11 +224,11 @@ goIden i = case i of
   Abstract.IdenAxiom a -> IdenAxiom (a ^. Abstract.axiomRefName)
   Abstract.IdenInductive a -> IdenInductive (a ^. Abstract.inductiveRefName)
 
-goExpressionFunction :: forall r. Abstract.Function -> Sem r Function2
+goExpressionFunction :: forall r. Abstract.Function -> Sem r Function
 goExpressionFunction f = do
   l' <- goParam (f ^. Abstract.funParameter)
   r' <- goExpression (f ^. Abstract.funReturn)
-  return (Function2 l' r')
+  return (Function l' r')
   where
     goParam :: Abstract.FunctionParameter -> Sem r FunctionParameter
     goParam p
@@ -241,7 +241,7 @@ goExpression :: Abstract.Expression -> Sem r Expression
 goExpression e = case e of
   Abstract.ExpressionIden i -> return (ExpressionIden (goIden i))
   Abstract.ExpressionUniverse {} -> unsupported "universes in expression"
-  Abstract.ExpressionFunction f -> ExpressionFunction2 <$> goExpressionFunction f
+  Abstract.ExpressionFunction f -> ExpressionFunction <$> goExpressionFunction f
   Abstract.ExpressionApplication a -> ExpressionApplication <$> goApplication a
   Abstract.ExpressionLiteral l -> return (ExpressionLiteral l)
   Abstract.ExpressionHole h -> return (ExpressionHole h)

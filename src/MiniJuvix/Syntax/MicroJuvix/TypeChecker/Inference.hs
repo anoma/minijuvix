@@ -112,7 +112,7 @@ re = reinterpret $ \case
         go a' b' = case (a', b') of
           (ExpressionIden a, ExpressionIden b) -> goIden a b
           (ExpressionApplication a, ExpressionApplication b) -> goApplication a b
-          (ExpressionFunction2 a, ExpressionFunction2 b) -> goFunction2 a b
+          (ExpressionFunction a, ExpressionFunction b) -> goFunction a b
           (ExpressionUniverse u, ExpressionUniverse u') -> return (u == u')
           (ExpressionHole h, a) -> goHole h a
           (a, ExpressionHole h) -> goHole h a
@@ -120,8 +120,8 @@ re = reinterpret $ \case
           (_, ExpressionIden {}) -> return False
           (ExpressionApplication {}, _) -> return False
           (_, ExpressionApplication {}) -> return False
-          (ExpressionFunction2 {}, _) -> return False
-          (_, ExpressionFunction2 {}) -> return False
+          (ExpressionFunction {}, _) -> return False
+          (_, ExpressionFunction {}) -> return False
           (ExpressionUniverse {}, _) -> return False
           (_, ExpressionUniverse {}) -> return False
           (ExpressionLiteral l, ExpressionLiteral l') -> return (l == l')
@@ -142,10 +142,10 @@ re = reinterpret $ \case
               _ -> return False
             goApplication :: Application -> Application -> Sem r Bool
             goApplication (Application f x _) (Application f' x' _) = andM [go f f', go x x']
-            goFunction2 :: Function2 -> Function2 -> Sem r Bool
-            goFunction2
-              (Function2 (FunctionParameter m1 i1 l1) r1)
-              (Function2 (FunctionParameter m2 i2 l2) r2)
+            goFunction :: Function -> Function -> Sem r Bool
+            goFunction
+              (Function (FunctionParameter m1 i1 l1) r1)
+              (Function (FunctionParameter m2 i2 l2) r2)
                 | i1 == i2 = do
                     let local' :: Sem r x -> Sem r x
                         local' = case (m1, m2) of

@@ -71,7 +71,7 @@ instance PrettyCode Expression where
     ExpressionIden i -> ppCode i
     ExpressionHole h -> ppCode h
     ExpressionApplication a -> ppCode a
-    ExpressionFunction2 f -> ppCode f
+    ExpressionFunction f -> ppCode f
     ExpressionUniverse u -> ppCode u
     ExpressionLiteral l -> return (pretty l)
 
@@ -150,8 +150,8 @@ instance PrettyCode FunctionParameter where
         paramType' <- ppCode _paramType
         return $ implicitDelim _paramImplicit (paramName' <+> paramType')
 
-instance PrettyCode Function2 where
-  ppCode (Function2 l r) = do
+instance PrettyCode Function where
+  ppCode (Function l r) = do
     funParameter' <- ppCode l
     funReturn' <- ppRightExpression funFixity r
     return $ funParameter' <+> kwArrow <+> funReturn'

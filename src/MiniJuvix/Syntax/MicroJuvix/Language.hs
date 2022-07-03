@@ -79,7 +79,7 @@ data TypedExpression = TypedExpression
 data Expression
   = ExpressionIden Iden
   | ExpressionApplication Application
-  | ExpressionFunction2 Function2
+  | ExpressionFunction Function
   | ExpressionLiteral LiteralLoc
   | ExpressionHole Hole
   | ExpressionUniverse SmallUniverse
@@ -143,13 +143,13 @@ data FunctionParameter = FunctionParameter
 
 instance Hashable FunctionParameter
 
-data Function2 = Function2
-  { _function2Left :: FunctionParameter,
-    _function2Right :: Expression
+data Function = Function
+  { _functionLeft :: FunctionParameter,
+    _functionRight :: Expression
   }
   deriving stock (Eq, Generic)
 
-instance Hashable Function2
+instance Hashable Function
 
 makeLenses ''Module
 makeLenses ''Include
@@ -160,7 +160,7 @@ makeLenses ''AxiomDef
 makeLenses ''ModuleBody
 makeLenses ''Application
 makeLenses ''TypedExpression
-makeLenses ''Function2
+makeLenses ''Function
 makeLenses ''FunctionParameter
 makeLenses ''InductiveParameter
 makeLenses ''InductiveConstructorDef
@@ -176,9 +176,9 @@ instance HasAtomicity Expression where
     ExpressionLiteral l -> atomicity l
     ExpressionHole {} -> Atom
     ExpressionUniverse u -> atomicity u
-    ExpressionFunction2 f -> atomicity f
+    ExpressionFunction f -> atomicity f
 
-instance HasAtomicity Function2 where
+instance HasAtomicity Function where
   atomicity = const (Aggregate funFixity)
 
 instance HasAtomicity ConstructorApp where
@@ -200,8 +200,8 @@ instance HasLoc FunctionParameter where
         Nothing -> id
         Just i -> (i <>)
 
-instance HasLoc Function2 where
-  getLoc (Function2 l r) = getLoc l <> getLoc r
+instance HasLoc Function where
+  getLoc (Function l r) = getLoc l <> getLoc r
 
 instance HasLoc Expression where
   getLoc = \case
@@ -210,7 +210,7 @@ instance HasLoc Expression where
     ExpressionLiteral l -> getLoc l
     ExpressionHole h -> getLoc h
     ExpressionUniverse u -> getLoc u
-    ExpressionFunction2 u -> getLoc u
+    ExpressionFunction u -> getLoc u
 
 instance HasLoc Iden where
   getLoc = \case

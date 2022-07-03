@@ -94,10 +94,10 @@ mkConcreteType = fmap ConcreteType . go
         r' <- go r
         return (ExpressionApplication (Application l' r' i))
       ExpressionUniverse {} -> return t
-      ExpressionFunction2 (Function2 l r) -> do
+      ExpressionFunction (Function l r) -> do
         l' <- goParam l
         r' <- go r
-        return (ExpressionFunction2 (Function2 l' r'))
+        return (ExpressionFunction (Function l' r'))
       ExpressionHole {} -> Nothing
       ExpressionLiteral {} -> return t
       ExpressionIden i -> case i of
@@ -119,7 +119,7 @@ instance HasExpressions Expression where
   leafExpressions f e = case e of
     ExpressionIden {} -> f e
     ExpressionApplication a -> ExpressionApplication <$> leafExpressions f a
-    ExpressionFunction2 fun -> ExpressionFunction2 <$> leafExpressions f fun
+    ExpressionFunction fun -> ExpressionFunction <$> leafExpressions f fun
     ExpressionLiteral {} -> f e
     ExpressionUniverse {} -> f e
     ExpressionHole {} -> f e
@@ -129,11 +129,11 @@ instance HasExpressions FunctionParameter where
     e' <- leafExpressions f e
     pure (FunctionParameter m i e')
 
-instance HasExpressions Function2 where
-  leafExpressions f (Function2 l r) = do
+instance HasExpressions Function where
+  leafExpressions f (Function l r) = do
     l' <- leafExpressions f l
     r' <- leafExpressions f r
-    pure (Function2 l' r')
+    pure (Function l' r')
 
 instance HasExpressions Application where
   leafExpressions f (Application l r i) = do
@@ -146,7 +146,7 @@ _ExpressionHole :: Traversal' Expression Hole
 _ExpressionHole f e = case e of
   ExpressionIden {} -> pure e
   ExpressionApplication {} -> pure e
-  ExpressionFunction2 {} -> pure e
+  ExpressionFunction {} -> pure e
   ExpressionLiteral {} -> pure e
   ExpressionUniverse {} -> pure e
   ExpressionHole h -> ExpressionHole <$> f h
@@ -286,15 +286,15 @@ substitutionE m = go
     go x = case x of
       ExpressionIden i -> goIden i
       ExpressionApplication a -> ExpressionApplication (goApp a)
-      ExpressionFunction2 a -> ExpressionFunction2 (goFun a)
+      ExpressionFunction a -> ExpressionFunction (goFun a)
       ExpressionLiteral {} -> x
       ExpressionUniverse {} -> x
       ExpressionHole {} -> x
 
     goParam :: FunctionParameter -> FunctionParameter
     goParam (FunctionParameter v i ty) = FunctionParameter v i (go ty)
-    goFun :: Function2 -> Function2
-    goFun (Function2 l r) = Function2 (goParam l) (go r)
+    goFun :: Function -> Function
+    goFun (Function l r) = Function (goParam l) (go r)
     goApp :: Application -> Application
     goApp (Application l r i) = Application (go l) (go r) i
     goIden :: Iden -> Expression
@@ -320,17 +320,17 @@ foldFunType l r = go l
     go :: [FunctionParameter] -> Expression
     go = \case
       [] -> r
-      arg : args -> ExpressionFunction2 (Function2 arg (go args))
+      arg : args -> ExpressionFunction (Function arg (go args))
 
 -- -- | a -> (b -> c)  ==> ([a, b], c)
 unfoldFunType :: Expression -> ([FunctionParameter], Expression)
 unfoldFunType t = case t of
-  ExpressionFunction2 (Function2 l r) -> first (l :) (unfoldFunType r)
+  ExpressionFunction (Function l r) -> first (l :) (unfoldFunType r)
   _ -> ([], t)
 
 unfoldTypeAbsType :: Expression -> ([VarName], Expression)
 unfoldTypeAbsType t = case t of
-  ExpressionFunction2 (Function2 (FunctionParameter (Just var) _ _) r) ->
+  ExpressionFunction (Function (FunctionParameter (Just var) _ _) r) ->
     first (var :) (unfoldTypeAbsType r)
   _ -> ([], t)
 
