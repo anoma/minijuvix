@@ -93,7 +93,7 @@ data Application = Application
     _appImplicit :: IsImplicit
   }
 
--- TODO: Eq and Hashable instances ignore the _typAppImplicit field
+-- TODO: Eq and Hashable instances ignore the _appImplicit field
 --  to workaround a crash in Micro->Mono translation when looking up
 -- a concrete type.
 instance Eq Application where
@@ -131,9 +131,6 @@ data InductiveConstructorDef = InductiveConstructorDef
     _constructorParameters :: [Expression]
   }
 
--- TODO: Eq and Hashable instances ignore the _typAppImplicit field
---  to workaround a crash in Micro->Mono translation when looking up
--- a concrete type.
 data FunctionParameter = FunctionParameter
   { _paramName :: Maybe VarName,
     _paramImplicit :: IsImplicit,
