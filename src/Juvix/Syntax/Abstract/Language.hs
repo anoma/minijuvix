@@ -167,7 +167,8 @@ data InductiveDef = InductiveDef
     _inductiveBuiltin :: Maybe BuiltinInductive,
     _inductiveParameters :: [FunctionParameter],
     _inductiveType :: Expression,
-    _inductiveConstructors :: [InductiveConstructorDef]
+    _inductiveConstructors :: [InductiveConstructorDef],
+    _inductiveCheckPositivity :: Bool
   }
   deriving stock (Eq, Show)
 
