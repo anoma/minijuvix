@@ -162,7 +162,7 @@ checkStrictlyPositiveOccurrences indName ctorName name recLimit ref = helper Fal
                   -- The type ty', by assumption, has to be strictly positive. It is already in scope.
                   -- Then, it remains to check that the ty' type constructor parameters in which `name`
                   --  is, they are all strictly positive. TODO: This last check is done on demand, but it
-                  -- could be cached, if the infotable becomes stateful.
+                  -- could be cached with a state, e.g. SPositiveNames : HashSet Name
                   InductiveInfo indTy' <- lookupInductive ty'
                   let (_, args) = unfoldApplication tyApp
                       paramsTy' = indTy' ^. inductiveParameters
@@ -171,7 +171,7 @@ checkStrictlyPositiveOccurrences indName ctorName name recLimit ref = helper Fal
                         [(InductiveParameter, Expression)] ->
                         Sem r ()
                       go = \case
-                        ((InductiveParameter pName _, arg) : ps) ->
+                        ((InductiveParameter pName, arg) : ps) ->
                           if
                               | nameInExpression name arg -> do
                                   unless
@@ -343,9 +343,6 @@ checkPatterns ::
   Sem r LocalVars
 checkPatterns name = execState emptyLocalVars . mapM_ (uncurry (checkPattern name))
 
-typeOfArg :: FunctionParameter -> Expression
-typeOfArg = (^. paramType)
-
 checkPattern ::
   forall r.
   Members '[Reader InfoTable, Error TypeCheckerError, State LocalVars] r =>
@@ -358,7 +355,7 @@ checkPattern funName = go
     go :: FunctionParameter -> Pattern -> Sem r ()
     go argTy p = do
       tyVarMap <- fmap (ExpressionIden . IdenVar) . (^. localTyMap) <$> get
-      let ty = substitutionE tyVarMap (typeOfArg argTy)
+      let ty = substitutionE tyVarMap (argTy ^. paramType)
           unbrace = \case
             PatternBraces b -> b
             x -> x
