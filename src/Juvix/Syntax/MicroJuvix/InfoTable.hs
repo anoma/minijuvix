@@ -71,12 +71,12 @@ buildTable1 m = InfoTable {..} <> buildTable (map (^. includeModule) includes)
     _infoConstructors :: HashMap Name ConstructorInfo
     _infoConstructors =
       HashMap.fromList
-        [ (c ^. constructorName, ConstructorInfo params args ind)
+        [ (c ^. inductiveConstructorName, ConstructorInfo params args ind)
           | StatementInductive d <- ss,
             let ind = d ^. inductiveName,
             let params = d ^. inductiveParameters,
             c <- d ^. inductiveConstructors,
-            let args = c ^. constructorParameters
+            let args = c ^. inductiveConstructorParameters
         ]
     _infoFunctions :: HashMap Name FunctionInfo
     _infoFunctions =
@@ -122,7 +122,7 @@ constructorArgTypes i =
     i ^. constructorInfoArgs
   )
 
-constructorType :: Member (Reader InfoTable) r => Name -> Sem r Expression
+constructorType :: Member (Reader InfoTable) r => ConstrName -> Sem r Expression
 constructorType c = do
   info <- lookupConstructor c
   let (inductiveParams, constrArgs) = constructorArgTypes info
