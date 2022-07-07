@@ -128,7 +128,7 @@ install-watch:
 	stack install --fast --jobs $(THREADS) --file-watch
 
 repl:
-	stack ghci MiniJuvix:lib
+	stack ghci Juvix:lib
 
 .PHONY : install-pre-commit
 install-pre-commit:
@@ -143,9 +143,9 @@ pre-commit :
 update-submodules :
 	git submodule foreach git pull origin main
 
-.PHONY : minijuvix-stdlib
-minijuvix-stdlib:
-	git submodule update --init minijuvix-stdlib
+.PHONY : juvix-stdlib
+juvix-stdlib:
+	git submodule update --init juvix-stdlib
 
 .PHONY : get-changelog-updates
 get-changelog-updates :
