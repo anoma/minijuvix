@@ -11,7 +11,6 @@ import Juvix.Syntax.Concrete.Scoped.Name.NameKind
 import Juvix.Syntax.Concrete.Scoped.VisibilityAnn
 import Juvix.Syntax.Fixity qualified as C
 import Juvix.Syntax.NameId
-import Lens.Micro.Platform
 
 --------------------------------------------------------------------------------
 -- Names
