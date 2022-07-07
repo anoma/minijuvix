@@ -239,7 +239,7 @@ expressionAtom =
     <|> (AtomFunArrow <$ kwRightArrow)
     <|> (AtomHole <$> hole)
     <|> parens (AtomParens <$> parseExpressionAtoms)
-    <|> (braces (AtomBraces <$> withLoc parseExpressionAtoms))
+    <|> braces (AtomBraces <$> withLoc parseExpressionAtoms)
 
 parseExpressionAtoms ::
   Members '[Reader ParserParams, InfoTableBuilder] r =>
