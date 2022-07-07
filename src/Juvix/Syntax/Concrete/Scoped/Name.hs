@@ -5,13 +5,13 @@ module Juvix.Syntax.Concrete.Scoped.Name
   )
 where
 
-import Lens.Micro.Platform
 import Juvix.Prelude
 import Juvix.Syntax.Concrete.Name qualified as C
 import Juvix.Syntax.Concrete.Scoped.Name.NameKind
 import Juvix.Syntax.Concrete.Scoped.VisibilityAnn
 import Juvix.Syntax.Fixity qualified as C
 import Juvix.Syntax.NameId
+import Lens.Micro.Platform
 
 --------------------------------------------------------------------------------
 -- Names

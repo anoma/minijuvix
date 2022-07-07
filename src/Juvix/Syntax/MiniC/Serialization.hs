@@ -1,12 +1,12 @@
 module Juvix.Syntax.MiniC.Serialization where
 
+import Juvix.Internal.Strings qualified as Str
+import Juvix.Prelude
+import Juvix.Syntax.MiniC.Language
 import Language.C qualified as C
 import Language.C.Data.Ident qualified as C
 import Language.C.Pretty qualified as P
 import Language.C.Syntax
-import Juvix.Internal.Strings qualified as Str
-import Juvix.Prelude
-import Juvix.Syntax.MiniC.Language
 import Text.PrettyPrint.HughesPJ qualified as HP
 
 encAngles :: HP.Doc -> HP.Doc

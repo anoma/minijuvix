@@ -11,7 +11,6 @@ import Control.Monad.Combinators.Expr qualified as P
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet qualified as HashSet
 import Data.List.NonEmpty qualified as NonEmpty
-import Lens.Micro.Platform
 import Juvix.Internal.NameIdGen
 import Juvix.Pipeline.EntryPoint
 import Juvix.Prelude
@@ -28,6 +27,7 @@ import Juvix.Syntax.Concrete.Scoped.Name qualified as S
 import Juvix.Syntax.Concrete.Scoped.Scope
 import Juvix.Syntax.Concrete.Scoped.Scoper.InfoTableBuilder
 import Juvix.Syntax.Concrete.Scoped.Scoper.ScoperResult
+import Lens.Micro.Platform
 
 entryScoper ::
   Members '[Error ScoperError, Files, NameIdGen] r =>
