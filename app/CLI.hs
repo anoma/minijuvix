@@ -55,12 +55,8 @@ descr =
     parseCLI
     ( fullDesc
         <> progDesc "The Juvix compiler."
-        <> headerDoc (Just headDoc)
         <> footerDoc (Just foot)
     )
   where
-    headDoc :: Doc
-    headDoc = dullblue $ bold $ underline "Juvix help"
-
     foot :: Doc
     foot = bold "maintainers: " <> "The Juvix Team"

@@ -14,9 +14,8 @@ $ juvix termination graph
 
 
 $ juvix termination calls --help
-> /Usage\: juvix termination calls \[JUVIX_FILE\] 
-                                   \[\-f\|\-\-function fun1 fun2 ...\] 
-                                   \[\-d\|\-\-show\-decreasing\-args ARG\].*/
+> /Usage\: juvix termination calls \[JUVIX_FILE\] \[\-f\|\-\-function fun1 fun2 ...\] 
+                               \[\-d\|\-\-show\-decreasing\-args ARG\].*/
 >= 0
 
 $ juvix termination graph --help

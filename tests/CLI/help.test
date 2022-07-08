@@ -1,9 +1,6 @@
 $ juvix --help
-> /.*
-Usage\: juvix \(\(\-v\|\-\-version\) \| \(\-h\|\-\-help\) \| \[\-\-no\-colors\] \[\-\-show\-name\-ids\]
-                   \[\-\-only\-errors\] \[\-\-no\-termination\] \[\-\-no\-stdlib\] COMMAND\)
-.*
-/
+> /Usage: juvix \(\(\-v\|\-\-version\) \| \(\-h\|\-\-help\) \| \[\-\-no\-colors\] \[\-\-show\-name\-ids\] 
+               \[\-\-only\-errors\] \[\-\-no\-termination\] \[\-\-no\-stdlib\] COMMAND\).*/
 >= 0
 
 

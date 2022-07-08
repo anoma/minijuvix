@@ -64,6 +64,13 @@ docs :
 	cd docs ; \
 	sh conv.sh
 
+.PHONY: ci
+ci: 
+	make ci-build
+	make install
+	make ci-test
+	make test-shell
+
 .PHONY : build
 build:
 	stack build --fast --jobs $(THREADS)
