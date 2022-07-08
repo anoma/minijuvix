@@ -65,7 +65,7 @@ docs :
 	sh conv.sh
 
 .PHONY: ci
-ci: 
+ci:
 	make ci-build
 	make install
 	make ci-test
