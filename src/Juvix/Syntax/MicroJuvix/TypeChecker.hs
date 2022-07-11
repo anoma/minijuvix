@@ -5,6 +5,7 @@ module Juvix.Syntax.MicroJuvix.TypeChecker
   )
 where
 
+import Data.HashSet qualified as HashSet
 import Data.HashMap.Strict qualified as HashMap
 import Juvix.Internal.NameIdGen
 import Juvix.Prelude hiding (fromEither)
