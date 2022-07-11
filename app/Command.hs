@@ -23,10 +23,13 @@ import Juvix.Syntax.Concrete.Scoped.Pretty qualified as Scoper
 import Options.Applicative
 
 data Command
-  = Compile CompileOptions
-  | DisplayRoot
-  | Highlight
+  = -- Visible commands
+    Check
+  | Compile CompileOptions
   | Html HtmlOptions
+  | -- Internal commands
+    DisplayRoot
+  | Highlight
   | MicroJuvix MicroJuvixCommand
   | MiniC
   | MiniHaskell
@@ -48,20 +51,33 @@ parseCommandGlobalOptions = do
   cmd <-
     hsubparser
       ( mconcat
-          [ commandCompile,
-            commandHighlight,
-            commandHtml,
-            commandMicroJuvix,
-            commandMiniC,
-            commandMonoJuvix,
-            commandParse,
-            commandScope,
-            commandShowRoot,
-            commandTermination
+          [ commandCheck,
+            commandCompile,
+            commandHtml
           ]
       )
-      <|> hsubparser (commandMiniHaskell <> internal)
+      <|> hsubparser
+        ( internal
+            <> mconcat
+              [ commandHighlight,
+                commandMicroJuvix,
+                commandMiniC,
+                commandMiniHaskell,
+                commandMonoJuvix,
+                commandParse,
+                commandScope,
+                commandShowRoot,
+                commandTermination
+              ]
+        )
   return (cmd {_cliGlobalOptions = opts <> cmd ^. cliGlobalOptions})
+
+commandCheck :: Mod CommandFields CommandGlobalOptions
+commandCheck =
+  command "check" $
+    info
+      (addGlobalOptions (pure Check))
+      (progDesc "Type check a Juvix file")
 
 commandCompile :: Mod CommandFields CommandGlobalOptions
 commandCompile =

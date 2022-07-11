@@ -14,6 +14,22 @@ newtype MicroJuvixTypeOptions = MicroJuvixTypeOptions
 
 makeLenses ''MicroJuvixTypeOptions
 
+defaultMicroJuvixTypeOptions :: MicroJuvixTypeOptions
+defaultMicroJuvixTypeOptions =
+  MicroJuvixTypeOptions
+    { _microJuvixTypePrint = False
+    }
+
+instance Semigroup MicroJuvixTypeOptions where
+  o1 <> o2 =
+    MicroJuvixTypeOptions
+      { _microJuvixTypePrint = (o1 ^. microJuvixTypePrint) || (o2 ^. microJuvixTypePrint)
+      }
+
+instance Monoid MicroJuvixTypeOptions where
+  mempty = defaultMicroJuvixTypeOptions
+  mappend = (<>)
+
 parseMicroJuvixCommand :: Parser MicroJuvixCommand
 parseMicroJuvixCommand =
   hsubparser $
