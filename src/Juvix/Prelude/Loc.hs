@@ -71,7 +71,6 @@ getLocSpan = foldr1 (<>) . fmap getLoc
 instance Semigroup Interval where
   Interval f s e <> Interval _f s' e' = Interval f (min s s') (max e e')
 
-
 makeLenses ''Interval
 makeLenses ''FileLoc
 makeLenses ''Loc

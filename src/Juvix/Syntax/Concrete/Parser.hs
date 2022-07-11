@@ -76,10 +76,10 @@ topStatement = top statement
 --------------------------------------------------------------------------------
 
 symbol :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r Symbol
-symbol = uncurry Symbol <$> identifierL
+symbol = uncurry (flip WithLoc) <$> identifierL
 
 dottedSymbol :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r (NonEmpty Symbol)
-dottedSymbol = fmap (uncurry Symbol) <$> dottedIdentifier
+dottedSymbol = fmap (uncurry (flip WithLoc)) <$> dottedIdentifier
 
 name :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r Name
 name = do
@@ -262,7 +262,7 @@ hole = snd <$> interval kwHole
 literalInteger :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r LiteralLoc
 literalInteger = do
   (x, loc) <- integer
-  return (WithLoc loc (LitInteger x) )
+  return (WithLoc loc (LitInteger x))
 
 literalString :: Members '[Reader ParserParams, InfoTableBuilder] r => ParsecS r LiteralLoc
 literalString = do

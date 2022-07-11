@@ -4,10 +4,10 @@ import Data.Text qualified as Text
 import GHC.Unicode
 import Juvix.Internal.Strings qualified as Str
 import Juvix.Prelude
-import Juvix.Syntax.Loc
 import Juvix.Syntax.Concrete.Base hiding (Pos, space)
 import Juvix.Syntax.Concrete.Base qualified as P
 import Juvix.Syntax.Concrete.Parser.InfoTableBuilder
+import Juvix.Syntax.Loc
 import Text.Megaparsec.Char.Lexer qualified as L
 
 type OperatorSym = Text

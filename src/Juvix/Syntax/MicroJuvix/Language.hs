@@ -14,11 +14,11 @@ where
 import Juvix.Prelude
 import Juvix.Syntax.Abstract.Name
 import Juvix.Syntax.Concrete.Builtins
-import Juvix.Syntax.Loc
-import Juvix.Syntax.Concrete.Literal 
+import Juvix.Syntax.Concrete.Literal
 import Juvix.Syntax.ForeignBlock
 import Juvix.Syntax.Hole
 import Juvix.Syntax.IsImplicit
+import Juvix.Syntax.Loc
 import Juvix.Syntax.Universe hiding (smallUniverse)
 import Juvix.Syntax.Wildcard
 

@@ -22,7 +22,6 @@ import Juvix.Translation.MonoJuvixToMiniC.BuiltinTable
 import Juvix.Translation.MonoJuvixToMiniC.Closure
 import Juvix.Translation.MonoJuvixToMiniC.Types
 
-
 entryMiniC :: forall r. Member Builtins r => Mono.MonoJuvixResult -> Sem r MiniCResult
 entryMiniC i = MiniCResult . serialize <$> cunitResult
   where

@@ -1,14 +1,15 @@
 module Juvix.Syntax.Loc where
 
 import Juvix.Prelude
-import Juvix.Syntax.Fixity
 import Juvix.Prelude.Pretty
+import Juvix.Syntax.Fixity
 
 data WithLoc a = WithLoc
   { _withLocInt :: Interval,
     _withLocParam :: a
   }
   deriving stock (Show)
+
 makeLenses ''WithLoc
 
 instance HasLoc (WithLoc a) where
@@ -28,6 +29,6 @@ instance Ord a => Ord (WithLoc a) where
 
 instance Functor WithLoc where
   fmap = over withLocParam
-  
+
 instance Pretty a => Pretty (WithLoc a) where
   pretty (WithLoc _ a) = pretty a

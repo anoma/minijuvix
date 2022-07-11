@@ -9,8 +9,8 @@ import Juvix.Internal.Strings qualified as Str
 import Juvix.Prelude
 import Juvix.Prelude.Pretty qualified as PP
 import Juvix.Syntax.Concrete.Literal
-import Juvix.Syntax.Loc
 import Juvix.Syntax.Fixity
+import Juvix.Syntax.Loc
 import Juvix.Syntax.MiniHaskell.Language
 import Juvix.Syntax.MiniHaskell.Pretty.Ann
 import Juvix.Syntax.MiniHaskell.Pretty.Options

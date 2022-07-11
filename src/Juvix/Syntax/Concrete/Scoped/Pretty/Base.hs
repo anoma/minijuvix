@@ -468,9 +468,6 @@ instance PrettyCode TopModulePath where
   ppCode TopModulePath {..} =
     dotted <$> mapM ppSymbol (_modulePathDir ++ [_modulePathName])
 
-instance PrettyCode Symbol where
-  ppCode = return . pretty . (^. symbolText)
-
 instance PrettyCode Name where
   ppCode n = case n of
     NameUnqualified s -> ppSymbol s
@@ -679,7 +676,7 @@ ppPatternAtom = case sing :: SStage s of
   SScoped -> ppCodeAtom
 
 instance PrettyCode Text where
-  ppCode = return . pretty 
+  ppCode = return . pretty
 
 instance PrettyCode InfixApplication where
   ppCode i@InfixApplication {..} = do

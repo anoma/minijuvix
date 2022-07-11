@@ -12,9 +12,9 @@ where
 
 import Juvix.Prelude
 import Juvix.Syntax.Concrete.Literal
-import Juvix.Syntax.Loc
 import Juvix.Syntax.Concrete.Parser.InfoTable
 import Juvix.Syntax.Concrete.Parser.ParsedItem
+import Juvix.Syntax.Loc
 
 data InfoTableBuilder m a where
   RegisterItem :: ParsedItem -> InfoTableBuilder m ()
@@ -37,8 +37,6 @@ registerKeyword i =
       { _parsedLoc = i,
         _parsedTag = ParsedTagKeyword
       }
-
-
 
 registerLiteral :: Member InfoTableBuilder r => LiteralLoc -> Sem r LiteralLoc
 registerLiteral l =

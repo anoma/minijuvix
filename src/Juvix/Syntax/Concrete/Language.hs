@@ -27,7 +27,6 @@ import Juvix.Prelude hiding (show)
 import Juvix.Syntax.Backends
 import Juvix.Syntax.Concrete.Builtins
 import Juvix.Syntax.Concrete.Language.Stage
-import Juvix.Syntax.Loc
 import Juvix.Syntax.Concrete.Literal
 import Juvix.Syntax.Concrete.ModuleIsTop
 import Juvix.Syntax.Concrete.Name
@@ -41,6 +40,7 @@ import Juvix.Syntax.Fixity
 import Juvix.Syntax.ForeignBlock
 import Juvix.Syntax.Hole
 import Juvix.Syntax.IsImplicit
+import Juvix.Syntax.Loc
 import Juvix.Syntax.Universe
 import Juvix.Syntax.Usage
 import Juvix.Syntax.Wildcard

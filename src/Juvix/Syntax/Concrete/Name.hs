@@ -2,7 +2,6 @@ module Juvix.Syntax.Concrete.Name where
 
 import Data.List.NonEmpty.Extra qualified as NonEmpty
 import Juvix.Prelude
-import Prettyprinter
 import Juvix.Syntax.Loc
 
 type Symbol = WithLoc Text

@@ -9,7 +9,6 @@ where
 import Juvix.Prelude.Base
 import Juvix.Prelude.Error.GenericError
 
-
 data JuvixError
   = forall a. (ToGenericError a, Typeable a) => JuvixError a
 
