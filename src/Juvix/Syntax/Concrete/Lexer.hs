@@ -142,7 +142,6 @@ allKeywords :: Members '[Reader ParserParams, InfoTableBuilder] r => [ParsecS r 
 allKeywords =
   [ kwAssignment,
     kwAxiom,
-    -- kwBuiltin, -- no need to be a reserved keyword
     kwColon,
     kwColonOmega,
     kwColonOne,

@@ -678,6 +678,9 @@ ppPatternAtom = case sing :: SStage s of
   SParsed -> ppCodeAtom
   SScoped -> ppCodeAtom
 
+instance PrettyCode Text where
+  ppCode = return . pretty 
+
 instance PrettyCode InfixApplication where
   ppCode i@InfixApplication {..} = do
     infixAppLeft' <- ppLeftExpression (getFixity i) _infixAppLeft
