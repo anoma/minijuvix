@@ -3,6 +3,7 @@ module Juvix.Prelude.Files.Error where
 import Juvix.Prelude.Base
 import Juvix.Prelude.Error
 import Juvix.Prelude.Pretty
+import Juvix.Prelude.Loc
 
 data FilesErrorCause = StdlibConflict
   deriving stock (Show)

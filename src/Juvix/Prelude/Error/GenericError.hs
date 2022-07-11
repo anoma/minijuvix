@@ -5,7 +5,7 @@ where
 
 import Juvix.Prelude.Base
 import Juvix.Prelude.Pretty
-import Juvix.Syntax.Concrete.Loc
+import Juvix.Prelude.Loc
 import Prettyprinter.Render.Terminal qualified as Ansi
 import Prettyprinter.Render.Text
 import System.Console.ANSI qualified as Ansi

@@ -1,8 +1,12 @@
-module Juvix.Syntax.Concrete.Literal where
+module Juvix.Syntax.Concrete.Literal 
+ where
 
 import Juvix.Prelude
 import Juvix.Syntax.Fixity
+import Juvix.Syntax.Loc
 import Prettyprinter
+
+type LiteralLoc = WithLoc Literal
 
 data Literal
   = LitString Text

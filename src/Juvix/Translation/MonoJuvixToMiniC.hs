@@ -22,6 +22,7 @@ import Juvix.Translation.MonoJuvixToMiniC.BuiltinTable
 import Juvix.Translation.MonoJuvixToMiniC.Closure
 import Juvix.Translation.MonoJuvixToMiniC.Types
 
+
 entryMiniC :: forall r. Member Builtins r => Mono.MonoJuvixResult -> Sem r MiniCResult
 entryMiniC i = MiniCResult . serialize <$> cunitResult
   where
@@ -397,7 +398,7 @@ goApplication a = do
       Mono.ExpressionLiteral {} -> impossible
 
 goLiteral :: C.LiteralLoc -> Literal
-goLiteral C.LiteralLoc {..} = case _literalLocLiteral of
+goLiteral l = case l ^. C.withLocParam of
   C.LitString s -> LiteralString s
   C.LitInteger i -> LiteralInt i
 

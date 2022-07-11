@@ -5,9 +5,9 @@ module Juvix.Syntax.Concrete.Language
     module Juvix.Syntax.Concrete.Name,
     module Juvix.Syntax.Concrete.Scoped.NameRef,
     module Juvix.Syntax.Concrete.Builtins,
-    module Juvix.Syntax.Concrete.Loc,
+    module Juvix.Syntax.Loc,
+    module Juvix.Syntax.Concrete.Literal,
     module Juvix.Syntax.Hole,
-    module Juvix.Syntax.Concrete.LiteralLoc,
     module Juvix.Syntax.IsImplicit,
     module Juvix.Syntax.Backends,
     module Juvix.Syntax.ForeignBlock,
@@ -27,8 +27,8 @@ import Juvix.Prelude hiding (show)
 import Juvix.Syntax.Backends
 import Juvix.Syntax.Concrete.Builtins
 import Juvix.Syntax.Concrete.Language.Stage
-import Juvix.Syntax.Concrete.LiteralLoc
-import Juvix.Syntax.Concrete.Loc
+import Juvix.Syntax.Loc
+import Juvix.Syntax.Concrete.Literal
 import Juvix.Syntax.Concrete.ModuleIsTop
 import Juvix.Syntax.Concrete.Name
 import Juvix.Syntax.Concrete.PublicAnn
