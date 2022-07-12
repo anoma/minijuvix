@@ -44,7 +44,7 @@ parseCommandGlobalOptions = do
 
 commandCheck :: Mod CommandFields CommandGlobalOptions
 commandCheck =
-  command "check" $
+  command "typecheck" $
     info
       (addGlobalOptions (pure Check))
       (progDesc "Type check a Juvix file")
