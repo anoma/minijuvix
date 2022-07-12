@@ -57,7 +57,7 @@ data FunctionDef = FunctionDef
 
 data FunctionClause = FunctionClause
   { _clauseName :: FunctionName,
-    _clausePatterns :: [Pattern],
+    _clausePatterns :: [PatternArg],
     _clauseBody :: Expression
   }
 
@@ -105,14 +105,18 @@ instance Hashable Application where
 -- | Fully applied constructor in a pattern.
 data ConstructorApp = ConstructorApp
   { _constrAppConstructor :: Name,
-    _constrAppParameters :: [Pattern]
+    _constrAppParameters :: [PatternArg]
+  }
+
+data PatternArg = PatternArg {
+  _patternArgIsImplicit :: IsImplicit,
+  _patternArgPattern :: Pattern
   }
 
 data Pattern
   = PatternVariable VarName
   | PatternConstructorApp ConstructorApp
   | PatternWildcard Wildcard
-  | PatternBraces Pattern
 
 newtype InductiveParameter = InductiveParameter
   { _inductiveParamName :: VarName
@@ -149,6 +153,7 @@ data Function = Function
 instance Hashable Function
 
 makeLenses ''Module
+makeLenses ''PatternArg
 makeLenses ''Include
 makeLenses ''FunctionDef
 makeLenses ''FunctionClause
@@ -183,12 +188,16 @@ instance HasAtomicity ConstructorApp where
     | null args = Atom
     | otherwise = Aggregate appFixity
 
+instance HasAtomicity PatternArg where
+  atomicity p
+   | Implicit <- p ^. patternArgIsImplicit = Atom
+   | otherwise = atomicity (p ^. patternArgPattern)
+
 instance HasAtomicity Pattern where
   atomicity p = case p of
     PatternConstructorApp a -> atomicity a
     PatternVariable {} -> Atom
     PatternWildcard {} -> Atom
-    PatternBraces {} -> Atom
 
 instance HasLoc FunctionParameter where
   getLoc f = v (getLoc (f ^. paramType))
@@ -224,8 +233,10 @@ instance HasLoc Pattern where
   getLoc = \case
     PatternVariable v -> getLoc v
     PatternConstructorApp a -> getLoc a
-    PatternBraces p -> getLoc p
     PatternWildcard i -> getLoc i
+
+instance HasLoc PatternArg where
+  getLoc = getLoc . (^. patternArgPattern)
 
 instance HasLoc ConstructorApp where
   getLoc (ConstructorApp c ps) =
