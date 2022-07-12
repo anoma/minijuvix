@@ -85,7 +85,7 @@ runCommand cmdWithOpts = do
       toAnsiText' = toAnsiText (not (globalOpts ^. globalNoColors))
   root <- embed (findRoot cmdWithOpts)
   case cmd of
-    (InternalCmd DisplayRoot) -> say (pack root)
+    (Internal DisplayRoot) -> say (pack root)
     _ -> do
       -- Other commands require an entry point:
       case getEntryPoint root globalOpts of
@@ -94,7 +94,7 @@ runCommand cmdWithOpts = do
           where
             commandHelper = \case
               -- Visible commands
-              Check -> commandHelper (InternalCmd (MicroJuvix (TypeCheck mempty)))
+              Check -> commandHelper (Internal (MicroJuvix (TypeCheck mempty)))
               Compile localOpts -> do
                 miniC <- (^. MiniC.resultCCode) <$> runPipeline (upToMiniC entryPoint)
                 let inputFile = entryPoint ^. mainModulePath
@@ -106,7 +106,7 @@ runCommand cmdWithOpts = do
                 res <- runPipeline (upToScoping entryPoint)
                 let m = head (res ^. Scoper.resultModules)
                 embed (genHtml Scoper.defaultOptions _htmlRecursive _htmlTheme _htmlOutputDir _htmlPrintMetadata m)
-              (InternalCmd internalCmd) -> case internalCmd of
+              (Internal cmd') -> case cmd' of
                 Highlight -> do
                   res <- runPipelineEither (upToScoping entryPoint)
                   case res of

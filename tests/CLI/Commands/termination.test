@@ -1,23 +1,23 @@
-$ juvix termination
+$ juvix internal termination
 >2 /Usage\: juvix termination COMMAND \[JUVIX_FILE\].*/
 >= 1
 
-$ juvix termination calls
+$ juvix internal termination calls
 > /Provide.*/
 >2
 >=1
 
-$ juvix termination graph
+$ juvix internal termination graph
 > /Provide.*/
 >2
 >= 1
 
 
-$ juvix termination calls --help
+$ juvix internal termination calls --help
 > /Usage\: juvix termination calls \[JUVIX_FILE\] \[\-f\|\-\-function fun1 fun2 ...\] 
                                \[\-d\|\-\-show\-decreasing\-args ARG\].*/
 >= 0
 
-$ juvix termination graph --help
+$ juvix internal termination graph --help
 > /Usage\: juvix termination graph \[JUVIX_FILE\] \[\-f\|\-\-function ARG\].*/
 >= 0

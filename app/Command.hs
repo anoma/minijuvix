@@ -19,7 +19,7 @@ data Command
   = Check
   | Compile CompileOptions
   | Html HtmlOptions
-  | InternalCmd InternalCommand
+  | Internal InternalCommand
 
 data CommandGlobalOptions = CommandGlobalOptions
   { _cliCommand :: Command,
@@ -40,7 +40,6 @@ parseCommandGlobalOptions = do
             commandInternal
           ]
       )
-
   return (cmd {_cliGlobalOptions = opts <> cmd ^. cliGlobalOptions})
 
 commandCheck :: Mod CommandFields CommandGlobalOptions
@@ -68,8 +67,8 @@ commandInternal :: Mod CommandFields CommandGlobalOptions
 commandInternal =
   command "internal" $
     info
-      (addGlobalOptions (InternalCmd <$> parseInternalCommand))
-      (progDesc "Interal subcommands for Juvix developers")
+      (addGlobalOptions (Internal <$> parseInternalCommand))
+      (progDesc "Internal subcommands")
 
 --------------------------------------------------------------------------------
 -- Misc
@@ -85,7 +84,7 @@ liftParserCmd cmd = cmdDefaultOptions <$> cmd
 addGlobalOptions :: Parser Command -> Parser CommandGlobalOptions
 addGlobalOptions parser = do
   flags1 <- parseGlobalFlags True
-  ~(opts2, _cliCommand) <- addParser (parseGlobalOptions True) parser
+  ~(opts2, _cliCommand) <- addParser (parseGlobalFlags True) parser
   fs <- parserInputFiles
   return
     CommandGlobalOptions
