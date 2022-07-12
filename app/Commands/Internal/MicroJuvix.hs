@@ -1,4 +1,4 @@
-module Commands.MicroJuvix where
+module Commands.Internal.MicroJuvix where
 
 import Juvix.Prelude hiding (Doc)
 import Options.Applicative
