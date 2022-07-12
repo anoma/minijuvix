@@ -8,7 +8,7 @@ $ juvix internal parse tests/positive/Axiom.juvix
 >2
 >= 0
 
-$ juvix internal parse tests/positive/Axiom.juvix --no-pretty-show
+$ juvix internal parse --no-pretty-show tests/positive/Axiom.juvix
 > /Module \{.*/
 >2
 >= 0

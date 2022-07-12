@@ -1,9 +1,9 @@
 $ juvix internal microjuvix
->2 /Usage: juvix internal microjuvix .*/
+>2 /Usage: juvix internal microjuvix.*/
 >= 1
 
 $ juvix internal microjuvix --help
-> /Usage: juvix internal microjuvix COMMAND \[JUVIX_FILE\].*/
+> /Usage: juvix internal microjuvix COMMAND.*/
 >= 0
 
 $ juvix internal microjuvix pretty
